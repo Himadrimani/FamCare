@@ -1,0 +1,198 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.XIB" version="3.0" toolsVersion="24506" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES">
+    <device id="retina6_12" orientation="portrait" appearance="light"/>
+    <dependencies>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="24504"/>
+        <capability name="Safe area layout guides" minToolsVersion="9.0"/>
+        <capability name="System colors in document resources" minToolsVersion="11.0"/>
+        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
+    </dependencies>
+    <objects>
+        <placeholder placeholderIdentifier="IBFilesOwner" id="-1" userLabel="File's Owner" customClass="LoginSignupViewController" customModule="HomeScreen" customModuleProvider="target">
+            <connections>
+                <outlet property="cardView" destination="crd-001-vw" id="out-card"/>
+                <outlet property="confirmPasswordTextField" destination="tf4-001-cp" id="out-confirm"/>
+                <outlet property="emailTextField" destination="tf2-001-em" id="out-email"/>
+                <outlet property="modeSegmentedControl" destination="seg-001-md" id="out-seg"/>
+                <outlet property="nameTextField" destination="tf1-001-nm" id="out-name"/>
+                <outlet property="passwordTextField" destination="tf3-001-pw" id="out-pass"/>
+                <outlet property="primaryButton" destination="btn-001-pr" id="out-primary"/>
+                <outlet property="statusLabel" destination="lbl-003-st" id="out-status"/>
+                <outlet property="subtitleLabel" destination="lbl-002-su" id="out-subtitle"/>
+                <outlet property="switchModeButton" destination="btn-002-sw" id="out-switch"/>
+                <outlet property="titleLabel" destination="lbl-001-ti" id="out-title"/>
+                <outlet property="view" destination="root-001-vw" id="out-view"/>
+            </connections>
+        </placeholder>
+        <placeholder placeholderIdentifier="IBFirstResponder" id="-2" customClass="UIResponder"/>
+        <view clearsContextBeforeDrawing="NO" contentMode="scaleToFill" id="root-001-vw">
+            <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>
+            <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+            <subviews>
+                <scrollView clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="scaleToFill" keyboardDismissMode="interactive" translatesAutoresizingMaskIntoConstraints="NO" id="scr-001-vw">
+                    <rect key="frame" x="0.0" y="59" width="393" height="759"/>
+                    <subviews>
+                        <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="cnt-001-vw">
+                            <rect key="frame" x="0.0" y="0.0" width="393" height="759"/>
+                            <subviews>
+                                <stackView opaque="NO" contentMode="scaleToFill" axis="vertical" spacing="24" translatesAutoresizingMaskIntoConstraints="NO" id="stk-001-main">
+                                    <rect key="frame" x="24" y="44" width="345" height="550"/>
+                                    <subviews>
+                                        <stackView opaque="NO" contentMode="scaleToFill" axis="vertical" spacing="8" translatesAutoresizingMaskIntoConstraints="NO" id="stk-002-head">
+                                            <rect key="frame" x="0.0" y="0.0" width="345" height="85"/>
+                                            <subviews>
+                                                <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Welcome back" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="lbl-001-ti">
+                                                    <rect key="frame" x="0.0" y="0.0" width="345" height="38.333333333333336"/>
+                                                    <fontDescription key="fontDescription" type="boldSystem" pointSize="32"/>
+                                                    <color key="textColor" systemColor="labelColor"/>
+                                                    <nil key="highlightedColor"/>
+                                                </label>
+                                                <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Sign in to continue tracking your family wellness." textAlignment="natural" lineBreakMode="tailTruncation" numberOfLines="2" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="lbl-002-su">
+                                                    <rect key="frame" x="0.0" y="46.333333333333336" width="345" height="38.666666666666664"/>
+                                                    <fontDescription key="fontDescription" type="system" pointSize="16"/>
+                                                    <color key="textColor" systemColor="secondaryLabelColor"/>
+                                                    <nil key="highlightedColor"/>
+                                                </label>
+                                            </subviews>
+                                        </stackView>
+                                        <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="crd-001-vw">
+                                            <rect key="frame" x="0.0" y="109" width="345" height="441"/>
+                                            <subviews>
+                                                <stackView opaque="NO" contentMode="scaleToFill" axis="vertical" spacing="14" translatesAutoresizingMaskIntoConstraints="NO" id="stk-003-form">
+                                                    <rect key="frame" x="20" y="22" width="305" height="397"/>
+                                                    <subviews>
+                                                        <segmentedControl opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="left" contentVerticalAlignment="top" selectedSegmentIndex="0" translatesAutoresizingMaskIntoConstraints="NO" id="seg-001-md">
+                                                            <rect key="frame" x="0.0" y="0.0" width="305" height="32"/>
+                                                            <segments>
+                                                                <segment title="Login"/>
+                                                                <segment title="Sign Up"/>
+                                                            </segments>
+                                                            <connections>
+                                                                <action selector="modeChanged:" destination="-1" eventType="valueChanged" id="act-seg-mode"/>
+                                                            </connections>
+                                                        </segmentedControl>
+                                                        <textField opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="left" contentVerticalAlignment="center" borderStyle="roundedRect" placeholder="Full name" textAlignment="natural" minimumFontSize="17" clearButtonMode="whileEditing" translatesAutoresizingMaskIntoConstraints="NO" id="tf1-001-nm">
+                                                            <rect key="frame" x="0.0" y="46" width="305" height="50"/>
+                                                            <constraints>
+                                                                <constraint firstAttribute="height" constant="50" id="hgt-name"/>
+                                                            </constraints>
+                                                            <fontDescription key="fontDescription" type="system" pointSize="16"/>
+                                                            <textInputTraits key="textInputTraits" textContentType="name"/>
+                                                        </textField>
+                                                        <textField opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="left" contentVerticalAlignment="center" borderStyle="roundedRect" placeholder="Email address" textAlignment="natural" minimumFontSize="17" clearButtonMode="whileEditing" translatesAutoresizingMaskIntoConstraints="NO" id="tf2-001-em">
+                                                            <rect key="frame" x="0.0" y="110" width="305" height="50"/>
+                                                            <constraints>
+                                                                <constraint firstAttribute="height" constant="50" id="hgt-email"/>
+                                                            </constraints>
+                                                            <fontDescription key="fontDescription" type="system" pointSize="16"/>
+                                                            <textInputTraits key="textInputTraits" autocapitalizationType="none" keyboardType="emailAddress" textContentType="email"/>
+                                                        </textField>
+                                                        <textField opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="left" contentVerticalAlignment="center" borderStyle="roundedRect" placeholder="Password" textAlignment="natural" minimumFontSize="17" clearButtonMode="whileEditing" translatesAutoresizingMaskIntoConstraints="NO" id="tf3-001-pw">
+                                                            <rect key="frame" x="0.0" y="174" width="305" height="50"/>
+                                                            <constraints>
+                                                                <constraint firstAttribute="height" constant="50" id="hgt-pass"/>
+                                                            </constraints>
+                                                            <fontDescription key="fontDescription" type="system" pointSize="16"/>
+                                                            <textInputTraits key="textInputTraits" secureTextEntry="YES" textContentType="password"/>
+                                                        </textField>
+                                                        <textField opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="left" contentVerticalAlignment="center" borderStyle="roundedRect" placeholder="Confirm password" textAlignment="natural" minimumFontSize="17" clearButtonMode="whileEditing" translatesAutoresizingMaskIntoConstraints="NO" id="tf4-001-cp">
+                                                            <rect key="frame" x="0.0" y="238" width="305" height="50"/>
+                                                            <constraints>
+                                                                <constraint firstAttribute="height" constant="50" id="hgt-confirm"/>
+                                                            </constraints>
+                                                            <fontDescription key="fontDescription" type="system" pointSize="16"/>
+                                                            <textInputTraits key="textInputTraits" secureTextEntry="YES" textContentType="password"/>
+                                                        </textField>
+                                                        <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="btn-001-pr">
+                                                            <rect key="frame" x="0.0" y="302" width="305" height="52"/>
+                                                            <constraints>
+                                                                <constraint firstAttribute="height" constant="52" id="hgt-primary"/>
+                                                            </constraints>
+                                                            <color key="backgroundColor" systemColor="systemBlueColor"/>
+                                                            <color key="tintColor" systemColor="whiteColor"/>
+                                                            <state key="normal" title="Log In"/>
+                                                            <buttonConfiguration key="configuration" style="plain" title="Log In">
+                                                                <color key="baseForegroundColor" systemColor="whiteColor"/>
+                                                            </buttonConfiguration>
+                                                            <connections>
+                                                                <action selector="primaryButtonTapped:" destination="-1" eventType="touchUpInside" id="act-primary"/>
+                                                            </connections>
+                                                        </button>
+                                                        <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="btn-002-sw">
+                                                            <rect key="frame" x="0.0" y="368" width="305" height="20.333333333333314"/>
+                                                            <state key="normal" title="New here? Create an account"/>
+                                                            <buttonConfiguration key="configuration" style="plain" title="New here? Create an account"/>
+                                                            <connections>
+                                                                <action selector="switchModeTapped:" destination="-1" eventType="touchUpInside" id="act-switch"/>
+                                                            </connections>
+                                                        </button>
+                                                        <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="" textAlignment="center" lineBreakMode="tailTruncation" numberOfLines="0" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="lbl-003-st">
+                                                            <rect key="frame" x="0.0" y="402.33333333333331" width="305" height="0.0"/>
+                                                            <fontDescription key="fontDescription" type="system" pointSize="14"/>
+                                                            <nil key="textColor"/>
+                                                            <nil key="highlightedColor"/>
+                                                        </label>
+                                                    </subviews>
+                                                </stackView>
+                                            </subviews>
+                                            <color key="backgroundColor" systemColor="systemBackgroundColor"/>
+                                            <constraints>
+                                                <constraint firstItem="stk-003-form" firstAttribute="top" secondItem="crd-001-vw" secondAttribute="top" constant="22" id="frm-top"/>
+                                                <constraint firstAttribute="trailing" secondItem="stk-003-form" secondAttribute="trailing" constant="20" id="frm-trail"/>
+                                                <constraint firstAttribute="bottom" secondItem="stk-003-form" secondAttribute="bottom" constant="22" id="frm-bottom"/>
+                                                <constraint firstItem="stk-003-form" firstAttribute="leading" secondItem="crd-001-vw" secondAttribute="leading" constant="20" id="frm-lead"/>
+                                            </constraints>
+                                        </view>
+                                    </subviews>
+                                </stackView>
+                            </subviews>
+                            <constraints>
+                                <constraint firstAttribute="trailing" secondItem="stk-001-main" secondAttribute="trailing" constant="24" id="main-trail"/>
+                                <constraint firstAttribute="bottom" relation="greaterThanOrEqual" secondItem="stk-001-main" secondAttribute="bottom" constant="44" id="main-bottom"/>
+                                <constraint firstItem="stk-001-main" firstAttribute="leading" secondItem="cnt-001-vw" secondAttribute="leading" constant="24" id="main-lead"/>
+                                <constraint firstItem="stk-001-main" firstAttribute="top" secondItem="cnt-001-vw" secondAttribute="top" constant="44" id="main-top"/>
+                            </constraints>
+                        </view>
+                    </subviews>
+                    <constraints>
+                        <constraint firstItem="cnt-001-vw" firstAttribute="top" secondItem="scr-001-vw" secondAttribute="top" id="cnt-top"/>
+                        <constraint firstAttribute="trailing" secondItem="cnt-001-vw" secondAttribute="trailing" id="cnt-trail"/>
+                        <constraint firstAttribute="bottom" secondItem="cnt-001-vw" secondAttribute="bottom" id="cnt-bottom"/>
+                        <constraint firstItem="cnt-001-vw" firstAttribute="leading" secondItem="scr-001-vw" secondAttribute="leading" id="cnt-lead"/>
+                        <constraint firstItem="cnt-001-vw" firstAttribute="width" secondItem="scr-001-vw" secondAttribute="width" id="cnt-width"/>
+                        <constraint firstItem="cnt-001-vw" firstAttribute="height" secondItem="scr-001-vw" secondAttribute="height" priority="250" id="cnt-height"/>
+                    </constraints>
+                </scrollView>
+            </subviews>
+            <viewLayoutGuide key="safeArea" id="safe-001-vw"/>
+            <color key="backgroundColor" systemColor="systemGroupedBackgroundColor"/>
+            <constraints>
+                <constraint firstItem="scr-001-vw" firstAttribute="top" secondItem="safe-001-vw" secondAttribute="top" id="scr-top"/>
+                <constraint firstItem="safe-001-vw" firstAttribute="bottom" secondItem="scr-001-vw" secondAttribute="bottom" id="scr-bottom"/>
+                <constraint firstItem="scr-001-vw" firstAttribute="leading" secondItem="safe-001-vw" secondAttribute="leading" id="scr-lead"/>
+                <constraint firstItem="safe-001-vw" firstAttribute="trailing" secondItem="scr-001-vw" secondAttribute="trailing" id="scr-trail"/>
+            </constraints>
+            <point key="canvasLocation" x="-75.572519083969468" y="75.352112676056336"/>
+        </view>
+    </objects>
+    <resources>
+        <systemColor name="labelColor">
+            <color white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+        </systemColor>
+        <systemColor name="secondaryLabelColor">
+            <color red="0.23529411764705882" green="0.23529411764705882" blue="0.2627450980392157" alpha="0.59999999999999998" colorSpace="custom" customColorSpace="sRGB"/>
+        </systemColor>
+        <systemColor name="systemBackgroundColor">
+            <color white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+        </systemColor>
+        <systemColor name="systemBlueColor">
+            <color red="0.0" green="0.47843137254901963" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+        </systemColor>
+        <systemColor name="systemGroupedBackgroundColor">
+            <color red="0.94901960784313721" green="0.94901960784313721" blue="0.96862745098039216" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+        </systemColor>
+        <systemColor name="whiteColor">
+            <color white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+        </systemColor>
+    </resources>
+</document>

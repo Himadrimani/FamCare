@@ -1,0 +1,9 @@
+.build/
+DerivedData/
+xcuserdata/
+*.xcuserstate
+**/xcuserdata/
+.DS_Store
+.env
+.kiro/
+supabase/.temp/

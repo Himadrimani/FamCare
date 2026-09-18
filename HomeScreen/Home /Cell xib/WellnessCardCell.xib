@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.XIB" version="3.0" toolsVersion="24506" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES">
+    <device id="retina6_12" orientation="portrait" appearance="light"/>
+    <dependencies>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="24504"/>
+        <capability name="Safe area layout guides" minToolsVersion="9.0"/>
+        <capability name="System colors in document resources" minToolsVersion="11.0"/>
+        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
+    </dependencies>
+    <objects>
+        <placeholder placeholderIdentifier="IBFilesOwner" id="-1" userLabel="File's Owner"/>
+        <placeholder placeholderIdentifier="IBFirstResponder" id="-2" customClass="UIResponder"/>
+        <collectionViewCell opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" reuseIdentifier="wellness_cell" id="gTV-IL-0wX" customClass="WellnessCardCell" customModule="HomeScreen" customModuleProvider="target">
+            <rect key="frame" x="0.0" y="0.0" width="187" height="128"/>
+            <autoresizingMask key="autoresizingMask"/>
+            <view key="contentView" opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center">
+                <rect key="frame" x="0.0" y="0.0" width="187" height="128"/>
+                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                <subviews>
+                    <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="7WH-7h-175">
+                        <rect key="frame" x="0.0" y="0.0" width="187" height="128"/>
+                        <subviews>
+                            <stackView opaque="NO" contentMode="scaleToFill" alignment="center" spacing="6" translatesAutoresizingMaskIntoConstraints="NO" id="j6g-ao-NXY">
+                                <rect key="frame" x="12" y="2" width="80.333333333333329" height="33"/>
+                                <subviews>
+                                    <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="print" translatesAutoresizingMaskIntoConstraints="NO" id="7Hb-l5-SEr">
+                                        <rect key="frame" x="0.0" y="0.0" width="33" height="33"/>
+                                        <constraints>
+                                            <constraint firstAttribute="height" constant="33" id="860-kQ-HSS"/>
+                                            <constraint firstAttribute="width" constant="33" id="eyS-dW-Pnh"/>
+                                        </constraints>
+                                    </imageView>
+                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Steps" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="7C0-Gi-bPh">
+                                        <rect key="frame" x="39" y="7.6666666666666643" width="41.333333333333343" height="18"/>
+                                        <fontDescription key="fontDescription" type="system" weight="semibold" pointSize="15"/>
+                                        <nil key="textColor"/>
+                                        <nil key="highlightedColor"/>
+                                    </label>
+                                </subviews>
+                            </stackView>
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="8234" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="IRX-cm-Nj1">
+                                <rect key="frame" x="12" y="59.999999999999993" width="163" height="28.666666666666664"/>
+                                <fontDescription key="fontDescription" type="system" pointSize="24"/>
+                                <nil key="textColor"/>
+                                <nil key="highlightedColor"/>
+                            </label>
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="of 10,000 steps" textAlignment="natural" lineBreakMode="tailTruncation" numberOfLines="0" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="Sek-Vk-pnY">
+                                <rect key="frame" x="12" y="93.666666666666671" width="163" height="14.333333333333329"/>
+                                <fontDescription key="fontDescription" type="system" pointSize="12"/>
+                                <nil key="textColor"/>
+                                <nil key="highlightedColor"/>
+                            </label>
+                        </subviews>
+                        <color key="backgroundColor" systemColor="systemBackgroundColor"/>
+                        <constraints>
+                            <constraint firstAttribute="trailing" secondItem="IRX-cm-Nj1" secondAttribute="trailing" constant="12" id="GZK-M4-S3N"/>
+                            <constraint firstAttribute="bottom" secondItem="Sek-Vk-pnY" secondAttribute="bottom" constant="20" id="MGR-O3-ONt"/>
+                            <constraint firstItem="IRX-cm-Nj1" firstAttribute="top" secondItem="j6g-ao-NXY" secondAttribute="bottom" constant="25" id="O1F-Vi-4cl"/>
+                            <constraint firstItem="Sek-Vk-pnY" firstAttribute="leading" secondItem="7WH-7h-175" secondAttribute="leading" constant="12" id="P3e-mC-s83"/>
+                            <constraint firstAttribute="trailing" secondItem="Sek-Vk-pnY" secondAttribute="trailing" constant="12" id="WKc-iU-YFS"/>
+                            <constraint firstItem="IRX-cm-Nj1" firstAttribute="leading" secondItem="j6g-ao-NXY" secondAttribute="leading" id="auD-T1-0Rd"/>
+                            <constraint firstItem="IRX-cm-Nj1" firstAttribute="leading" secondItem="7WH-7h-175" secondAttribute="leading" constant="12" id="gwM-D4-vd4"/>
+                            <constraint firstItem="Sek-Vk-pnY" firstAttribute="top" secondItem="IRX-cm-Nj1" secondAttribute="bottom" constant="5" id="tjU-h0-Dwv"/>
+                        </constraints>
+                    </view>
+                </subviews>
+            </view>
+            <viewLayoutGuide key="safeArea" id="ZTg-uK-7eu"/>
+            <constraints>
+                <constraint firstItem="7WH-7h-175" firstAttribute="leading" secondItem="gTV-IL-0wX" secondAttribute="leading" id="Ce1-2p-tXX"/>
+                <constraint firstItem="7WH-7h-175" firstAttribute="top" secondItem="gTV-IL-0wX" secondAttribute="top" id="bjh-TA-NfT"/>
+                <constraint firstAttribute="trailing" secondItem="7WH-7h-175" secondAttribute="trailing" id="uuK-Wn-BhW"/>
+                <constraint firstAttribute="bottom" secondItem="7WH-7h-175" secondAttribute="bottom" id="x2n-QV-cwG"/>
+            </constraints>
+            <size key="customSize" width="212" height="115"/>
+            <connections>
+                <outlet property="containerView" destination="7WH-7h-175" id="JC3-HH-3lk"/>
+                <outlet property="iconImageView" destination="7Hb-l5-SEr" id="KDL-X2-mnG"/>
+                <outlet property="primaryValueLabel" destination="IRX-cm-Nj1" id="rKJ-Ty-OCh"/>
+                <outlet property="secondaryValueLabel" destination="Sek-Vk-pnY" id="jaR-07-bv6"/>
+                <outlet property="titleLabel" destination="7C0-Gi-bPh" id="waO-7A-Dlk"/>
+            </connections>
+            <point key="canvasLocation" x="-32.824427480916029" y="66.901408450704224"/>
+        </collectionViewCell>
+    </objects>
+    <resources>
+        <image name="print" width="128" height="128"/>
+        <systemColor name="systemBackgroundColor">
+            <color white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+        </systemColor>
+    </resources>
+</document>

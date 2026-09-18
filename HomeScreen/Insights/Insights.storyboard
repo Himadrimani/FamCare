@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="24127" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="5xe-UR-XIx">
+    <device id="retina6_12" orientation="portrait" appearance="light"/>
+    <dependencies>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="24063"/>
+        <capability name="Safe area layout guides" minToolsVersion="9.0"/>
+        <capability name="System colors in document resources" minToolsVersion="11.0"/>
+        <capability name="collection view cell content view" minToolsVersion="11.0"/>
+        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
+    </dependencies>
+    <scenes>
+        <!--Detail Wellness-->
+        <scene sceneID="9kK-uy-b0L">
+            <objects>
+                <viewController storyboardIdentifier="WellnessViewController" id="MHo-th-E2i" customClass="WellnessViewController" customModule="HomeScreen" customModuleProvider="target" sceneMemberID="viewController">
+                    <view key="view" contentMode="scaleToFill" id="pWj-Zm-TRX">
+                        <rect key="frame" x="0.0" y="0.0" width="393" height="680"/>
+                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                        <subviews>
+                            <collectionView clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="scaleToFill" dataMode="prototypes" translatesAutoresizingMaskIntoConstraints="NO" id="aHA-jS-kDm">
+                                <rect key="frame" x="0.0" y="0.0" width="393" height="612"/>
+                                <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                <collectionViewFlowLayout key="collectionViewLayout" automaticEstimatedItemSize="YES" minimumLineSpacing="10" minimumInteritemSpacing="10" id="KOd-iU-9QS">
+                                    <size key="itemSize" width="128" height="128"/>
+                                    <size key="headerReferenceSize" width="0.0" height="0.0"/>
+                                    <size key="footerReferenceSize" width="0.0" height="0.0"/>
+                                    <inset key="sectionInset" minX="0.0" minY="0.0" maxX="0.0" maxY="0.0"/>
+                                </collectionViewFlowLayout>
+                                <cells>
+                                    <collectionViewCell opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" reuseIdentifier="InsightCell" id="fj2-bW-zS4">
+                                        <rect key="frame" x="0.0" y="0.0" width="127.99999999999997" height="128"/>
+                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                        <collectionViewCellContentView key="contentView" opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" insetsLayoutMarginsFromSafeArea="NO" id="81C-rC-Qop">
+                                            <rect key="frame" x="0.0" y="0.0" width="127.99999999999997" height="128"/>
+                                            <autoresizingMask key="autoresizingMask"/>
+                                        </collectionViewCellContentView>
+                                    </collectionViewCell>
+                                </cells>
+                            </collectionView>
+                        </subviews>
+                        <viewLayoutGuide key="safeArea" id="dUZ-MR-Ehg"/>
+                        <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                        <constraints>
+                            <constraint firstItem="aHA-jS-kDm" firstAttribute="top" secondItem="dUZ-MR-Ehg" secondAttribute="top" id="T8V-bn-wiw"/>
+                            <constraint firstItem="dUZ-MR-Ehg" firstAttribute="bottom" secondItem="aHA-jS-kDm" secondAttribute="bottom" id="awk-hh-lHI"/>
+                            <constraint firstItem="aHA-jS-kDm" firstAttribute="leading" secondItem="dUZ-MR-Ehg" secondAttribute="leading" id="lZB-lR-yOb"/>
+                            <constraint firstItem="dUZ-MR-Ehg" firstAttribute="trailing" secondItem="aHA-jS-kDm" secondAttribute="trailing" id="zli-f0-kTZ"/>
+                        </constraints>
+                    </view>
+                    <navigationItem key="navigationItem" title="Detail Wellness" id="Gp3-P1-faW"/>
+                    <connections>
+                        <outlet property="collectionView" destination="aHA-jS-kDm" id="vHF-Pp-PqO"/>
+                    </connections>
+                </viewController>
+                <placeholder placeholderIdentifier="IBFirstResponder" id="bIG-nc-byg" userLabel="First Responder" customClass="UIResponder" sceneMemberID="firstResponder"/>
+            </objects>
+            <point key="canvasLocation" x="4280" y="1886"/>
+        </scene>
+        <!--Insights-->
+        <scene sceneID="zs3-8F-waH">
+            <objects>
+                <viewController id="RNQ-hS-b3E" customClass="InsightFirstViewController" customModule="HomeScreen" customModuleProvider="target" sceneMemberID="viewController">
+                    <view key="view" contentMode="scaleToFill" id="0sH-gf-Xet">
+                        <rect key="frame" x="0.0" y="0.0" width="393" height="680"/>
+                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                        <subviews>
+                            <collectionView clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="scaleToFill" dataMode="prototypes" translatesAutoresizingMaskIntoConstraints="NO" id="yJf-c2-wLh">
+                                <rect key="frame" x="0.0" y="-173" width="393" height="853"/>
+                                <color key="backgroundColor" systemColor="systemBackgroundColor"/>
+                                <collectionViewFlowLayout key="collectionViewLayout" automaticEstimatedItemSize="YES" minimumLineSpacing="10" minimumInteritemSpacing="10" id="3lc-0x-53c">
+                                    <size key="itemSize" width="128" height="128"/>
+                                    <size key="headerReferenceSize" width="0.0" height="0.0"/>
+                                    <size key="footerReferenceSize" width="0.0" height="0.0"/>
+                                    <inset key="sectionInset" minX="0.0" minY="0.0" maxX="0.0" maxY="0.0"/>
+                                </collectionViewFlowLayout>
+                                <cells/>
+                            </collectionView>
+                            <segmentedControl opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="left" contentVerticalAlignment="top" segmentControlStyle="plain" selectedSegmentIndex="0" translatesAutoresizingMaskIntoConstraints="NO" id="naH-JR-cJ7">
+                                <rect key="frame" x="16" y="0.0" width="361" height="32"/>
+                                <color key="backgroundColor" systemColor="systemBackgroundColor"/>
+                                <segments>
+                                    <segment title="Week"/>
+                                    <segment title="Month"/>
+                                </segments>
+                                <connections>
+                                    <action selector="segmentChanged:" destination="RNQ-hS-b3E" eventType="valueChanged" id="gtf-ft-s9p"/>
+                                </connections>
+                            </segmentedControl>
+                        </subviews>
+                        <viewLayoutGuide key="safeArea" id="MR8-Da-hgp"/>
+                        <color key="backgroundColor" systemColor="systemBackgroundColor"/>
+                        <constraints>
+                            <constraint firstItem="naH-JR-cJ7" firstAttribute="top" secondItem="MR8-Da-hgp" secondAttribute="top" id="MZb-7D-RIx"/>
+                            <constraint firstAttribute="bottom" secondItem="yJf-c2-wLh" secondAttribute="bottom" id="YeU-EP-lVr"/>
+                            <constraint firstItem="MR8-Da-hgp" firstAttribute="trailing" secondItem="naH-JR-cJ7" secondAttribute="trailing" constant="16" id="cfk-hy-6de"/>
+                            <constraint firstItem="yJf-c2-wLh" firstAttribute="top" secondItem="0sH-gf-Xet" secondAttribute="top" constant="-173" id="kGV-dp-oaP"/>
+                            <constraint firstItem="yJf-c2-wLh" firstAttribute="leading" secondItem="MR8-Da-hgp" secondAttribute="leading" id="vGz-z9-zVO"/>
+                            <constraint firstItem="naH-JR-cJ7" firstAttribute="leading" secondItem="MR8-Da-hgp" secondAttribute="leading" constant="16" id="wzP-6a-hmi"/>
+                            <constraint firstItem="MR8-Da-hgp" firstAttribute="trailing" secondItem="yJf-c2-wLh" secondAttribute="trailing" id="zuB-Ix-fC8"/>
+                        </constraints>
+                    </view>
+                    <toolbarItems/>
+                    <navigationItem key="navigationItem" title="Insights" id="ee6-dj-Jgg"/>
+                    <simulatedToolbarMetrics key="simulatedBottomBarMetrics"/>
+                    <connections>
+                        <outlet property="graphCollectionView" destination="yJf-c2-wLh" id="hQw-Rg-9OI"/>
+                        <segue destination="MHo-th-E2i" kind="show" identifier="detailed_insight" id="iYO-V5-vov"/>
+                    </connections>
+                </viewController>
+                <placeholder placeholderIdentifier="IBFirstResponder" id="Pqf-Re-bzr" sceneMemberID="firstResponder"/>
+            </objects>
+            <point key="canvasLocation" x="3403.8167938931297" y="1885.9154929577467"/>
+        </scene>
+        <!--Insights-->
+        <scene sceneID="wp5-aB-HIQ">
+            <objects>
+                <placeholder placeholderIdentifier="IBFirstResponder" id="Cex-Et-32R" userLabel="First Responder" customClass="UIResponder" sceneMemberID="firstResponder"/>
+                <navigationController storyboardIdentifier="InsightStoryboard" automaticallyAdjustsScrollViewInsets="NO" useStoryboardIdentifierAsRestorationIdentifier="YES" id="5xe-UR-XIx" sceneMemberID="viewController">
+                    <tabBarItem key="tabBarItem" title="Insights" image="chart.xyaxis.line" catalog="system" id="UE1-0j-qBE"/>
+                    <toolbarItems/>
+                    <navigationBar key="navigationBar" contentMode="scaleToFill" translucent="NO" id="pJl-ZV-LJy">
+                        <rect key="frame" x="0.0" y="118" width="393" height="54"/>
+                        <autoresizingMask key="autoresizingMask"/>
+                        <textAttributes key="titleTextAttributes">
+                            <fontDescription key="fontDescription" name="HelveticaNeue-Bold" family="Helvetica Neue" pointSize="35"/>
+                            <offsetWrapper key="textShadowOffset" horizontal="-252" vertical="0.0"/>
+                        </textAttributes>
+                    </navigationBar>
+                    <nil name="viewControllers"/>
+                    <connections>
+                        <segue destination="RNQ-hS-b3E" kind="relationship" relationship="rootViewController" id="s4B-lB-Hom"/>
+                    </connections>
+                </navigationController>
+            </objects>
+            <point key="canvasLocation" x="2679" y="1886"/>
+        </scene>
+    </scenes>
+    <resources>
+        <image name="chart.xyaxis.line" catalog="system" width="128" height="102"/>
+        <systemColor name="systemBackgroundColor">
+            <color white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+        </systemColor>
+    </resources>
+</document>

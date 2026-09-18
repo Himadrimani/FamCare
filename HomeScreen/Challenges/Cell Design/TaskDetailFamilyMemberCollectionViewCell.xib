@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.XIB" version="3.0" toolsVersion="24127" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES">
+    <device id="retina6_12" orientation="portrait" appearance="light"/>
+    <dependencies>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="24063"/>
+        <capability name="Safe area layout guides" minToolsVersion="9.0"/>
+        <capability name="System colors in document resources" minToolsVersion="11.0"/>
+        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
+    </dependencies>
+    <objects>
+        <placeholder placeholderIdentifier="IBFilesOwner" id="-1" userLabel="File's Owner"/>
+        <placeholder placeholderIdentifier="IBFirstResponder" id="-2" customClass="UIResponder"/>
+        <collectionViewCell opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" reuseIdentifier="TaskDetailFamilyMemberCollectionViewCell" id="gTV-IL-0wX" customClass="TaskDetailFamilyMemberCollectionViewCell" customModule="HomeScreen" customModuleProvider="target">
+            <rect key="frame" x="0.0" y="0.0" width="458" height="89"/>
+            <autoresizingMask key="autoresizingMask"/>
+            <view key="contentView" opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center">
+                <rect key="frame" x="0.0" y="0.0" width="458" height="89"/>
+                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                <subviews>
+                    <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="sister_image" translatesAutoresizingMaskIntoConstraints="NO" id="cFk-Y1-0qM">
+                        <rect key="frame" x="12" y="15" width="70" height="59"/>
+                    </imageView>
+                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Name" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="8VX-mT-7bQ">
+                        <rect key="frame" x="115" y="34" width="45" height="21"/>
+                        <fontDescription key="fontDescription" type="system" pointSize="17"/>
+                        <nil key="textColor"/>
+                        <nil key="highlightedColor"/>
+                    </label>
+                    <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="Ooq-eX-R8y">
+                        <rect key="frame" x="313" y="13" width="125" height="63"/>
+                        <subviews>
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Done/Pending" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="PZc-oJ-lw3">
+                                <rect key="frame" x="9" y="21" width="108" height="21"/>
+                                <fontDescription key="fontDescription" type="system" weight="semibold" pointSize="15"/>
+                                <nil key="textColor"/>
+                                <nil key="highlightedColor"/>
+                            </label>
+                        </subviews>
+                        <color key="backgroundColor" systemColor="systemBackgroundColor"/>
+                        <constraints>
+                            <constraint firstItem="PZc-oJ-lw3" firstAttribute="centerY" secondItem="Ooq-eX-R8y" secondAttribute="centerY" id="EQP-6N-qPw"/>
+                            <constraint firstItem="PZc-oJ-lw3" firstAttribute="leading" secondItem="Ooq-eX-R8y" secondAttribute="leading" constant="12" id="Qmx-RK-aOp"/>
+                            <constraint firstAttribute="trailing" secondItem="PZc-oJ-lw3" secondAttribute="trailing" constant="12" id="whA-II-ONV"/>
+                        </constraints>
+                    </view>
+                </subviews>
+            </view>
+            <viewLayoutGuide key="safeArea" id="ZTg-uK-7eu"/>
+            <constraints>
+                <constraint firstItem="cFk-Y1-0qM" firstAttribute="centerY" secondItem="gTV-IL-0wX" secondAttribute="centerY" id="sAs-9T-nDq"/>
+                <constraint firstItem="cFk-Y1-0qM" firstAttribute="leading" secondItem="gTV-IL-0wX" secondAttribute="leading" constant="16" id="zcJ-wX-xfD"/>
+                <constraint firstItem="cFk-Y1-0qM" firstAttribute="height" constant="44" id="height-image"/>
+                <constraint firstItem="cFk-Y1-0qM" firstAttribute="width" constant="44" id="width-image"/>
+                <constraint firstItem="8VX-mT-7bQ" firstAttribute="centerY" secondItem="gTV-IL-0wX" secondAttribute="centerY" id="Kpz-SS-RUa"/>
+                <constraint firstItem="8VX-mT-7bQ" firstAttribute="leading" secondItem="cFk-Y1-0qM" secondAttribute="trailing" constant="16" id="yM3-vq-Cid"/>
+                <constraint firstItem="Ooq-eX-R8y" firstAttribute="centerY" secondItem="gTV-IL-0wX" secondAttribute="centerY" id="TMZ-FT-qar"/>
+                <constraint firstAttribute="trailing" secondItem="Ooq-eX-R8y" secondAttribute="trailing" constant="16" id="Zr1-11-mWS"/>
+                <constraint firstItem="Ooq-eX-R8y" firstAttribute="height" constant="32" id="M5l-fS-QDK"/>
+            </constraints>
+            <size key="customSize" width="458" height="89"/>
+            <connections>
+                <outlet property="nameLabel" destination="8VX-mT-7bQ" id="Pld-jp-ukn"/>
+                <outlet property="profilePicture" destination="cFk-Y1-0qM" id="Yza-be-fDj"/>
+                <outlet property="progressLabel" destination="PZc-oJ-lw3" id="bWd-ef-YIe"/>
+                <outlet property="progressView" destination="Ooq-eX-R8y" id="XTo-an-j8r"/>
+            </connections>
+            <point key="canvasLocation" x="151.14503816793894" y="130.63380281690141"/>
+        </collectionViewCell>
+    </objects>
+    <resources>
+        <image name="sister_image" width="450" height="750"/>
+        <systemColor name="systemBackgroundColor">
+            <color white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+        </systemColor>
+    </resources>
+</document>

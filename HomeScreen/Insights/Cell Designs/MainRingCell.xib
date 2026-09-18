@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.XIB" version="3.0" toolsVersion="24506" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES">
+    <device id="retina6_12" orientation="portrait" appearance="light"/>
+    <dependencies>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="24504"/>
+        <capability name="Safe area layout guides" minToolsVersion="9.0"/>
+        <capability name="System colors in document resources" minToolsVersion="11.0"/>
+        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
+    </dependencies>
+    <objects>
+        <placeholder placeholderIdentifier="IBFilesOwner" id="-1" userLabel="File's Owner"/>
+        <placeholder placeholderIdentifier="IBFirstResponder" id="-2" customClass="UIResponder"/>
+        <collectionViewCell opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" id="gTV-IL-0wX" customClass="MainRingCell" customModule="HomeScreen" customModuleProvider="target">
+            <rect key="frame" x="0.0" y="0.0" width="390" height="320"/>
+            <autoresizingMask key="autoresizingMask"/>
+            <view key="contentView" opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center">
+                <rect key="frame" x="0.0" y="0.0" width="390" height="320"/>
+                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                <subviews>
+                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Label" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="kqI-vs-SKy">
+                        <rect key="frame" x="172.66666666666666" y="8" width="45" height="21"/>
+                        <fontDescription key="fontDescription" type="boldSystem" pointSize="17"/>
+                        <nil key="textColor"/>
+                        <nil key="highlightedColor"/>
+                    </label>
+                    <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="gbf-bj-IJd" customClass="CircularRingView" customModule="HomeScreen" customModuleProvider="target">
+                        <rect key="frame" x="75" y="40" width="240" height="240"/>
+                        <subviews>
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Label" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="okH-kT-tc4">
+                                <rect key="frame" x="99" y="109.66666666666666" width="42" height="21"/>
+                                <fontDescription key="fontDescription" type="system" pointSize="17"/>
+                                <nil key="textColor"/>
+                                <nil key="highlightedColor"/>
+                            </label>
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Label" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="rSI-QR-CWk">
+                                <rect key="frame" x="93" y="125.66666666666666" width="54" height="26"/>
+                                <fontDescription key="fontDescription" type="boldSystem" pointSize="21"/>
+                                <color key="textColor" systemColor="secondaryLabelColor"/>
+                                <nil key="highlightedColor"/>
+                            </label>
+                        </subviews>
+                        <color key="backgroundColor" systemColor="systemBackgroundColor"/>
+                        <constraints>
+                            <constraint firstItem="okH-kT-tc4" firstAttribute="centerY" secondItem="gbf-bj-IJd" secondAttribute="centerY" id="4kv-zF-cx1"/>
+                            <constraint firstItem="okH-kT-tc4" firstAttribute="centerX" secondItem="gbf-bj-IJd" secondAttribute="centerX" id="KT0-C3-zNr"/>
+                            <constraint firstItem="rSI-QR-CWk" firstAttribute="centerX" secondItem="gbf-bj-IJd" secondAttribute="centerX" id="czA-gO-bqO"/>
+                            <constraint firstItem="rSI-QR-CWk" firstAttribute="top" secondItem="okH-kT-tc4" secondAttribute="bottom" constant="-5" id="iye-Xk-tp7"/>
+                        </constraints>
+                    </view>
+                </subviews>
+            </view>
+            <viewLayoutGuide key="safeArea" id="ZTg-uK-7eu"/>
+            <constraints>
+                <constraint firstItem="kqI-vs-SKy" firstAttribute="top" secondItem="gTV-IL-0wX" secondAttribute="top" constant="8" id="3t5-M9-Xje"/>
+                <constraint firstItem="gbf-bj-IJd" firstAttribute="leading" secondItem="gTV-IL-0wX" secondAttribute="leading" constant="75" id="9Vq-7B-5VR"/>
+                <constraint firstItem="gbf-bj-IJd" firstAttribute="centerY" secondItem="gTV-IL-0wX" secondAttribute="centerY" id="Cxx-XX-ekT"/>
+                <constraint firstItem="kqI-vs-SKy" firstAttribute="centerX" secondItem="gTV-IL-0wX" secondAttribute="centerX" id="GoC-8p-Uny"/>
+                <constraint firstItem="gbf-bj-IJd" firstAttribute="centerX" secondItem="gTV-IL-0wX" secondAttribute="centerX" id="aEU-4k-Paz"/>
+                <constraint firstItem="gbf-bj-IJd" firstAttribute="top" secondItem="kqI-vs-SKy" secondAttribute="bottom" constant="11" id="qxb-L3-hE4"/>
+            </constraints>
+            <connections>
+                <outlet property="dateLabel" destination="kqI-vs-SKy" id="8UM-6I-5DK"/>
+                <outlet property="ringView" destination="gbf-bj-IJd" id="ZrX-0j-zaK"/>
+                <outlet property="scoreLabel" destination="okH-kT-tc4" id="o9I-Ql-dnu"/>
+                <outlet property="titleLabel" destination="rSI-QR-CWk" id="4wY-O0-k0E"/>
+            </connections>
+            <point key="canvasLocation" x="-20" y="95"/>
+        </collectionViewCell>
+    </objects>
+    <resources>
+        <systemColor name="secondaryLabelColor">
+            <color red="0.23529411759999999" green="0.23529411759999999" blue="0.26274509800000001" alpha="0.59999999999999998" colorSpace="custom" customColorSpace="sRGB"/>
+        </systemColor>
+        <systemColor name="systemBackgroundColor">
+            <color white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+        </systemColor>
+    </resources>
+</document>
