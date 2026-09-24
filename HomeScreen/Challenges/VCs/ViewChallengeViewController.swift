@@ -271,7 +271,9 @@ extension ViewChallengeViewController: UICollectionViewDataSource {
         let member = sortedMembers[indexPath.row]
 
         let progressStats = calculateMemberProgress(for: member, in: challenge)
-        cell.configureCell(profile: member, completed: progressStats.completed, goal: progressStats.goal, metricName: progressStats.metric)
+        let isSocial = (challenge.type == "social")
+        cell.configureCell(profile: member, completed: progressStats.completed, goal: progressStats.goal, metricName: progressStats.metric, isSocial: isSocial)
+        cell.delegate = self
         return cell
     }
         
@@ -310,3 +312,75 @@ extension ViewChallengeViewController: UICollectionViewDataSource {
         }
     }
     
+extension ViewChallengeViewController: Design02Delegate {
+    func design02DidTapShare(_ cell: design02) {
+        guard let indexPath = memberProgressCV.indexPath(for: cell) else { return }
+        guard let challenge = challenge else { return }
+        
+        let member = sortedMembers[indexPath.row]
+        let name = member.firstName
+        
+        let progressStats = calculateMemberProgress(for: member, in: challenge)
+        
+        let rawPercent = (progressStats.goal > 0) ? (progressStats.completed / progressStats.goal) * 100.0 : 0
+        let percent = min(rawPercent, 100.0)
+        let isComplete = percent >= 100.0
+        
+        let percentStr = isComplete ? "100%" : "\(Int(percent))%"
+        
+        let title = "\(name)'s Challenge"
+        let message = "[SHARE_CARD:CHALLENGE|\(name)|\(percentStr)|\(challenge.name)]"
+        
+        let storyboard = UIStoryboard(name: "Messages", bundle: nil)
+        guard let createVC = storyboard.instantiateViewController(withIdentifier: "CreateTopicViewController") as? CreateTopicViewController else { return }
+        
+        createVC.prefilledTitle = title
+        createVC.prefilledMessage = message
+        
+        let nav = UINavigationController(rootViewController: createVC)
+        
+        createVC.onTopicCreated = { [weak self] topicId in
+            if let topic = DataManager.shared.topics.first(where: { $0.id == topicId }) {
+                let chatVC = storyboard.instantiateViewController(withIdentifier: "TopicChatViewController") as! TopicChatViewController
+                chatVC.viewModel = TopicChatViewModel(topic: topic)
+                chatVC.hidesBottomBarWhenPushed = true
+                self?.navigationController?.pushViewController(chatVC, animated: true)
+            }
+        }
+        
+        present(nav, animated: true)
+    }
+    
+    func design02DidTapCheckbox(_ cell: design02, isChecked: Bool) {
+        guard let indexPath = memberProgressCV.indexPath(for: cell) else { return }
+        guard let challenge = challenge else { return }
+        
+        let member = sortedMembers[indexPath.row]
+        
+        // Find existing progress record
+        if let index = DataManager.shared.challengeProgress.firstIndex(where: { $0.challengeId == challenge.challengeId && $0.memberId == member.profileId }) {
+            let progress = DataManager.shared.challengeProgress[index]
+            
+            let updatedProgress = ChallengeProgress(
+                challengeId: progress.challengeId,
+                memberId: progress.memberId,
+                goalValue: progress.goalValue,
+                currentValue: isChecked ? 1.0 : 0.0,
+                lastUpdatedAt: Date(),
+                isSynced: false
+            )
+            
+            // Update DataManager and SQLite
+            DataManager.shared.challengeProgress[index] = updatedProgress
+            SQLiteHelper.shared.saveChallengeProgress(updatedProgress)
+            
+            // Trigger Sync
+            Task {
+                await SyncManager.shared.pushUnsyncedData()
+            }
+            
+            // Refresh to update UI and apply 'completed' rules globally
+            NotificationCenter.default.post(name: NSNotification.Name("DataManagerDidUpdate"), object: nil)
+        }
+    }
+}

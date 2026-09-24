@@ -67,52 +67,137 @@ final class LoginSignupViewController: UIViewController {
         view = UIView()
         view.backgroundColor = .systemGroupedBackground
         
-        // Form Stack
+        let scrollView = UIScrollView()
+        scrollView.translatesAutoresizingMaskIntoConstraints = false
+        scrollView.contentInsetAdjustmentBehavior = .always
+        scrollView.showsVerticalScrollIndicator = false
+        view.addSubview(scrollView)
+        
+        let contentView = UIView()
+        contentView.translatesAutoresizingMaskIntoConstraints = false
+        scrollView.addSubview(contentView)
+        
+        NSLayoutConstraint.activate([
+            scrollView.topAnchor.constraint(equalTo: view.topAnchor),
+            scrollView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            
+            contentView.topAnchor.constraint(equalTo: scrollView.contentLayoutGuide.topAnchor),
+            contentView.bottomAnchor.constraint(equalTo: scrollView.contentLayoutGuide.bottomAnchor),
+            contentView.leadingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.leadingAnchor),
+            contentView.trailingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.trailingAnchor),
+            contentView.widthAnchor.constraint(equalTo: scrollView.frameLayoutGuide.widthAnchor)
+        ])
+        
+        let familyImageView = UIImageView(image: UIImage(named: "login_family"))
+        familyImageView.contentMode = .scaleAspectFill
+        familyImageView.translatesAutoresizingMaskIntoConstraints = false
+        contentView.addSubview(familyImageView)
+        
+        let cardView = UIView()
+        cardView.backgroundColor = .white
+        cardView.layer.cornerRadius = 24
+        cardView.layer.shadowColor = UIColor.black.cgColor
+        cardView.layer.shadowOpacity = 0.05
+        cardView.layer.shadowOffset = CGSize(width: 0, height: 4)
+        cardView.layer.shadowRadius = 12
+        cardView.translatesAutoresizingMaskIntoConstraints = false
+        contentView.addSubview(cardView)
+        
+        NSLayoutConstraint.activate([
+            familyImageView.topAnchor.constraint(equalTo: contentView.topAnchor),
+            familyImageView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
+            familyImageView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
+            familyImageView.heightAnchor.constraint(equalTo: contentView.widthAnchor, multiplier: 0.55),
+            
+            cardView.topAnchor.constraint(equalTo: familyImageView.bottomAnchor, constant: -40),
+            cardView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
+            cardView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
+            cardView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -40)
+        ])
+        
         let formStack = UIStackView()
         formStack.axis = .vertical
         formStack.spacing = 20
         formStack.translatesAutoresizingMaskIntoConstraints = false
+        cardView.addSubview(formStack)
         
-        // Email Field
+        NSLayoutConstraint.activate([
+            formStack.topAnchor.constraint(equalTo: cardView.topAnchor, constant: 32),
+            formStack.leadingAnchor.constraint(equalTo: cardView.leadingAnchor, constant: 24),
+            formStack.trailingAnchor.constraint(equalTo: cardView.trailingAnchor, constant: -24),
+            formStack.bottomAnchor.constraint(equalTo: cardView.bottomAnchor, constant: -32)
+        ])
+        
+        let titleLabel = UILabel()
+        titleLabel.text = "Welcome to FamCare"
+        titleLabel.font = .systemFont(ofSize: 28, weight: .bold)
+        titleLabel.textColor = .black
+        
+        let headerStack = UIStackView(arrangedSubviews: [titleLabel])
+        headerStack.axis = .vertical
+        headerStack.spacing = 8
+        headerStack.alignment = .leading
+        formStack.addArrangedSubview(headerStack)
+        formStack.setCustomSpacing(32, after: headerStack)
+        
         let emailLabel = UILabel()
-        emailLabel.text = "Email"
-        emailLabel.font = .systemFont(ofSize: 14, weight: .medium)
+        emailLabel.text = "Email address"
+        emailLabel.font = .systemFont(ofSize: 14, weight: .semibold)
         emailLabel.textColor = .darkGray
         
-        emailTextField.placeholder = "Enter your email"
+        emailTextField.placeholder = "you@example.com"
         emailTextField.backgroundColor = .white
         emailTextField.layer.cornerRadius = 12
-        emailTextField.setLeftPadding(16)
+        emailTextField.layer.borderWidth = 1
+        emailTextField.layer.borderColor = UIColor.systemGray5.cgColor
         emailTextField.keyboardType = .emailAddress
         emailTextField.autocapitalizationType = .none
+        
+        let emailContainer = UIView(frame: CGRect(x: 0, y: 0, width: 44, height: 50))
+        let emailIcon = UIImageView(image: UIImage(systemName: "envelope"))
+        emailIcon.tintColor = .systemBlue
+        emailIcon.contentMode = .scaleAspectFit
+        emailIcon.frame = CGRect(x: 12, y: 15, width: 20, height: 20)
+        emailContainer.addSubview(emailIcon)
+        emailTextField.leftView = emailContainer
+        emailTextField.leftViewMode = .always
         
         let emailStack = UIStackView(arrangedSubviews: [emailLabel, emailTextField])
         emailStack.axis = .vertical
         emailStack.spacing = 8
         
-        // Password Field
         let passwordLabel = UILabel()
         passwordLabel.text = "Password"
-        passwordLabel.font = .systemFont(ofSize: 14, weight: .medium)
+        passwordLabel.font = .systemFont(ofSize: 14, weight: .semibold)
         passwordLabel.textColor = .darkGray
         
         passwordTextField.placeholder = "Enter your password"
-        passwordTextField.isSecureTextEntry = true
         passwordTextField.backgroundColor = .white
         passwordTextField.layer.cornerRadius = 12
-        passwordTextField.setLeftPadding(16)
+        passwordTextField.layer.borderWidth = 1
+        passwordTextField.layer.borderColor = UIColor.systemGray5.cgColor
+        passwordTextField.isSecureTextEntry = true
+        
+        let lockContainer = UIView(frame: CGRect(x: 0, y: 0, width: 44, height: 50))
+        let lockIcon = UIImageView(image: UIImage(systemName: "lock"))
+        lockIcon.tintColor = .systemBlue
+        lockIcon.contentMode = .scaleAspectFit
+        lockIcon.frame = CGRect(x: 12, y: 15, width: 20, height: 20)
+        lockContainer.addSubview(lockIcon)
+        passwordTextField.leftView = lockContainer
+        passwordTextField.leftViewMode = .always
         
         var eyeConfig = UIButton.Configuration.plain()
-        eyeConfig.image = UIImage(systemName: "eye.slash.fill")
-        eyeConfig.contentInsets = NSDirectionalEdgeInsets(top: 0, leading: -16, bottom: 0, trailing: 0)
+        eyeConfig.image = UIImage(systemName: "eye.slash")
+        eyeConfig.baseForegroundColor = .systemBlue
         let eyeButton = UIButton(configuration: eyeConfig)
-        eyeButton.tintColor = .gray
-        eyeButton.frame = CGRect(x: 0, y: 0, width: 40, height: 40)
+        eyeButton.frame = CGRect(x: 0, y: 0, width: 44, height: 44)
         eyeButton.addAction(UIAction(handler: { [weak passwordTextField, weak eyeButton] _ in
             guard let field = passwordTextField, let btn = eyeButton else { return }
             field.isSecureTextEntry.toggle()
-            let iconName = field.isSecureTextEntry ? "eye.slash.fill" : "eye.fill"
-            btn.configuration?.image = UIImage(systemName: iconName)
+            btn.configuration?.image = UIImage(systemName: field.isSecureTextEntry ? "eye.slash" : "eye")
         }), for: .touchUpInside)
         
         passwordTextField.rightView = eyeButton
@@ -125,82 +210,46 @@ final class LoginSignupViewController: UIViewController {
         formStack.addArrangedSubview(emailStack)
         formStack.addArrangedSubview(passwordStack)
         
-        // Constraints for text fields
-        emailTextField.heightAnchor.constraint(equalToConstant: 48).isActive = true
-        passwordTextField.heightAnchor.constraint(equalToConstant: 48).isActive = true
+        emailTextField.heightAnchor.constraint(equalToConstant: 50).isActive = true
+        passwordTextField.heightAnchor.constraint(equalToConstant: 50).isActive = true
         
-        // Status Label
+        let forgotStack = UIStackView(arrangedSubviews: [UIView(), forgotPasswordButton])
+        formStack.addArrangedSubview(forgotStack)
+        
         statusLabel.font = .systemFont(ofSize: 14)
         statusLabel.numberOfLines = 0
         statusLabel.textAlignment = .center
+        statusLabel.isHidden = true
         formStack.addArrangedSubview(statusLabel)
         
-        // Primary Button
         primaryButton.backgroundColor = .systemBlue
-        primaryButton.setTitle("Sign In", for: .normal)
+        primaryButton.setTitle("Log in", for: .normal)
         primaryButton.setTitleColor(.white, for: .normal)
         primaryButton.titleLabel?.font = .systemFont(ofSize: 16, weight: .semibold)
-        primaryButton.layer.cornerRadius = 24
-        primaryButton.heightAnchor.constraint(equalToConstant: 48).isActive = true
+        primaryButton.layer.cornerRadius = 12
+        primaryButton.heightAnchor.constraint(equalToConstant: 50).isActive = true
+        
         primaryButton.addTarget(self, action: #selector(primaryButtonTapped), for: .touchUpInside)
         formStack.addArrangedSubview(primaryButton)
         
-        // Forgot Password
-        formStack.addArrangedSubview(forgotPasswordButton)
-        
-        // Divider Or
-        let dividerStack = UIStackView()
-        dividerStack.axis = .horizontal
-        dividerStack.alignment = .center
-        dividerStack.spacing = 16
-        
-        let line1 = UIView()
-        line1.backgroundColor = .systemGray5
-        line1.heightAnchor.constraint(equalToConstant: 1).isActive = true
-        
-        let orLabelText = UILabel()
-        orLabelText.text = "Or"
-        orLabelText.font = .systemFont(ofSize: 14)
-        orLabelText.textColor = .gray
-        
-        let line2 = UIView()
-        line2.backgroundColor = .systemGray5
-        line2.heightAnchor.constraint(equalToConstant: 1).isActive = true
-        
-        dividerStack.addArrangedSubview(line1)
-        dividerStack.addArrangedSubview(orLabelText)
-        dividerStack.addArrangedSubview(line2)
-        line1.widthAnchor.constraint(equalTo: line2.widthAnchor).isActive = true
-        
-        formStack.addArrangedSubview(dividerStack)
-        
-        // Apple Login
-        appleLoginButton.heightAnchor.constraint(equalToConstant: 44).isActive = true
+        appleLoginButton.layer.cornerRadius = 12
+        appleLoginButton.layer.borderWidth = 1
+        appleLoginButton.layer.borderColor = UIColor.systemGray4.cgColor
+        appleLoginButton.heightAnchor.constraint(equalToConstant: 50).isActive = true
         formStack.addArrangedSubview(appleLoginButton)
-        
-        // Spacing before switch mode
         formStack.setCustomSpacing(32, after: appleLoginButton)
         
-        // Switch Mode (Don't have an account? Sign up)
         let switchModeString = NSMutableAttributedString(
-            string: "Don't have an account? ", 
-            attributes: [.foregroundColor: UIColor.darkGray, .font: UIFont.systemFont(ofSize: 14)]
+            string: "New to FamCare? ", 
+            attributes: [.foregroundColor: UIColor.gray, .font: UIFont.systemFont(ofSize: 14)]
         )
         switchModeString.append(NSAttributedString(
-            string: "Sign up", 
-            attributes: [.foregroundColor: UIColor.systemBlue, .font: UIFont.systemFont(ofSize: 14, weight: .medium)]
+            string: "Join your family", 
+            attributes: [.foregroundColor: UIColor.systemBlue, .font: UIFont.systemFont(ofSize: 14, weight: .semibold)]
         ))
         switchModeButton.setAttributedTitle(switchModeString, for: .normal)
         switchModeButton.addTarget(self, action: #selector(switchModeTapped), for: .touchUpInside)
         formStack.addArrangedSubview(switchModeButton)
-        
-        view.addSubview(formStack)
-        
-        NSLayoutConstraint.activate([
-            formStack.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 24),
-            formStack.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -24),
-            formStack.centerYAnchor.constraint(equalTo: view.centerYAnchor)
-        ])
     }
 
     override func viewDidLoad() {
@@ -211,6 +260,8 @@ final class LoginSignupViewController: UIViewController {
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
+        self.navigationController?.setNavigationBarHidden(true, animated: animated)
+        self.title = ""
         mode = .login
         modeSegmentedControl.selectedSegmentIndex = 0
     }
@@ -322,6 +373,7 @@ final class LoginSignupViewController: UIViewController {
         
         let updates = {
             self.statusLabel.text = nil
+            self.statusLabel.isHidden = true
         }
 
         if animated {
@@ -395,6 +447,7 @@ final class LoginSignupViewController: UIViewController {
     private func showStatus(_ message: String, isError: Bool) {
         statusLabel.text = message
         statusLabel.textColor = isError ? .systemRed : .systemGreen
+        statusLabel.isHidden = message.isEmpty
     }
 
     private func isValidEmail(_ text: String?) -> Bool {
@@ -638,33 +691,59 @@ final class ForgotPasswordViewController: UIViewController, UITextFieldDelegate 
         let sv = UIScrollView()
         sv.translatesAutoresizingMaskIntoConstraints = false
         sv.keyboardDismissMode = .interactive
+        sv.contentInsetAdjustmentBehavior = .always
+        sv.showsVerticalScrollIndicator = false
         return sv
+    }()
+
+    private let contentView: UIView = {
+        let v = UIView()
+        v.translatesAutoresizingMaskIntoConstraints = false
+        return v
+    }()
+
+    private let familyImageView: UIImageView = {
+        let iv = UIImageView(image: UIImage(named: "login_family"))
+        iv.contentMode = .scaleAspectFill
+        iv.translatesAutoresizingMaskIntoConstraints = false
+        return iv
+    }()
+
+    private let cardView: UIView = {
+        let v = UIView()
+        v.backgroundColor = .white
+        v.layer.cornerRadius = 24
+        v.layer.shadowColor = UIColor.black.cgColor
+        v.layer.shadowOpacity = 0.05
+        v.layer.shadowOffset = CGSize(width: 0, height: 4)
+        v.layer.shadowRadius = 12
+        v.translatesAutoresizingMaskIntoConstraints = false
+        return v
     }()
 
     private let contentStack: UIStackView = {
         let sv = UIStackView()
         sv.axis = .vertical
-        sv.spacing = 16
+        sv.spacing = 20
         sv.alignment = .fill
         sv.translatesAutoresizingMaskIntoConstraints = false
         return sv
     }()
 
-    private let iconImageView: UIImageView = {
-        let iv = UIImageView()
-        iv.image = UIImage(systemName: "lock.rotation")
-        iv.tintColor = .systemBlue
-        iv.contentMode = .scaleAspectFit
-        iv.translatesAutoresizingMaskIntoConstraints = false
-        return iv
+    private let headerStack: UIStackView = {
+        let sv = UIStackView()
+        sv.axis = .vertical
+        sv.spacing = 8
+        sv.alignment = .leading
+        sv.translatesAutoresizingMaskIntoConstraints = false
+        return sv
     }()
 
     private let titleLabel: UILabel = {
         let label = UILabel()
         label.text = "Reset Your Password"
-        label.font = .systemFont(ofSize: 26, weight: .bold)
-        label.textColor = .label
-        label.textAlignment = .center
+        label.font = .systemFont(ofSize: 28, weight: .bold)
+        label.textColor = .black
         label.numberOfLines = 0
         return label
     }()
@@ -673,35 +752,48 @@ final class ForgotPasswordViewController: UIViewController, UITextFieldDelegate 
         let label = UILabel()
         label.text = "Enter the email associated with your account and we'll send you a secure link to reset your password."
         label.font = .systemFont(ofSize: 15, weight: .regular)
-        label.textColor = .secondaryLabel
-        label.textAlignment = .center
+        label.textColor = .darkGray
         label.numberOfLines = 0
+        return label
+    }()
+
+    private let emailLabel: UILabel = {
+        let label = UILabel()
+        label.text = "Email address"
+        label.font = .systemFont(ofSize: 14, weight: .semibold)
+        label.textColor = .darkGray
         return label
     }()
 
     private lazy var emailTextField: UITextField = {
         let tf = UITextField()
-        tf.placeholder = "Email address"
+        tf.placeholder = "you@example.com"
         tf.keyboardType = .emailAddress
         tf.autocapitalizationType = .none
         tf.autocorrectionType = .no
         tf.textContentType = .username
-        tf.layer.cornerRadius = 10
+        tf.backgroundColor = .white
+        tf.layer.cornerRadius = 12
         tf.layer.borderWidth = 1
-        tf.layer.borderColor = UIColor.separator.cgColor
-        tf.backgroundColor = .secondarySystemGroupedBackground
+        tf.layer.borderColor = UIColor.systemGray5.cgColor
         tf.translatesAutoresizingMaskIntoConstraints = false
-        let paddingView = UIView(frame: CGRect(x: 0, y: 0, width: 12, height: 1))
-        tf.leftView = paddingView
+        
+        let emailContainer = UIView(frame: CGRect(x: 0, y: 0, width: 44, height: 50))
+        let emailIcon = UIImageView(image: UIImage(systemName: "envelope"))
+        emailIcon.tintColor = .systemBlue
+        emailIcon.contentMode = .scaleAspectFit
+        emailIcon.frame = CGRect(x: 12, y: 15, width: 20, height: 20)
+        emailContainer.addSubview(emailIcon)
+        tf.leftView = emailContainer
         tf.leftViewMode = .always
         return tf
     }()
 
-    private let sendButton: UIButton = {
+    private lazy var sendButton: UIButton = {
         let button = UIButton(type: .system)
         button.setTitle("Send Reset Link", for: .normal)
         button.setTitleColor(.white, for: .normal)
-        button.titleLabel?.font = .systemFont(ofSize: 17, weight: .semibold)
+        button.titleLabel?.font = .systemFont(ofSize: 16, weight: .semibold)
         button.backgroundColor = .systemBlue
         button.layer.cornerRadius = 12
         button.translatesAutoresizingMaskIntoConstraints = false
@@ -713,13 +805,27 @@ final class ForgotPasswordViewController: UIViewController, UITextFieldDelegate 
         label.font = .systemFont(ofSize: 14, weight: .medium)
         label.textAlignment = .center
         label.numberOfLines = 0
+        label.isHidden = true
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
+    }()
+
+    private lazy var backToLoginButton: UIButton = {
+        let button = UIButton(type: .system)
+        button.setTitle("Back to Login", for: .normal)
+        button.setImage(UIImage(systemName: "chevron.left"), for: .normal)
+        button.tintColor = .systemBlue
+        button.titleLabel?.font = .systemFont(ofSize: 15, weight: .medium)
+        button.imageEdgeInsets = UIEdgeInsets(top: 0, left: -8, bottom: 0, right: 0)
+        button.translatesAutoresizingMaskIntoConstraints = false
+        button.addTarget(self, action: #selector(backTapped), for: .touchUpInside)
+        return button
     }()
 
     private let spinner: UIActivityIndicatorView = {
         let s = UIActivityIndicatorView(style: .medium)
         s.hidesWhenStopped = true
+        s.color = .white
         s.translatesAutoresizingMaskIntoConstraints = false
         return s
     }()
@@ -728,7 +834,7 @@ final class ForgotPasswordViewController: UIViewController, UITextFieldDelegate 
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        title = "Forgot Password"
+        title = ""
         view.backgroundColor = .systemGroupedBackground
         emailTextField.delegate = self
         emailTextField.text = prefilledEmail
@@ -736,36 +842,68 @@ final class ForgotPasswordViewController: UIViewController, UITextFieldDelegate 
         sendButton.addTarget(self, action: #selector(sendTapped), for: .touchUpInside)
     }
 
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        self.navigationController?.setNavigationBarHidden(true, animated: animated)
+    }
+
     // MARK: - Layout
 
     private func setupLayout() {
         view.addSubview(scrollView)
-        scrollView.addSubview(contentStack)
+        scrollView.addSubview(contentView)
+        contentView.addSubview(familyImageView)
+        contentView.addSubview(cardView)
+        cardView.addSubview(contentStack)
 
-        contentStack.addArrangedSubview(iconImageView)
-        contentStack.setCustomSpacing(24, after: iconImageView)
-        contentStack.addArrangedSubview(titleLabel)
-        contentStack.addArrangedSubview(subtitleLabel)
-        contentStack.setCustomSpacing(28, after: subtitleLabel)
-        contentStack.addArrangedSubview(emailTextField)
-        contentStack.addArrangedSubview(sendButton)
+        let emailStack = UIStackView(arrangedSubviews: [emailLabel, emailTextField])
+        emailStack.axis = .vertical
+        emailStack.spacing = 8
+        
+        headerStack.addArrangedSubview(titleLabel)
+        headerStack.addArrangedSubview(subtitleLabel)
+        
+        contentStack.addArrangedSubview(headerStack)
+        contentStack.setCustomSpacing(32, after: headerStack)
+        
+        contentStack.addArrangedSubview(emailStack)
         contentStack.addArrangedSubview(statusLabel)
+        contentStack.addArrangedSubview(sendButton)
+        contentStack.setCustomSpacing(32, after: sendButton)
+        
+        let backStack = UIStackView(arrangedSubviews: [backToLoginButton, UIView()])
+        contentStack.addArrangedSubview(backStack)
 
         view.addSubview(spinner)
 
         NSLayoutConstraint.activate([
-            scrollView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
+            scrollView.topAnchor.constraint(equalTo: view.topAnchor),
             scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             scrollView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
 
-            contentStack.topAnchor.constraint(equalTo: scrollView.contentLayoutGuide.topAnchor, constant: 40),
-            contentStack.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 24),
-            contentStack.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -24),
-            contentStack.bottomAnchor.constraint(equalTo: scrollView.contentLayoutGuide.bottomAnchor, constant: -40),
+            contentView.topAnchor.constraint(equalTo: scrollView.contentLayoutGuide.topAnchor),
+            contentView.leadingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.leadingAnchor),
+            contentView.trailingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.trailingAnchor),
+            contentView.bottomAnchor.constraint(equalTo: scrollView.contentLayoutGuide.bottomAnchor),
+            contentView.widthAnchor.constraint(equalTo: scrollView.frameLayoutGuide.widthAnchor),
 
-            iconImageView.heightAnchor.constraint(equalToConstant: 64),
-            emailTextField.heightAnchor.constraint(equalToConstant: 48),
+            familyImageView.topAnchor.constraint(equalTo: contentView.topAnchor),
+            familyImageView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
+            familyImageView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
+            familyImageView.heightAnchor.constraint(equalTo: contentView.widthAnchor, multiplier: 0.55),
+            
+            cardView.topAnchor.constraint(equalTo: familyImageView.bottomAnchor, constant: -40),
+            cardView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
+            cardView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
+            cardView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -40),
+
+            contentStack.topAnchor.constraint(equalTo: cardView.topAnchor, constant: 32),
+            contentStack.leadingAnchor.constraint(equalTo: cardView.leadingAnchor, constant: 24),
+            contentStack.trailingAnchor.constraint(equalTo: cardView.trailingAnchor, constant: -24),
+            contentStack.bottomAnchor.constraint(equalTo: cardView.bottomAnchor, constant: -32),
+
+            emailTextField.heightAnchor.constraint(equalToConstant: 50),
             sendButton.heightAnchor.constraint(equalToConstant: 50),
 
             spinner.centerXAnchor.constraint(equalTo: sendButton.centerXAnchor),
@@ -774,6 +912,14 @@ final class ForgotPasswordViewController: UIViewController, UITextFieldDelegate 
     }
 
     // MARK: - Actions
+
+    @objc private func backTapped() {
+        if let nav = navigationController {
+            nav.popViewController(animated: true)
+        } else {
+            dismiss(animated: true)
+        }
+    }
 
     @objc private func sendTapped() {
         // Block while a request is in flight or during the post-send cooldown.
@@ -867,6 +1013,7 @@ final class ForgotPasswordViewController: UIViewController, UITextFieldDelegate 
     private func showStatus(_ message: String, isError: Bool) {
         statusLabel.text = message
         statusLabel.textColor = isError ? .systemRed : .systemGreen
+        statusLabel.isHidden = message.isEmpty
     }
 
     // MARK: - UITextFieldDelegate

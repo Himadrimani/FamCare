@@ -19,6 +19,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate, UITabBarControllerDeleg
     /// Guards against presenting the "Set New Password" screen more than once (the deep link
     /// and the PASSWORD_RECOVERY auth event can both fire for a single recovery).
     private var isPresentingRecovery = false
+    private var pendingChallengeID: UUID?
 
 
     func scene(_ scene: UIScene,
@@ -30,6 +31,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate, UITabBarControllerDeleg
         window = UIWindow(windowScene: windowScene)
         
         NotificationCenter.default.addObserver(self, selector: #selector(handleUserDidLogOut), name: NSNotification.Name("UserDidLogOut"), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(handleDataManagerUpdateForChallengeLink), name: NSNotification.Name("DataManagerDidUpdate"), object: nil)
 
         // Keep the UI in sync with the REAL Supabase session for the whole scene lifetime.
         startAuthStateObserver()
@@ -140,11 +142,41 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate, UITabBarControllerDeleg
         }
     }
 
-    // MARK: - Password reset deep link
+    // MARK: - Deep links
 
-    private func handleIncomingURL(_ url: URL) {
-        // Only handle our auth callback scheme (e.g. homescreenapp://reset-password).
+    func handleIncomingURL(_ url: URL) {
         guard url.scheme?.lowercased() == "homescreenapp" else { return }
+
+        if url.host?.lowercased() == "challenge",
+           let challengeID = UUID(uuidString: url.lastPathComponent) {
+            pendingChallengeID = challengeID
+            openPendingChallengeIfPossible()
+            return
+        }
+
+        if url.host?.lowercased() == "group" {
+            if let tabBarController = window?.rootViewController as? UITabBarController {
+                tabBarController.selectedIndex = 3 // Route to Message/Group tab
+                if let nav = tabBarController.selectedViewController as? UINavigationController {
+                    nav.popToRootViewController(animated: false)
+                    
+                    if let messageVC = nav.viewControllers.first as? MessageViewController {
+                        messageVC.loadViewIfNeeded()
+                        messageVC.segmentedControl.selectedSegmentIndex = 1
+                        messageVC.segmentChanged(messageVC.segmentedControl)
+                        
+                        if url.pathComponents.count > 1,
+                           let groupIDString = url.pathComponents.last,
+                           let groupID = UUID(uuidString: groupIDString),
+                           let topic = DataManager.shared.topics.first(where: { $0.id == groupID }) {
+                            
+                            messageVC.performSegue(withIdentifier: "showTopicChatSegue", sender: topic)
+                        }
+                    }
+                }
+            }
+            return
+        }
 
         Task { @MainActor in
             do {
@@ -154,6 +186,28 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate, UITabBarControllerDeleg
                 self.presentRecoveryError()
             }
         }
+    }
+
+    @objc private func handleDataManagerUpdateForChallengeLink() {
+        openPendingChallengeIfPossible()
+    }
+
+    private func openPendingChallengeIfPossible() {
+        guard let challengeID = pendingChallengeID,
+              let challenge = DataManager.shared.challenges.first(where: { $0.challengeId == challengeID }),
+              let tabBarController = window?.rootViewController as? UITabBarController,
+              let challengeNavigationController = tabBarController.viewControllers?[2] as? UINavigationController else {
+            return
+        }
+
+        let details = UIStoryboard(name: "Challenges", bundle: nil)
+            .instantiateViewController(withIdentifier: "ViewChallengeViewController") as! ViewChallengeViewController
+        details.challenge = challenge
+        details.familyMembers = DataManager.shared.allProfiles
+        tabBarController.selectedIndex = 2
+        challengeNavigationController.popToRootViewController(animated: false)
+        challengeNavigationController.pushViewController(details, animated: true)
+        pendingChallengeID = nil
     }
 
     @MainActor
@@ -318,6 +372,10 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate, UITabBarControllerDeleg
             topController = presented
         }
         topController?.present(nav, animated: true)
+    }
+    
+    func setAssistantButton(hidden: Bool) {
+        globalAssistantButton?.isHidden = hidden
     }
     
     func sceneDidDisconnect(_ scene: UIScene) {

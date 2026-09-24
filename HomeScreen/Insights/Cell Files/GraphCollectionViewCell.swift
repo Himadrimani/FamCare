@@ -10,6 +10,7 @@ import DGCharts
 
 protocol GraphCollectionViewCellDelegate: AnyObject {
     func graphCell(_ cell: GraphCollectionViewCell, didDoubleTapBarAt index: Int)
+    func graphCellDidTapShare(_ cell: GraphCollectionViewCell)
 }
 
 class GraphCollectionViewCell: UICollectionViewCell {
@@ -29,6 +30,8 @@ class GraphCollectionViewCell: UICollectionViewCell {
     @IBOutlet weak var comparisonLabel: UILabel!
     @IBOutlet weak var progressLabel: UILabel!
     @IBOutlet weak var titleLabel: UILabel!
+    private let shareButton = UIButton(type: .system)
+    private let topHighlightView = UIView()
     
     override func awakeFromNib() {
         super.awakeFromNib()
@@ -58,6 +61,42 @@ class GraphCollectionViewCell: UICollectionViewCell {
         self.layer.shadowOffset = CGSize(width: 0, height: 4)
         self.layer.shadowRadius = 12
         self.layer.shadowPath = UIBezierPath(roundedRect: self.bounds, cornerRadius: 20).cgPath
+        
+        topHighlightView.translatesAutoresizingMaskIntoConstraints = false
+        topHighlightView.backgroundColor = UIColor.systemBlue.withAlphaComponent(0.06)
+        topHighlightView.layer.cornerRadius = 60
+        contentView.insertSubview(topHighlightView, at: 0)
+        
+        NSLayoutConstraint.activate([
+            topHighlightView.widthAnchor.constraint(equalToConstant: 120),
+            topHighlightView.heightAnchor.constraint(equalToConstant: 120),
+            topHighlightView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: 40),
+            topHighlightView.topAnchor.constraint(equalTo: contentView.topAnchor, constant: -40)
+        ])
+        
+        setupShareButton()
+    }
+    
+    private func setupShareButton() {
+        let config = UIImage.SymbolConfiguration(pointSize: 16, weight: .medium)
+        let shareIcon = UIImage(systemName: "bubble", withConfiguration: config)
+        shareButton.setImage(shareIcon, for: .normal)
+        shareButton.tintColor = .systemBlue
+        shareButton.translatesAutoresizingMaskIntoConstraints = false
+        shareButton.addTarget(self, action: #selector(shareTapped), for: .touchUpInside)
+        
+        contentView.addSubview(shareButton)
+        
+        NSLayoutConstraint.activate([
+            shareButton.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 16),
+            shareButton.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
+            shareButton.widthAnchor.constraint(equalToConstant: 24),
+            shareButton.heightAnchor.constraint(equalToConstant: 24)
+        ])
+    }
+    
+    @objc private func shareTapped() {
+        delegate?.graphCellDidTapShare(self)
     }
     
     private func setupBarChart() {
@@ -119,8 +158,12 @@ class GraphCollectionViewCell: UICollectionViewCell {
         }
     }
 
-    func configureCell(score: [Int], comparison: String, isWeek: Bool) {
+    func configureCell(score: [Int], comparison: String, isWeek: Bool, profileId: UUID) {
         self.isWeek = isWeek
+        
+        let currentUserId = DataManager.shared.currentUser?.profileId
+        shareButton.isHidden = (profileId == currentUserId)
+        
         if isWeek {
             xLabel = days
         } else {

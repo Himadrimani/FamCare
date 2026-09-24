@@ -12,6 +12,8 @@ class CreateTopicViewController: UIViewController {
     private var cancellables = Set<AnyCancellable>()
     
     var onTopicCreated: ((UUID) -> Void)?
+    var prefilledTitle: String?
+    var prefilledMessage: String?
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -23,6 +25,9 @@ class CreateTopicViewController: UIViewController {
     private func setupUI() {
         view.backgroundColor = .systemGroupedBackground
         title = "New Topic"
+        if let msgStr = prefilledMessage {
+            messageTextField.text = msgStr
+        }
         
         navigationItem.leftBarButtonItem = UIBarButtonItem(barButtonSystemItem: .cancel, target: self, action: #selector(cancelTapped))
         navigationItem.rightBarButtonItem = UIBarButtonItem(barButtonSystemItem: .done, target: self, action: #selector(doneTapped))
@@ -74,6 +79,9 @@ class CreateTopicViewController: UIViewController {
     @objc private func doneTapped() {
         guard let title = titleTextField.text, let message = messageTextField.text else { return }
         
+        navigationItem.rightBarButtonItem?.isEnabled = false
+        navigationItem.leftBarButtonItem?.isEnabled = false
+        
         showLoadingHUD()
         Task {
             do {
@@ -84,6 +92,8 @@ class CreateTopicViewController: UIViewController {
                 }
             } catch {
                 hideLoadingHUD()
+                self.navigationItem.rightBarButtonItem?.isEnabled = true
+                self.navigationItem.leftBarButtonItem?.isEnabled = true
                 print("Failed to create topic: \(error)")
             }
         }
@@ -97,7 +107,8 @@ extension CreateTopicViewController: UICollectionViewDataSource, UICollectionVie
     }
     
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-        return section == 0 ? 2 : viewModel.familyMembers.count
+        // If we have a prefilled custom card message, only show 1 text field (Title)
+        return section == 0 ? (prefilledMessage != nil ? 1 : 2) : viewModel.familyMembers.count
     }
     
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
@@ -120,6 +131,12 @@ extension CreateTopicViewController: UICollectionViewDataSource, UICollectionVie
                 tf.bottomAnchor.constraint(equalTo: cell.contentView.bottomAnchor),
                 tf.heightAnchor.constraint(greaterThanOrEqualToConstant: 44)
             ])
+            
+            if indexPath.item == 0, let pTitle = prefilledTitle {
+                tf.text = pTitle
+                titleTextField.text = pTitle
+                validateForm() // Trigger validation in case user doesn't touch the text field
+            }
         } else {
             let member = viewModel.familyMembers[indexPath.item]
             

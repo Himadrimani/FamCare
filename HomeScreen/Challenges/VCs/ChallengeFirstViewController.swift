@@ -15,6 +15,25 @@ class ChallengeFirstViewController: UIViewController {
     
     @IBOutlet weak var segmentControl: UISegmentedControl!
     @IBOutlet weak var challengeCV: UICollectionView!
+    
+    enum PastChallengeFilter: String {
+        case recentlyCompleted = "Recently Completed"
+        case allCompleted = "All Completed"
+        case expired = "Expired / Not Completed"
+    }
+
+    private let filterButton: UIButton = {
+        let button = UIButton(type: .system)
+        let config = UIImage.SymbolConfiguration(pointSize: 22, weight: .regular)
+        button.setImage(UIImage(systemName: "line.3.horizontal.decrease.circle", withConfiguration: config), for: .normal)
+        button.tintColor = .black
+        button.translatesAutoresizingMaskIntoConstraints = false
+        button.showsMenuAsPrimaryAction = true
+        button.isHidden = true
+        return button
+    }()
+    
+    private var currentPastFilter: PastChallengeFilter? = nil
   
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -42,7 +61,148 @@ class ChallengeFirstViewController: UIViewController {
         
         challengeCV.contentInsetAdjustmentBehavior = .never
         setupRefreshControl()
+        setupFilterButton()
+        setupTrophyButton()
     }
+    
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        checkAndPresentPendingFamilyRewards()
+    }
+    
+    private func checkAndPresentPendingFamilyRewards() {
+        guard let currentUser = DataManager.shared.currentUser else { return }
+        
+        let allChallenges = DataManager.shared.challenges
+        let progressRecords = DataManager.shared.challengeProgress
+        let existingRewards = RewardsManager.shared.rewards
+        
+        for challenge in allChallenges {
+            let records = progressRecords.filter { $0.challengeId == challenge.challengeId }
+            let isFamilyChallenge = records.count > 1
+            if !isFamilyChallenge { continue }
+            
+            // User must be part of the challenge to care
+            let currentUserParticipated = records.contains { $0.memberId == currentUser.profileId }
+            if !currentUserParticipated { continue }
+            
+            // Check if this family reward is already shown and saved
+            if existingRewards.contains(where: { $0.challengeId == challenge.challengeId.uuidString && $0.type == .family }) {
+                continue
+            }
+            
+            var allComplete = true
+            for record in records {
+                if record.goalValue > 0 && record.currentValue < record.goalValue {
+                    allComplete = false
+                    break
+                }
+            }
+            
+            if allComplete {
+                let overlay = RewardsViewController(
+                    achievementType: .family,
+                    challengeId: challenge.challengeId.uuidString,
+                    challengeTitle: challenge.name,
+                    challengeType: challenge.type,
+                    participantsCount: records.count
+                )
+                self.present(overlay, animated: true)
+                break // Only show one at a time so they don't stack awkwardly
+            }
+        }
+    }
+    
+    private func setupFilterButton() {
+        view.addSubview(filterButton)
+        NSLayoutConstraint.activate([
+            filterButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
+            filterButton.topAnchor.constraint(equalTo: segmentControl.bottomAnchor, constant: 8),
+            filterButton.widthAnchor.constraint(equalToConstant: 32),
+            filterButton.heightAnchor.constraint(equalToConstant: 32)
+        ])
+        setupFilterMenu()
+    }
+    
+    private func setupFilterMenu() {
+        let recentlyAction = UIAction(title: "Recently Completed", state: currentPastFilter == .recentlyCompleted ? .on : .off) { [weak self] _ in
+            self?.currentPastFilter = .recentlyCompleted
+            self?.setupFilterMenu()
+            self?.divideChallenges()
+        }
+        
+        let allCompletedAction = UIAction(title: "All Completed", state: currentPastFilter == .allCompleted ? .on : .off) { [weak self] _ in
+            self?.currentPastFilter = .allCompleted
+            self?.setupFilterMenu()
+            self?.divideChallenges()
+        }
+        
+        let expiredAction = UIAction(title: "Expired / Not Completed", state: currentPastFilter == .expired ? .on : .off) { [weak self] _ in
+            self?.currentPastFilter = .expired
+            self?.setupFilterMenu()
+            self?.divideChallenges()
+        }
+        
+        var children: [UIMenuElement] = [recentlyAction, allCompletedAction, expiredAction]
+        
+        let clearAction = UIAction(title: "Clear Filter", attributes: .destructive) { [weak self] _ in
+            self?.currentPastFilter = nil
+            self?.setupFilterMenu()
+            self?.divideChallenges()
+        }
+        children.append(clearAction)
+        
+        let menu = UIMenu(title: "Filter Past Challenges", options: .displayInline, children: children)
+        filterButton.menu = menu
+    }
+    
+    private func setupTrophyButton() {
+        let container = UIView(frame: CGRect(x: 0, y: 0, width: 40, height: 40))
+        container.backgroundColor = .systemGray6
+        container.layer.cornerRadius = 20
+        container.clipsToBounds = true
+        
+        let imageView = UIImageView(image: UIImage(named: "trophy_button_image"))
+        imageView.contentMode = .scaleAspectFit
+        imageView.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(imageView)
+        
+        NSLayoutConstraint.activate([
+            imageView.centerXAnchor.constraint(equalTo: container.centerXAnchor),
+            imageView.centerYAnchor.constraint(equalTo: container.centerYAnchor),
+            imageView.widthAnchor.constraint(equalToConstant: 34),
+            imageView.heightAnchor.constraint(equalToConstant: 34)
+        ])
+        
+        let button = UIButton(type: .custom)
+        button.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(button)
+        NSLayoutConstraint.activate([
+            button.topAnchor.constraint(equalTo: container.topAnchor),
+            button.bottomAnchor.constraint(equalTo: container.bottomAnchor),
+            button.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            button.trailingAnchor.constraint(equalTo: container.trailingAnchor)
+        ])
+        button.addTarget(self, action: #selector(trophyTapped), for: .touchUpInside)
+        
+        let trophyBarButtonItem = UIBarButtonItem(customView: container)
+        
+        if let existingItems = navigationItem.rightBarButtonItems, !existingItems.isEmpty {
+            var items = existingItems
+            items.append(trophyBarButtonItem)
+            navigationItem.rightBarButtonItems = items
+        } else if let existingItem = navigationItem.rightBarButtonItem {
+            navigationItem.rightBarButtonItems = [existingItem, trophyBarButtonItem]
+        } else {
+            navigationItem.rightBarButtonItem = trophyBarButtonItem
+        }
+    }
+    
+    @objc private func trophyTapped() {
+        let rewardsVC = RewardsCollectionViewController()
+        navigationController?.pushViewController(rewardsVC, animated: true)
+    }
+    
     
     private func setupRefreshControl() {
         let refreshControl = UIRefreshControl()
@@ -66,7 +226,7 @@ class ChallengeFirstViewController: UIViewController {
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
         // Ensure cells start below the segment control
-        let topPadding: CGFloat = 10
+        let topPadding: CGFloat = filterButton.isHidden ? 10 : 45
         let topInset = segmentControl.frame.maxY + topPadding
         challengeCV.contentInset = UIEdgeInsets(top: topInset, left: 0, bottom: 20, right: 0)
         challengeCV.scrollIndicatorInsets = UIEdgeInsets(top: topInset, left: 0, bottom: 0, right: 0)
@@ -125,9 +285,9 @@ class ChallengeFirstViewController: UIViewController {
         
         for i in 0..<currentChallenges.count {
             if currentChallenges[i].status == "ongoing" {
-                // Check if anyone has hit the goal
+                // Check if ALL members have hit their goal
                 let relatedProgress = allProgress.filter { $0.challengeId == currentChallenges[i].challengeId }
-                let isGoalMet = relatedProgress.contains { $0.currentValue >= $0.goalValue && $0.goalValue > 0 }
+                let isGoalMet = !relatedProgress.isEmpty && relatedProgress.allSatisfy { $0.currentValue >= $0.goalValue && $0.goalValue > 0 }
                 
                 if isGoalMet {
                     currentChallenges[i].status = "completed"
@@ -151,12 +311,29 @@ class ChallengeFirstViewController: UIViewController {
         //divide code by 'status'
         if segmentControl.selectedSegmentIndex == 0 {
             //ongoing
+            filterButton.isHidden = true
             filteredChallenges = challenges.filter { $0.status == "ongoing" }
         } else {
             //past and completed
-            filteredChallenges = challenges.filter { $0.status == "past" || $0.status == "completed" }
+            filterButton.isHidden = false
+            let pastChallenges = challenges.filter { $0.status == "past" || $0.status == "completed" }
+            
+            if let filter = currentPastFilter {
+                switch filter {
+                case .recentlyCompleted:
+                    let oneWeekAgo = Calendar.current.date(byAdding: .day, value: -7, to: Date()) ?? Date()
+                    filteredChallenges = pastChallenges.filter { $0.status == "completed" && $0.lastUpdatedAt >= oneWeekAgo }
+                case .allCompleted:
+                    filteredChallenges = pastChallenges.filter { $0.status == "completed" }
+                case .expired:
+                    filteredChallenges = pastChallenges.filter { $0.status == "past" }
+                }
+            } else {
+                filteredChallenges = pastChallenges
+            }
         }
         
+        view.setNeedsLayout()
         challengeCV.reloadData()
     }
     

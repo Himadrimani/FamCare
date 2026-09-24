@@ -7,7 +7,15 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0016BB0AD14ADF2E74582FAB /* ChallengeActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A8BA900A57D4B864B9A7C19 /* ChallengeActivityAttributes.swift */; };
+		031ECA9D3836F8C656C22E18 /* WidgetSharedModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2665BE0A0FAB131AAB797538 /* WidgetSharedModels.swift */; };
+		0AB06E680BF6B63CB8E2C6EC /* WidgetDataProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55CB799A363161BCF7E671E9 /* WidgetDataProvider.swift */; };
+		1121DFFC21DC051EAF0E80A3 /* FamilyWellnessWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0A0A413AA766E3588207108 /* FamilyWellnessWidget.swift */; };
+		2EED34D0BF3D0A3CD71E46D6 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7D6D185C9993C7AFB2AD0145 /* WidgetKit.framework */; };
 		31402541B29FB8B1D3051B57 /* VoiceRecognitionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AD587E51E19D4034562C211 /* VoiceRecognitionService.swift */; };
+		3AF7E5F4D74A31687EE57027 /* MemberSpotlightWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8542C0249539CE91465F2009 /* MemberSpotlightWidget.swift */; };
+		518A576FD0653FD4D311009D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D6F182542F39B5AB00270758 /* Assets.xcassets */; };
+		613D8ACFA6BCDD832B086749 /* AppleAssistantService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F0EFEFD3B49E315ADCE1162 /* AppleAssistantService.swift */; };
 		68080F802FB22449009E281C /* PreviewChallengeViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68080F7F2FB22449009E281C /* PreviewChallengeViewController.swift */; };
 		6842925A2FB37CFC00B922F4 /* HealthKitManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 684292592FB37CFC00B922F4 /* HealthKitManager.swift */; };
 		6842925E2FBC259200B922F4 /* InferredChallengeOutput.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6842925D2FBC259200B922F4 /* InferredChallengeOutput.swift */; };
@@ -29,12 +37,19 @@
 		68DE8AE42FA69885000A0214 /* QuickSelectChallengeCollectionViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68DE8AE32FA69885000A0214 /* QuickSelectChallengeCollectionViewCell.swift */; };
 		68EDAD542F88042100F2E96D /* design02.xib in Resources */ = {isa = PBXBuildFile; fileRef = 68EDAD532F88042100F2E96D /* design02.xib */; };
 		68EDAD562F8807C500F2E96D /* design02.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68EDAD552F8807C500F2E96D /* design02.swift */; };
+		6931D687802FFD7574627AE9 /* ChallengeLiveActivityView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AADDB6BCC064D6238B32772 /* ChallengeLiveActivityView.swift */; };
 		6D33D0AE9EF079F226A6AF5D /* AIAssistantModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 604EE3B0720C70079242E51C /* AIAssistantModels.swift */; };
+		709EF1F50027C55DC75B0CD6 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F2D1A38C86BFDACD88F2C964 /* SwiftUI.framework */; };
+		719302ED9E4FF548AF3A07A2 /* FamCareWidgetExtension.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = 3DE57E593FDE1E19E8EA9FB2 /* FamCareWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		839C9FFD6702190F407AEBC1 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B053D8735970C71D8446EBFA /* Foundation.framework */; };
+		909DE87173AD36782B9FCA76 /* WidgetHelperViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = F07DAA62FA3F6477A5678590 /* WidgetHelperViews.swift */; };
+		94F7B0DCCEC51BBA96018A57 /* ChallengeActivityManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8023F2DFA26C039C08A63BF5 /* ChallengeActivityManager.swift */; };
 		A12EDC8B2FA0F09E00533244 /* ChallengeSentMessageCollectionViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = A12EDC8A2FA0F09E00533244 /* ChallengeSentMessageCollectionViewCell.swift */; };
 		A12EDC8C2FA0F09E00533244 /* ChallengeReceivedMessageCollectionViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = A12EDC892FA0F09E00533244 /* ChallengeReceivedMessageCollectionViewCell.swift */; };
 		A12EDC8F2FA0F0A900533244 /* ChallengeSentMessageCollectionViewCell.xib in Resources */ = {isa = PBXBuildFile; fileRef = A12EDC8E2FA0F0A900533244 /* ChallengeSentMessageCollectionViewCell.xib */; };
 		A12EDC902FA0F0A900533244 /* ChallengeReceivedMessageCollectionViewCell.xib in Resources */ = {isa = PBXBuildFile; fileRef = A12EDC8D2FA0F0A900533244 /* ChallengeReceivedMessageCollectionViewCell.xib */; };
 		AABBCCDD0000000000000102 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = AABBCCDD0000000000000101 /* PrivacyInfo.xcprivacy */; };
+		AB6D205CAB4DC23B8CD3F528 /* FamCareWidgetBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63F6299D49FEAA37520150AA /* FamCareWidgetBundle.swift */; };
 		B12B6C0F6F5DB8EF6906B106 /* AssistantViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = C262E62501F3BF7F5F94249B /* AssistantViewController.swift */; };
 		BB46BD862F3BB2A100022798 /* FamilyMembersCollectionViewCell.xib in Resources */ = {isa = PBXBuildFile; fileRef = BB46BD6D2F3BB2A100022798 /* FamilyMembersCollectionViewCell.xib */; };
 		BB46BD872F3BB2A100022798 /* EditWeightViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB46BD6B2F3BB2A100022798 /* EditWeightViewController.swift */; };
@@ -67,7 +82,10 @@
 		BBD2BF7B2F7A5AB300A823D4 /* StartRowCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBD2BF782F7A5AB300A823D4 /* StartRowCell.swift */; };
 		BBD2BF7D2F7A670F00A823D4 /* EditWellnessViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBD2BF7C2F7A670D00A823D4 /* EditWellnessViewController.swift */; };
 		BBD2BF822F7A673300A823D4 /* InsightDetailViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBD2BF812F7A673200A823D4 /* InsightDetailViewController.swift */; };
+		BE7D28100DE7116181B97000 /* ChallengeActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4A80AA95E27B8A85F94E269 /* ChallengeActivityAttributes.swift */; };
+		C2CE31A6F6C93C5C66F66DCC /* CareAlertWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD5F753343EA2B93D3FB3BF2 /* CareAlertWidget.swift */; };
 		C2F3F3FB713AF33405993976 /* AssistantDataProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAD994E20934B86BF5E0224A /* AssistantDataProvider.swift */; };
+		CBE1F71AECC74F999D2544CC /* SharedCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 034F68F38114A415D4B450AC /* SharedCardView.swift */; };
 		D62BE2CB2F39F70800EF0B77 /* WellnessHeaderCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = D62BE2C92F39F70800EF0B77 /* WellnessHeaderCell.swift */; };
 		D62BE2CC2F39F70800EF0B77 /* WellnessHeaderCell.xib in Resources */ = {isa = PBXBuildFile; fileRef = D62BE2CA2F39F70800EF0B77 /* WellnessHeaderCell.xib */; };
 		D62BE2D02F39FE0E00EF0B77 /* CircularRingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D62BE2CF2F39FE0A00EF0B77 /* CircularRingView.swift */; };
@@ -124,12 +142,44 @@
 		D7A100052F90000000ABCDEF /* LoginSignupViewController.xib in Resources */ = {isa = PBXBuildFile; fileRef = D7A100022F90000000ABCDEF /* LoginSignupViewController.xib */; };
 		D7A100112F90000000ABCDEF /* SignupFamilyViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7A100102F90000000ABCDEF /* SignupFamilyViewController.swift */; };
 		D7A100212F90000000ABCDEF /* UIViewController+HealthPrompt.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7A100202F90000000ABCDEF /* UIViewController+HealthPrompt.swift */; };
+		D981FD572E40BD1BA657FB61 /* SelectMemberIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7AF5ACF0A1BE4748CD692AC /* SelectMemberIntent.swift */; };
 		DD31645D1BE3A5ADA3340B15 /* AppleAuthManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8F1A5F75B0083963E145839 /* AppleAuthManager.swift */; };
-		E48388265C57F74681C79538 /* AIAssistantService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D801F6743A61372E41131F72 /* AIAssistantService.swift */; };
+		FCBFB50501395817A2C31A49 /* RewardsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90B5CEC727B4767C0212C905 /* RewardsViewController.swift */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		00BD2C5D8B37C6348621CE33 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = BBFD696C2F2CEA4F0049AEC3 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = F8FD82F71516E96379F9C254;
+			remoteInfo = FamCareWidgetExtension;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		55998F292C7D66676D80F324 /* Embed App Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				719302ED9E4FF548AF3A07A2 /* FamCareWidgetExtension.appex in Embed App Extensions */,
+			);
+			name = "Embed App Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
+		034F68F38114A415D4B450AC /* SharedCardView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = SharedCardView.swift; path = Views/SharedCardView.swift; sourceTree = "<group>"; };
+		0AADDB6BCC064D6238B32772 /* ChallengeLiveActivityView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ChallengeLiveActivityView.swift; sourceTree = "<group>"; };
+		2665BE0A0FAB131AAB797538 /* WidgetSharedModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetSharedModels.swift; sourceTree = "<group>"; };
+		3DE57E593FDE1E19E8EA9FB2 /* FamCareWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = FamCareWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		55CB799A363161BCF7E671E9 /* WidgetDataProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetDataProvider.swift; sourceTree = "<group>"; };
+		5A8BA900A57D4B864B9A7C19 /* ChallengeActivityAttributes.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ChallengeActivityAttributes.swift; sourceTree = "<group>"; };
 		604EE3B0720C70079242E51C /* AIAssistantModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AIAssistantModels.swift; sourceTree = "<group>"; };
+		63F6299D49FEAA37520150AA /* FamCareWidgetBundle.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FamCareWidgetBundle.swift; sourceTree = "<group>"; };
 		68080F7F2FB22449009E281C /* PreviewChallengeViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreviewChallengeViewController.swift; sourceTree = "<group>"; };
 		684292592FB37CFC00B922F4 /* HealthKitManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitManager.swift; sourceTree = "<group>"; };
 		6842925D2FBC259200B922F4 /* InferredChallengeOutput.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InferredChallengeOutput.swift; sourceTree = "<group>"; };
@@ -152,12 +202,20 @@
 		68DE8AE32FA69885000A0214 /* QuickSelectChallengeCollectionViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickSelectChallengeCollectionViewCell.swift; sourceTree = "<group>"; };
 		68EDAD532F88042100F2E96D /* design02.xib */ = {isa = PBXFileReference; lastKnownFileType = file.xib; path = design02.xib; sourceTree = "<group>"; };
 		68EDAD552F8807C500F2E96D /* design02.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = design02.swift; sourceTree = "<group>"; };
+		7D6D185C9993C7AFB2AD0145 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = WidgetKit.framework; sourceTree = SDKROOT; };
+		8023F2DFA26C039C08A63BF5 /* ChallengeActivityManager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ChallengeActivityManager.swift; sourceTree = "<group>"; };
+		8542C0249539CE91465F2009 /* MemberSpotlightWidget.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MemberSpotlightWidget.swift; sourceTree = "<group>"; };
+		8F0EFEFD3B49E315ADCE1162 /* AppleAssistantService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AppleAssistantService.swift; sourceTree = "<group>"; };
+		90B5CEC727B4767C0212C905 /* RewardsViewController.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RewardsViewController.swift; sourceTree = "<group>"; };
 		9AD587E51E19D4034562C211 /* VoiceRecognitionService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = VoiceRecognitionService.swift; sourceTree = "<group>"; };
+		A0A0A413AA766E3588207108 /* FamilyWellnessWidget.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FamilyWellnessWidget.swift; sourceTree = "<group>"; };
 		A12EDC892FA0F09E00533244 /* ChallengeReceivedMessageCollectionViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChallengeReceivedMessageCollectionViewCell.swift; sourceTree = "<group>"; };
 		A12EDC8A2FA0F09E00533244 /* ChallengeSentMessageCollectionViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChallengeSentMessageCollectionViewCell.swift; sourceTree = "<group>"; };
 		A12EDC8D2FA0F0A900533244 /* ChallengeReceivedMessageCollectionViewCell.xib */ = {isa = PBXFileReference; lastKnownFileType = file.xib; path = ChallengeReceivedMessageCollectionViewCell.xib; sourceTree = "<group>"; };
 		A12EDC8E2FA0F0A900533244 /* ChallengeSentMessageCollectionViewCell.xib */ = {isa = PBXFileReference; lastKnownFileType = file.xib; path = ChallengeSentMessageCollectionViewCell.xib; sourceTree = "<group>"; };
 		AABBCCDD0000000000000101 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		B053D8735970C71D8446EBFA /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
+		B4A80AA95E27B8A85F94E269 /* ChallengeActivityAttributes.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ChallengeActivityAttributes.swift; sourceTree = "<group>"; };
 		BB46BD662F3BB2A100022798 /* AppleHealthTableViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppleHealthTableViewController.swift; sourceTree = "<group>"; };
 		BB46BD682F3BB2A100022798 /* EditDOBViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditDOBViewController.swift; sourceTree = "<group>"; };
 		BB46BD692F3BB2A100022798 /* EditHeightViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditHeightViewController.swift; sourceTree = "<group>"; };
@@ -190,7 +248,9 @@
 		BBD2BF7E2F7A672500A823D4 /* Untitled.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Untitled.swift; sourceTree = "<group>"; };
 		BBD2BF812F7A673200A823D4 /* InsightDetailViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InsightDetailViewController.swift; sourceTree = "<group>"; };
 		BBFD69742F2CEA4F0049AEC3 /* HomeScreen.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = HomeScreen.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		BD5F753343EA2B93D3FB3BF2 /* CareAlertWidget.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CareAlertWidget.swift; sourceTree = "<group>"; };
 		C262E62501F3BF7F5F94249B /* AssistantViewController.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AssistantViewController.swift; sourceTree = "<group>"; };
+		C7AF5ACF0A1BE4748CD692AC /* SelectMemberIntent.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SelectMemberIntent.swift; sourceTree = "<group>"; };
 		D62BE2C92F39F70800EF0B77 /* WellnessHeaderCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WellnessHeaderCell.swift; sourceTree = "<group>"; };
 		D62BE2CA2F39F70800EF0B77 /* WellnessHeaderCell.xib */ = {isa = PBXFileReference; lastKnownFileType = file.xib; path = WellnessHeaderCell.xib; sourceTree = "<group>"; };
 		D62BE2CF2F39FE0A00EF0B77 /* CircularRingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CircularRingView.swift; sourceTree = "<group>"; };
@@ -247,7 +307,9 @@
 		D7A100022F90000000ABCDEF /* LoginSignupViewController.xib */ = {isa = PBXFileReference; lastKnownFileType = file.xib; path = LoginSignupViewController.xib; sourceTree = "<group>"; };
 		D7A100102F90000000ABCDEF /* SignupFamilyViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignupFamilyViewController.swift; sourceTree = "<group>"; };
 		D7A100202F90000000ABCDEF /* UIViewController+HealthPrompt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UIViewController+HealthPrompt.swift"; sourceTree = "<group>"; };
-		D801F6743A61372E41131F72 /* AIAssistantService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AIAssistantService.swift; sourceTree = "<group>"; };
+		EBEA2094E24BC350ACC90CCC /* FamCareWidget.entitlements */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.entitlements; path = FamCareWidget.entitlements; sourceTree = "<group>"; };
+		F07DAA62FA3F6477A5678590 /* WidgetHelperViews.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetHelperViews.swift; sourceTree = "<group>"; };
+		F2D1A38C86BFDACD88F2C964 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = SwiftUI.framework; sourceTree = SDKROOT; };
 		F8F1A5F75B0083963E145839 /* AppleAuthManager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AppleAuthManager.swift; sourceTree = "<group>"; };
 		FAD994E20934B86BF5E0224A /* AssistantDataProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AssistantDataProvider.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -262,9 +324,27 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		FC1D587A898BDF2128048FBD /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				839C9FFD6702190F407AEBC1 /* Foundation.framework in Frameworks */,
+				2EED34D0BF3D0A3CD71E46D6 /* WidgetKit.framework in Frameworks */,
+				709EF1F50027C55DC75B0CD6 /* SwiftUI.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		1A85BA68A1E336ED2A17A338 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				034F68F38114A415D4B450AC /* SharedCardView.swift */,
+			);
+			name = Views;
+			sourceTree = "<group>";
+		};
 		686744802F3EDDE4009CEC31 /* Challenges */ = {
 			isa = PBXGroup;
 			children = (
@@ -462,8 +542,17 @@
 				689E1CE72F3C41E000F1DA8C /* ChallengeFirstViewController.swift */,
 				689E1CE82F3C41E000F1DA8C /* ViewChallengeViewController.swift */,
 				68DE8AD52FA614A9000A0214 /* TaskDetailViewController 2.swift */,
+				90B5CEC727B4767C0212C905 /* RewardsViewController.swift */,
 			);
 			path = VCs;
+			sourceTree = "<group>";
+		};
+		B34012843C50F6CB119170F7 /* iOS */ = {
+			isa = PBXGroup;
+			children = (
+				B053D8735970C71D8446EBFA /* Foundation.framework */,
+			);
+			name = iOS;
 			sourceTree = "<group>";
 		};
 		BB46BD672F3BB2A100022798 /* AppleHealthVC */ = {
@@ -549,6 +638,9 @@
 				BB8CD7CE2F3D8FDC00513144 /* Profile+Wellness.swift */,
 				D6D9D1272F7695B8003258CA /* TopicChatViewModel.swift */,
 				D6D9D1292F7695B8003258CA /* TopicsViewModel.swift */,
+				55CB799A363161BCF7E671E9 /* WidgetDataProvider.swift */,
+				B4A80AA95E27B8A85F94E269 /* ChallengeActivityAttributes.swift */,
+				8023F2DFA26C039C08A63BF5 /* ChallengeActivityManager.swift */,
 			);
 			path = Model;
 			sourceTree = "<group>";
@@ -559,10 +651,10 @@
 				BBBB70082F7C32A100514451 /* InsightModels.swift */,
 				BBBB70092F7C32A100514451 /* InsightEngine.swift */,
 				604EE3B0720C70079242E51C /* AIAssistantModels.swift */,
-				D801F6743A61372E41131F72 /* AIAssistantService.swift */,
 				C262E62501F3BF7F5F94249B /* AssistantViewController.swift */,
 				9AD587E51E19D4034562C211 /* VoiceRecognitionService.swift */,
 				FAD994E20934B86BF5E0224A /* AssistantDataProvider.swift */,
+				8F0EFEFD3B49E315ADCE1162 /* AppleAssistantService.swift */,
 			);
 			path = LLM;
 			sourceTree = "<group>";
@@ -573,6 +665,7 @@
 				D6F182742F39B5AB00270758 /* HomeScreen */,
 				D69B63E62F76873600ADB943 /* Frameworks */,
 				BBFD69752F2CEA4F0049AEC3 /* Products */,
+				E049D255FCA9E51D7023787D /* FamCareWidget */,
 			);
 			sourceTree = "<group>";
 		};
@@ -580,6 +673,7 @@
 			isa = PBXGroup;
 			children = (
 				BBFD69742F2CEA4F0049AEC3 /* HomeScreen.app */,
+				3DE57E593FDE1E19E8EA9FB2 /* FamCareWidgetExtension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -587,6 +681,9 @@
 		D69B63E62F76873600ADB943 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				B34012843C50F6CB119170F7 /* iOS */,
+				7D6D185C9993C7AFB2AD0145 /* WidgetKit.framework */,
+				F2D1A38C86BFDACD88F2C964 /* SwiftUI.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -632,6 +729,7 @@
 				686744C92F3F48D7009CEC31 /* Cell Designs */,
 				686744CA2F3F48EF009CEC31 /* Cell Files */,
 				686744C82F3F48AC009CEC31 /* VCs */,
+				1A85BA68A1E336ED2A17A338 /* Views */,
 			);
 			path = Messages;
 			sourceTree = "<group>";
@@ -648,6 +746,23 @@
 			path = Auth;
 			sourceTree = "<group>";
 		};
+		E049D255FCA9E51D7023787D /* FamCareWidget */ = {
+			isa = PBXGroup;
+			children = (
+				BD5F753343EA2B93D3FB3BF2 /* CareAlertWidget.swift */,
+				F07DAA62FA3F6477A5678590 /* WidgetHelperViews.swift */,
+				8542C0249539CE91465F2009 /* MemberSpotlightWidget.swift */,
+				A0A0A413AA766E3588207108 /* FamilyWellnessWidget.swift */,
+				63F6299D49FEAA37520150AA /* FamCareWidgetBundle.swift */,
+				2665BE0A0FAB131AAB797538 /* WidgetSharedModels.swift */,
+				EBEA2094E24BC350ACC90CCC /* FamCareWidget.entitlements */,
+				C7AF5ACF0A1BE4748CD692AC /* SelectMemberIntent.swift */,
+				5A8BA900A57D4B864B9A7C19 /* ChallengeActivityAttributes.swift */,
+				0AADDB6BCC064D6238B32772 /* ChallengeLiveActivityView.swift */,
+			);
+			path = FamCareWidget;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -658,10 +773,12 @@
 				BBFD69702F2CEA4F0049AEC3 /* Sources */,
 				BBFD69712F2CEA4F0049AEC3 /* Frameworks */,
 				BBFD69722F2CEA4F0049AEC3 /* Resources */,
+				55998F292C7D66676D80F324 /* Embed App Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				84784C9AB5070E059AAEF6F3 /* PBXTargetDependency */,
 			);
 			name = HomeScreen;
 			packageProductDependencies = (
@@ -671,6 +788,23 @@
 			productName = HomeScreen;
 			productReference = BBFD69742F2CEA4F0049AEC3 /* HomeScreen.app */;
 			productType = "com.apple.product-type.application";
+		};
+		F8FD82F71516E96379F9C254 /* FamCareWidgetExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 713AE51C25D54920B0B441B7 /* Build configuration list for PBXNativeTarget "FamCareWidgetExtension" */;
+			buildPhases = (
+				168557B37739B613E03BF033 /* Sources */,
+				FC1D587A898BDF2128048FBD /* Frameworks */,
+				C79F5B1F17C34D007DC583C4 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = FamCareWidgetExtension;
+			productName = FamCareWidgetExtension;
+			productReference = 3DE57E593FDE1E19E8EA9FB2 /* FamCareWidgetExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
 		};
 /* End PBXNativeTarget section */
 
@@ -711,6 +845,7 @@
 			projectRoot = "";
 			targets = (
 				BBFD69732F2CEA4F0049AEC3 /* HomeScreen */,
+				F8FD82F71516E96379F9C254 /* FamCareWidgetExtension */,
 			);
 		};
 /* End PBXProject section */
@@ -760,9 +895,33 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		C79F5B1F17C34D007DC583C4 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				518A576FD0653FD4D311009D /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		168557B37739B613E03BF033 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C2CE31A6F6C93C5C66F66DCC /* CareAlertWidget.swift in Sources */,
+				909DE87173AD36782B9FCA76 /* WidgetHelperViews.swift in Sources */,
+				3AF7E5F4D74A31687EE57027 /* MemberSpotlightWidget.swift in Sources */,
+				1121DFFC21DC051EAF0E80A3 /* FamilyWellnessWidget.swift in Sources */,
+				AB6D205CAB4DC23B8CD3F528 /* FamCareWidgetBundle.swift in Sources */,
+				031ECA9D3836F8C656C22E18 /* WidgetSharedModels.swift in Sources */,
+				D981FD572E40BD1BA657FB61 /* SelectMemberIntent.swift in Sources */,
+				0016BB0AD14ADF2E74582FAB /* ChallengeActivityAttributes.swift in Sources */,
+				6931D687802FFD7574627AE9 /* ChallengeLiveActivityView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		BBFD69702F2CEA4F0049AEC3 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -843,14 +1002,28 @@
 				D7A100212F90000000ABCDEF /* UIViewController+HealthPrompt.swift in Sources */,
 				DD31645D1BE3A5ADA3340B15 /* AppleAuthManager.swift in Sources */,
 				6D33D0AE9EF079F226A6AF5D /* AIAssistantModels.swift in Sources */,
-				E48388265C57F74681C79538 /* AIAssistantService.swift in Sources */,
 				B12B6C0F6F5DB8EF6906B106 /* AssistantViewController.swift in Sources */,
 				31402541B29FB8B1D3051B57 /* VoiceRecognitionService.swift in Sources */,
 				C2F3F3FB713AF33405993976 /* AssistantDataProvider.swift in Sources */,
+				0AB06E680BF6B63CB8E2C6EC /* WidgetDataProvider.swift in Sources */,
+				BE7D28100DE7116181B97000 /* ChallengeActivityAttributes.swift in Sources */,
+				94F7B0DCCEC51BBA96018A57 /* ChallengeActivityManager.swift in Sources */,
+				CBE1F71AECC74F999D2544CC /* SharedCardView.swift in Sources */,
+				613D8ACFA6BCDD832B086749 /* AppleAssistantService.swift in Sources */,
+				FCBFB50501395817A2C31A49 /* RewardsViewController.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		84784C9AB5070E059AAEF6F3 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = FamCareWidgetExtension;
+			target = F8FD82F71516E96379F9C254 /* FamCareWidgetExtension */;
+			targetProxy = 00BD2C5D8B37C6348621CE33 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin PBXVariantGroup section */
 		D6F182612F39B5AB00270758 /* LaunchScreen.storyboard */ = {
@@ -872,6 +1045,35 @@
 /* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
+		20D42DEF7FB183C7052B0923 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_ENTITLEMENTS = FamCareWidget/FamCareWidget.entitlements;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = FB5434M2S3;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = FamCareWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "FamCare Widget";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.namanmittal.famcare.widget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
 		BBFD69882F2CEA500049AEC3 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -1071,9 +1273,48 @@
 			};
 			name = Release;
 		};
+		E0FB40B4AB08B44C1C6BB0BA /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_ENTITLEMENTS = FamCareWidget/FamCareWidget.entitlements;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = FB5434M2S3;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = FamCareWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "FamCare Widget";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.namanmittal.famcare.widget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		713AE51C25D54920B0B441B7 /* Build configuration list for PBXNativeTarget "FamCareWidgetExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E0FB40B4AB08B44C1C6BB0BA /* Release */,
+				20D42DEF7FB183C7052B0923 /* Debug */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		BBFD696F2F2CEA4F0049AEC3 /* Build configuration list for PBXProject "HomeScreen" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

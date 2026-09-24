@@ -100,11 +100,27 @@ class TopicsViewModel: ObservableObject {
             membersToJoin.append(currentUserId)
         }
         
-        let topic = DataManager.shared.createTopicLocally(title: title, creatorId: currentUserId, members: membersToJoin)
+        let sortedMembers = membersToJoin.sorted(by: { $0.uuidString < $1.uuidString })
+        
+        // 1. Check if a topic with this exact title and exact members already exists
+        let existingTopicId = DataManager.shared.topics.first { topic in
+            if topic.title != title { return false }
+            let topicMemberIds = DataManager.shared.topicMembers.filter { $0.topicId == topic.id }.map { $0.userId }
+            let sortedTopicMembers = topicMemberIds.sorted(by: { $0.uuidString < $1.uuidString })
+            return sortedMembers == sortedTopicMembers
+        }?.id
+        
+        let topicId: UUID
+        if let existingId = existingTopicId {
+            topicId = existingId
+        } else {
+            let topic = DataManager.shared.createTopicLocally(title: title, creatorId: currentUserId, members: membersToJoin)
+            topicId = topic.id
+        }
         
         let topicMessagePayload = TopicMessage(
             id: UUID(),
-            topicId: topic.id,
+            topicId: topicId,
             senderId: currentUserId,
             content: message,
             createdAt: Date()
@@ -114,7 +130,7 @@ class TopicsViewModel: ObservableObject {
         NotificationCenter.default.post(name: Notification.Name("DataManagerDidUpdate"), object: nil)
         await fetchTopicsAndMessages()
         
-        return topic.id
+        return topicId
     }
     
     // MARK: - Unread Count Management

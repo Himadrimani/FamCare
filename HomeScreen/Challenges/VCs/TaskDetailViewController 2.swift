@@ -53,7 +53,10 @@ class TaskDetailViewController: UIViewController {
             allPossibleMembers.append(currentUser)
         }
         
-        let members = allPossibleMembers.filter { participantIds.contains($0.profileId) }
+        var members = allPossibleMembers.filter { participantIds.contains($0.profileId) }
+        if members.isEmpty {
+            members = allPossibleMembers
+        }
         
         sortedMembers = members.sorted { m1, m2 in
             let prog1 = DataManager.shared.challengeProgress.first(where: { $0.challengeId == challenge.challengeId && $0.memberId == m1.profileId })
@@ -80,27 +83,98 @@ class TaskDetailViewController: UIViewController {
         nameLabel.text = challenge.name
         descriptionLabel.text = challenge.description
         
-        // Setup parent view styles dynamically via superview traversing
-        // `PD6-DI-n4c` child view
-        if let timeView = timeLabel.superview {
-            timeView.backgroundColor = .white
-            timeView.layer.cornerRadius = 16
-        }
-        
-        // `eL3-f1-ama` parent view
-        if let parentView = timeLabel.superview?.superview {
-            parentView.backgroundColor = UIColor(red: 242/255, green: 247/255, blue: 255/255, alpha: 1)
-            parentView.layer.cornerRadius = 24
+        guard let parentView = nameLabel.superview else { return }
+
+        if parentView.tag != 999 {
+            parentView.tag = 999
+
+            let strongNameLabel = nameLabel!
+            let strongDescLabel = descriptionLabel!
+            let strongTimeLabel = timeLabel!
+            let strongTimeLeftLabel = timeLeftLabel!
+
+            parentView.subviews.forEach { $0.removeFromSuperview() }
+
+            parentView.backgroundColor = .systemBackground
+            parentView.layer.cornerRadius = 16
             parentView.layer.borderWidth = 1
-            parentView.layer.borderColor = UIColor(red: 245/255, green: 248/255, blue: 255/255, alpha: 1).cgColor
+            parentView.layer.borderColor = UIColor.systemGray6.cgColor
+            parentView.layer.masksToBounds = false
+            parentView.layer.shadowColor = UIColor.black.cgColor
+            parentView.layer.shadowOpacity = 0.08
+            parentView.layer.shadowOffset = CGSize(width: 0, height: 6)
+            parentView.layer.shadowRadius = 10
+
+            let imageView = UIImageView()
+            imageView.translatesAutoresizingMaskIntoConstraints = false
+            imageView.image = UIImage(named: challenge.bgImage)
+            imageView.contentMode = (challenge.bgImage == "family_trek_challenge" || challenge.bgImage == "sleep_challenge") ? .scaleAspectFill : .scaleAspectFit
+            imageView.layer.cornerRadius = 16
+            imageView.clipsToBounds = true
+            parentView.addSubview(imageView)
+
+            let progressLabel = UILabel()
+            progressLabel.tag = 998
+            progressLabel.translatesAutoresizingMaskIntoConstraints = false
+            progressLabel.font = .systemFont(ofSize: 40)
+            progressLabel.textColor = .label
+            parentView.addSubview(progressLabel)
+
+            strongNameLabel.translatesAutoresizingMaskIntoConstraints = false
+            strongDescLabel.translatesAutoresizingMaskIntoConstraints = false
+            strongTimeLabel.translatesAutoresizingMaskIntoConstraints = false
+            strongTimeLeftLabel.translatesAutoresizingMaskIntoConstraints = false
+
+            strongNameLabel.font = .systemFont(ofSize: 22, weight: .bold)
+            strongNameLabel.textColor = .label
+            strongDescLabel.font = .systemFont(ofSize: 15, weight: .regular)
+            strongDescLabel.textColor = .secondaryLabel
+            strongDescLabel.numberOfLines = 0
+            strongTimeLeftLabel.text = "ENDS IN:"
+            strongTimeLeftLabel.font = .systemFont(ofSize: 14, weight: .semibold)
+            strongTimeLeftLabel.textColor = .systemGray
+            strongTimeLabel.textColor = UIColor(red: 70/255, green: 40/255, blue: 255/255, alpha: 1)
+
+            parentView.addSubview(strongNameLabel)
+            parentView.addSubview(strongDescLabel)
+            parentView.addSubview(strongTimeLeftLabel)
+            parentView.addSubview(strongTimeLabel)
+
+            NSLayoutConstraint.activate([
+                imageView.trailingAnchor.constraint(equalTo: parentView.trailingAnchor),
+                imageView.topAnchor.constraint(equalTo: parentView.topAnchor, constant: 16),
+                imageView.bottomAnchor.constraint(equalTo: parentView.bottomAnchor, constant: -16),
+                imageView.widthAnchor.constraint(equalTo: parentView.widthAnchor, multiplier: 0.5),
+
+                strongNameLabel.leadingAnchor.constraint(equalTo: parentView.leadingAnchor, constant: 20),
+                strongNameLabel.topAnchor.constraint(equalTo: parentView.topAnchor, constant: 20),
+                strongNameLabel.trailingAnchor.constraint(equalTo: imageView.leadingAnchor, constant: -10),
+
+                strongDescLabel.leadingAnchor.constraint(equalTo: strongNameLabel.leadingAnchor),
+                strongDescLabel.topAnchor.constraint(equalTo: strongNameLabel.bottomAnchor, constant: 8),
+                strongDescLabel.trailingAnchor.constraint(equalTo: strongNameLabel.trailingAnchor),
+
+                strongTimeLeftLabel.leadingAnchor.constraint(equalTo: strongNameLabel.leadingAnchor),
+                strongTimeLeftLabel.topAnchor.constraint(equalTo: strongDescLabel.bottomAnchor, constant: 24),
+
+                strongTimeLabel.leadingAnchor.constraint(equalTo: strongNameLabel.leadingAnchor),
+                strongTimeLabel.topAnchor.constraint(equalTo: strongTimeLeftLabel.bottomAnchor, constant: 4),
+
+                progressLabel.leadingAnchor.constraint(equalTo: strongNameLabel.leadingAnchor),
+                progressLabel.bottomAnchor.constraint(equalTo: parentView.bottomAnchor, constant: -20)
+            ])
         }
-        
-        // Style labels
-        timeLabel.textColor = UIColor(red: 70/255, green: 40/255, blue: 255/255, alpha: 1) // Deep blue-purple
-        timeLeftLabel.textColor = .systemGray
-        
-        // Format description
-        descriptionLabel.textColor = .darkGray
+
+        let progressRecords = DataManager.shared.challengeProgress.filter { $0.challengeId == challenge.challengeId }
+        var totalPercentage = 0.0
+        for record in progressRecords {
+            let percentage = record.goalValue > 0 ? (record.currentValue / record.goalValue) * 100.0 : 0.0
+            totalPercentage += min(100.0, percentage)
+        }
+        let progress = progressRecords.isEmpty ? 0.0 : totalPercentage / Double(progressRecords.count)
+        if let progressLabel = parentView.viewWithTag(998) as? UILabel {
+            progressLabel.text = "\(Int(progress))%"
+        }
         
         // Find Mark Done button and Family Status label
         var markDoneButton: UIButton?
@@ -189,6 +263,29 @@ class TaskDetailViewController: UIViewController {
             DataManager.shared.challengeProgress[idx] = progress
             
             SQLiteHelper.shared.saveChallengeProgress(progress)
+            
+            // Fetch latest progress from DataManager to determine state
+            let progressRecords = DataManager.shared.challengeProgress.filter { $0.challengeId == challengeDetails.challengeId }
+            
+            var allComplete = true
+            for record in progressRecords {
+                if record.goalValue > 0 && record.currentValue < record.goalValue {
+                    allComplete = false
+                    break
+                }
+            }
+            
+            let isFamilyChallenge = progressRecords.count > 1
+            let finalAchievementType: AchievementType = (allComplete && isFamilyChallenge) ? .family : .individual
+            
+            let overlay = RewardsViewController(
+                achievementType: finalAchievementType, 
+                challengeId: challengeDetails.challengeId.uuidString, 
+                challengeTitle: challengeDetails.name,
+                challengeType: challengeDetails.type,
+                participantsCount: progressRecords.count
+            )
+            self.present(overlay, animated: true)
             
             Task {
                 await SyncManager.shared.syncAll()
@@ -320,5 +417,4 @@ extension CALayer {
     }
     
 }
-
 

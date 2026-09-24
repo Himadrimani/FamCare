@@ -33,7 +33,7 @@ class NewChallengeCollectionViewCell: UICollectionViewCell {
     func configureCell(challenge: ChallengeDetails, allProgress: [ChallengeProgress]) {
         nameLabel.text = challenge.name
         
-        if challenge.bgImage == "family_trek_challenge" {
+        if challenge.bgImage == "family_trek_challenge" || challenge.bgImage == "sleep_challenge" {
             modelImageView.contentMode = .scaleAspectFill
         }
         

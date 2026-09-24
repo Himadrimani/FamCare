@@ -24,6 +24,8 @@ class ChatViewController: UIViewController {
     // Guard flag — ensures we only auto-scroll to the bottom once on first load,
     // not on every subsequent layout pass (keyboard show/hide, rotation, etc.)
     private var hasScrolledToBottom = false
+    
+    private let voiceButton = UIButton(type: .system)
 
     @IBOutlet weak var sendButton: UIButton! // Button to submit the typed message
     @IBOutlet weak var newMessageTextView: UITextView! // Button to submit the typed message
@@ -76,6 +78,22 @@ class ChatViewController: UIViewController {
         }
     }
     
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        if let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+           let sceneDelegate = scene.delegate as? SceneDelegate {
+            sceneDelegate.setAssistantButton(hidden: true)
+        }
+    }
+    
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        if let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+           let sceneDelegate = scene.delegate as? SceneDelegate {
+            sceneDelegate.setAssistantButton(hidden: false)
+        }
+    }
+    
     deinit {
         NotificationCenter.default.removeObserver(self)
     }
@@ -117,7 +135,7 @@ class ChatViewController: UIViewController {
         newMessageTextView.text = "Type your message here"
         newMessageTextView.textColor = .systemGray
         sendButton.isEnabled = false
-        sendButton.backgroundColor = .systemGray6
+        sendButton.backgroundColor = .clear
         sendButton.tintColor = .systemGray3
         
         // Reload list and scroll
@@ -145,11 +163,85 @@ class ChatViewController: UIViewController {
         newMessageTextView.text = "Type your message here"
         newMessageTextView.textColor = .systemGray
         
+        if let stack = newMessageTextView.superview as? UIStackView {
+            voiceButton.setImage(UIImage(systemName: "mic.fill"), for: .normal)
+            voiceButton.tintColor = .systemBlue
+            voiceButton.translatesAutoresizingMaskIntoConstraints = false
+            voiceButton.addTarget(self, action: #selector(voiceTapped), for: .touchUpInside)
+            
+            if !stack.arrangedSubviews.contains(voiceButton) {
+                stack.insertArrangedSubview(voiceButton, at: 0)
+                NSLayoutConstraint.activate([
+                    voiceButton.widthAnchor.constraint(equalToConstant: 40)
+                ])
+            }
+        }
+        
         // Send button starts rounded and disabled (enabled only when there is real text)
         sendButton.layer.cornerRadius = 16
+        sendButton.setImage(UIImage(systemName: "arrow.up.circle.fill"), for: .normal)
+        sendButton.setTitle("", for: .normal)
+        let config = UIImage.SymbolConfiguration(pointSize: 28, weight: .semibold)
+        sendButton.setPreferredSymbolConfiguration(config, forImageIn: .normal)
         sendButton.isEnabled = false
-        sendButton.backgroundColor = .systemGray6
+        sendButton.backgroundColor = .clear
         sendButton.tintColor = .systemGray3
+    }
+    
+    @objc private func voiceTapped() {
+        let impact = UIImpactFeedbackGenerator(style: .medium)
+        impact.impactOccurred()
+        
+        if VoiceRecognitionService.shared.getIsRecording() {
+            VoiceRecognitionService.shared.stopRecording()
+            voiceButton.tintColor = .systemBlue
+        } else {
+            VoiceRecognitionService.shared.requestPermissions { [weak self] granted in
+                guard let self = self else { return }
+                if granted {
+                    self.startVoiceRecording()
+                } else {
+                    print("Voice permissions not granted")
+                }
+            }
+        }
+    }
+    
+    private func startVoiceRecording() {
+        DispatchQueue.main.async {
+            self.voiceButton.tintColor = .systemRed
+            if self.newMessageTextView.text == "Type your message here" || self.newMessageTextView.text.isEmpty {
+                self.newMessageTextView.text = "Listening..."
+                self.newMessageTextView.textColor = .systemGray
+            }
+        }
+        
+        VoiceRecognitionService.shared.onPartialTranscription = { [weak self] text in
+            guard let self = self else { return }
+            self.newMessageTextView.text = text
+            self.newMessageTextView.textColor = .label
+            self.textViewDidChange(self.newMessageTextView)
+        }
+        
+        VoiceRecognitionService.shared.onFinalTranscription = { [weak self] text in
+            guard let self = self else { return }
+            self.newMessageTextView.text = text
+            self.newMessageTextView.textColor = .label
+            self.voiceButton.tintColor = .systemBlue
+            self.textViewDidChange(self.newMessageTextView)
+        }
+        
+        VoiceRecognitionService.shared.onError = { [weak self] error in
+            print("Voice recognition error: \(error.localizedDescription)")
+            self?.voiceButton.tintColor = .systemBlue
+        }
+        
+        do {
+            try VoiceRecognitionService.shared.startRecording()
+        } catch {
+            print("Failed to start recording: \(error.localizedDescription)")
+            voiceButton.tintColor = .systemBlue
+        }
     }
     
     //Data Loading
@@ -305,18 +397,14 @@ extension ChatViewController: UITextViewDelegate {
     
     // Called on every keystroke — enables/disables the send button based on whether there is real text (not just whitespace or the placeholder).
     func textViewDidChange(_ textView: UITextView) {
-        let hasRealText =
-            textView.text != "Type your message here" &&
-            !textView.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        let text = textView.text ?? ""
+        let hasRealText = !text.isEmpty && text != "Type your message here" && text != "Listening..."
 
-        sendButton.isEnabled = hasRealText
-        
         if hasRealText {
-            sendButton.backgroundColor = .systemBlue
-            sendButton.tintColor = .white
-            textView.textColor = .label
+            sendButton.isEnabled = true
+            sendButton.tintColor = .systemBlue
         } else {
-            sendButton.backgroundColor = .systemGray6
+            sendButton.isEnabled = false
             sendButton.tintColor = .systemGray3
         }
     }

@@ -11,6 +11,7 @@ class TopicChatViewController: UIViewController {
     var viewModel: TopicChatViewModel!
     private var cancellables = Set<AnyCancellable>()
     private var hasScrolledToBottom = false
+    private let voiceButton = UIButton(type: .system)
     
     // Flattened items for the collection view, including messages and date headers
     private var chatItems: [TopicChatItem] = []
@@ -53,6 +54,11 @@ class TopicChatViewController: UIViewController {
         navigationController?.navigationBar.prefersLargeTitles = false
         navigationItem.largeTitleDisplayMode = .never
         navigationController?.setNavigationBarHidden(false, animated: true)
+        
+        if let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+           let sceneDelegate = scene.delegate as? SceneDelegate {
+            sceneDelegate.setAssistantButton(hidden: true)
+        }
     }
 
     override func viewWillDisappear(_ animated: Bool) {
@@ -61,6 +67,11 @@ class TopicChatViewController: UIViewController {
         // Restore large titles for MessageViewController
         navigationController?.navigationBar.prefersLargeTitles = true
         navigationController?.setNavigationBarHidden(true, animated: true)
+        
+        if let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+           let sceneDelegate = scene.delegate as? SceneDelegate {
+            sceneDelegate.setAssistantButton(hidden: false)
+        }
     }
     
     override func viewDidLayoutSubviews() {
@@ -120,9 +131,86 @@ class TopicChatViewController: UIViewController {
         messageTextView.text = "Type your message here"
         messageTextView.textColor = .systemGray
         
+        // Setup Voice Button
+        voiceButton.setImage(UIImage(systemName: "mic.fill"), for: .normal)
+        voiceButton.tintColor = .systemBlue
+        voiceButton.translatesAutoresizingMaskIntoConstraints = false
+        voiceButton.addTarget(self, action: #selector(voiceTapped), for: .touchUpInside)
+        
+        // Add Voice Button to stack view
+        if !inputStackView.arrangedSubviews.contains(voiceButton) {
+            inputStackView.insertArrangedSubview(voiceButton, at: 0)
+            NSLayoutConstraint.activate([
+                voiceButton.widthAnchor.constraint(equalToConstant: 40)
+            ])
+        }
+        
+        // Setup Send Button
+        sendButton.setImage(UIImage(systemName: "arrow.up.circle.fill"), for: .normal)
+        sendButton.setTitle("", for: .normal)
+        
+        // Size the send button image larger
+        let config = UIImage.SymbolConfiguration(pointSize: 28, weight: .semibold)
+        sendButton.setPreferredSymbolConfiguration(config, forImageIn: .normal)
         sendButton.isEnabled = false
-        sendButton.backgroundColor = .systemGray6
+        sendButton.backgroundColor = .clear
         sendButton.tintColor = .systemGray3
+    }
+    
+    @objc private func voiceTapped() {
+        let impact = UIImpactFeedbackGenerator(style: .medium)
+        impact.impactOccurred()
+        
+        if VoiceRecognitionService.shared.getIsRecording() {
+            VoiceRecognitionService.shared.stopRecording()
+            voiceButton.tintColor = .systemBlue
+        } else {
+            VoiceRecognitionService.shared.requestPermissions { [weak self] granted in
+                guard let self = self else { return }
+                if granted {
+                    self.startVoiceRecording()
+                } else {
+                    print("Voice permissions not granted")
+                }
+            }
+        }
+    }
+    
+    private func startVoiceRecording() {
+        DispatchQueue.main.async {
+            self.voiceButton.tintColor = .systemRed
+            if self.messageTextView.text == "Type your message here" || self.messageTextView.text.isEmpty {
+                self.messageTextView.text = "Listening..."
+                self.messageTextView.textColor = .systemGray
+            }
+        }
+        
+        VoiceRecognitionService.shared.onPartialTranscription = { [weak self] text in
+            guard let self = self else { return }
+            self.messageTextView.text = text
+            self.messageTextView.textColor = .label
+            self.textViewDidChange(self.messageTextView)
+        }
+        
+        VoiceRecognitionService.shared.onFinalTranscription = { [weak self] text in
+            guard let self = self else { return }
+            self.messageTextView.text = text
+            self.messageTextView.textColor = .label
+            self.voiceButton.tintColor = .systemBlue
+            self.textViewDidChange(self.messageTextView)
+        }
+        
+        VoiceRecognitionService.shared.onError = { [weak self] error in
+            print("Voice recognition error: \(error.localizedDescription)")
+            self?.voiceButton.tintColor = .systemBlue
+        }
+        
+        do {
+            try VoiceRecognitionService.shared.startRecording()
+        } catch {
+            print("Failed to start recording: \(error.localizedDescription)")
+            voiceButton.tintColor = .systemBlue
+        }
     }
     
     private func scrollToBottom(animated: Bool) {
@@ -212,12 +300,18 @@ extension TopicChatViewController: UICollectionViewDataSource, UICollectionViewD
             if isCurrentUser {
                 let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "TopicSentCell", for: indexPath) as! TopicSentMessageCollectionViewCell
                 cell.configure(with: msg)
+                cell.onViewCardTapped = { [weak self] in
+                    self?.handleViewCardTapped(message: msg.content)
+                }
                 return cell
             } else {
                 let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "TopicReceivedCell", for: indexPath) as! TopicReceivedMessageCollectionViewCell
                 let profile = viewModel.profiles[msg.senderId]
                 let showInfo = shouldShowSenderInfo(at: indexPath.item)
                 cell.configure(with: msg, profile: profile, showSenderInfo: showInfo)
+                cell.onViewCardTapped = { [weak self] in
+                    self?.handleViewCardTapped(message: msg.content)
+                }
                 return cell
             }
         }
@@ -232,15 +326,21 @@ extension TopicChatViewController: UICollectionViewDataSource, UICollectionViewD
             return CGSize(width: width, height: 40)
             
         case .message(let msg):
-            // Dynamic height calculation
+            let currentUserId = DataManager.shared.currentUser?.profileId
+            let isCurrentUser = (msg.senderId == currentUserId)
+            
+            if msg.content.hasPrefix("[SHARE_CARD:") {
+                return CGSize(width: width, height: 320)
+            }
+            
+            // Dynamic height calculation for regular text
             let maxWidth = width * 0.75
             let padding: CGFloat = 32
             let font = UIFont.systemFont(ofSize: 17)
             let textHeight = msg.content.height(withConstrainedWidth: maxWidth - padding, font: font)
             
-            // Vertical space breakdown for received cell (worst case with sender info):
-            // senderName top (4) + senderName (~14) + gap (4) + bubble top (10)
-            // + message-to-time gap (4) + timeLabel (~12) + bubble bottom (8) + cell bottom (4) = ~60
+            // Vertical space breakdown:
+            // Bubble internal padding + time label + margins = ~60
             let verticalPadding: CGFloat = 60
             return CGSize(width: width, height: textHeight + verticalPadding)
         }
@@ -283,12 +383,34 @@ extension TopicChatViewController: UITextViewDelegate {
         sendButton.isEnabled = hasRealText
         
         if hasRealText {
-            sendButton.backgroundColor = .systemBlue
-            sendButton.tintColor = .white
+            sendButton.tintColor = .systemBlue
             textView.textColor = .label
         } else {
-            sendButton.backgroundColor = .systemGray6
             sendButton.tintColor = .systemGray3
+        }
+    }
+}
+
+extension TopicChatViewController {
+    private func handleViewCardTapped(message: String) {
+        guard message.hasPrefix("[SHARE_CARD:CHALLENGE|") else { return }
+        let content = String(message.dropFirst("[SHARE_CARD:".count).dropLast())
+        let components = content.split(separator: "|").map { String($0) }
+        guard components.count > 3 else { return }
+        
+        let challengeName = components[3]
+        
+        let allChallenges = DataManager.shared.challenges
+        guard let challenge = allChallenges.first(where: { $0.name == challengeName }) else {
+            print("Challenge not found: \(challengeName)")
+            return
+        }
+        
+        let storyboard = UIStoryboard(name: "Challenges", bundle: nil)
+        if let destinationVC = storyboard.instantiateViewController(withIdentifier: "ViewChallengeViewController") as? ViewChallengeViewController {
+            destinationVC.challenge = challenge
+            destinationVC.familyMembers = DataManager.shared.allProfiles.filter { $0.profileId != DataManager.shared.currentUser?.profileId }
+            self.navigationController?.pushViewController(destinationVC, animated: true)
         }
     }
 }

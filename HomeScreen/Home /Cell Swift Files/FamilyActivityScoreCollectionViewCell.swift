@@ -49,8 +49,16 @@ class FamilyActivityScoreCollectionViewCell: UICollectionViewCell {
     private func showLegendOverlay(from source: UIView) {
         // Using a small custom view for the legend to control width precisely
         let legendVC = LegendViewController()
+        legendVC.membersData = self.membersData
         legendVC.modalPresentationStyle = .popover
-        legendVC.preferredContentSize = CGSize(width: 140, height: 160)
+        
+        // Calculate preferred height based on whether there are abnormal vitals
+        let abnormalCount = membersData.filter { $0.getAbnormalVital(on: Date()) != nil }.count
+        let baseHeight = 160
+        let additionalHeight = abnormalCount * 45 // extra space per abnormal member
+        let totalHeight = abnormalCount > 0 ? baseHeight + additionalHeight + 20 : baseHeight
+        
+        legendVC.preferredContentSize = CGSize(width: 220, height: totalHeight)
         
         if let popover = legendVC.popoverPresentationController {
             popover.sourceView = source
@@ -220,6 +228,25 @@ class FamilyActivityScoreCollectionViewCell: UICollectionViewCell {
                 shadowView.layer.shadowOffset = .zero
                 shadowView.layer.masksToBounds = false
                 shadowView.layer.shadowPath = UIBezierPath(ovalIn: shadowView.bounds).cgPath
+                
+                // Add pulsating animation for "Immediate Attention Glow"
+                let pulseAnim = CABasicAnimation(keyPath: "shadowRadius")
+                pulseAnim.fromValue = 12
+                pulseAnim.toValue = 22
+                pulseAnim.duration = 0.8
+                pulseAnim.autoreverses = true
+                pulseAnim.repeatCount = .infinity
+                
+                let opacityAnim = CABasicAnimation(keyPath: "shadowOpacity")
+                opacityAnim.fromValue = 0.6
+                opacityAnim.toValue = 1.0
+                opacityAnim.duration = 0.8
+                opacityAnim.autoreverses = true
+                opacityAnim.repeatCount = .infinity
+                
+                shadowView.layer.add(pulseAnim, forKey: "pulseRadius")
+                shadowView.layer.add(opacityAnim, forKey: "pulseOpacity")
+                
                 ringsContainer.addSubview(shadowView)
             }
 
@@ -282,6 +309,14 @@ class FamilyActivityScoreCollectionViewCell: UICollectionViewCell {
         // Find the corresponding avatar view
         let avatarView = ringsContainer.subviews.compactMap { $0 as? UIImageView }.first { $0.tag == index }
         
+        if let abnormal = member.getAbnormalVital(on: Date()) {
+            performInteractiveAnimation(for: layer, imageView: avatarView, isFullAction: isFullAction)
+            if let avatar = avatarView {
+                showSingleAttentionPopover(for: member, abnormal: abnormal, from: avatar, isFullAction: isFullAction)
+            }
+            return
+        }
+        
         // Only open modal if it's a full action (tap on avatar)
         if isFullAction {
             delegate?.didTapMember(member)
@@ -295,6 +330,30 @@ class FamilyActivityScoreCollectionViewCell: UICollectionViewCell {
             addParticleBurst(at: avatar.center, 
                              color: (member.calculateWellnessScore(for: Date()) > 0.5 ? .systemGreen : .systemOrange),
                              intensityMultiplier: isFullAction ? 1.0 : 0.4)
+        }
+    }
+    
+    private func showSingleAttentionPopover(for member: Profile, abnormal: (type: String, value: Double), from source: UIView, isFullAction: Bool) {
+        let popoverVC = SingleAttentionViewController()
+        popoverVC.member = member
+        popoverVC.abnormal = abnormal
+        popoverVC.isFullAction = isFullAction
+        popoverVC.onNav = { [weak self] in
+            self?.delegate?.didTapMember(member)
+        }
+        popoverVC.modalPresentationStyle = .popover
+        popoverVC.preferredContentSize = CGSize(width: 240, height: isFullAction ? 130 : 90)
+        
+        if let popover = popoverVC.popoverPresentationController {
+            popover.sourceView = source
+            popover.sourceRect = source.bounds
+            popover.permittedArrowDirections = .any
+            popover.delegate = popoverVC
+            popover.backgroundColor = .systemBackground
+        }
+        
+        if let vc = self.parentViewController {
+            vc.present(popoverVC, animated: true)
         }
     }
     
@@ -380,8 +439,9 @@ class FamilyActivityScoreCollectionViewCell: UICollectionViewCell {
     }
 }
 
-// MARK: - Helper Legend VC
 class LegendViewController: UIViewController, UIPopoverPresentationControllerDelegate {
+    var membersData: [Profile] = []
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .systemBackground
@@ -414,6 +474,59 @@ class LegendViewController: UIViewController, UIPopoverPresentationControllerDel
             stack.addArrangedSubview(label)
         }
         
+        let abnormalMembers = membersData.filter { $0.getAbnormalVital(on: Date()) != nil }
+        if !abnormalMembers.isEmpty {
+            let divider = UIView()
+            divider.backgroundColor = .separator
+            divider.translatesAutoresizingMaskIntoConstraints = false
+            divider.heightAnchor.constraint(equalToConstant: 1).isActive = true
+            stack.addArrangedSubview(divider)
+            
+            let attentionTitle = UILabel()
+            attentionTitle.font = .systemFont(ofSize: 12, weight: .bold)
+            attentionTitle.textColor = .systemRed
+            attentionTitle.text = "NEEDS ATTENTION"
+            stack.addArrangedSubview(attentionTitle)
+            
+            for member in abnormalMembers {
+                if let abnormal = member.getAbnormalVital(on: Date()) {
+                    let container = UIStackView()
+                    container.axis = .horizontal
+                    container.spacing = 8
+                    container.alignment = .center
+                    
+                    let avatar = UIImageView(frame: CGRect(x: 0, y: 0, width: 24, height: 24))
+                    ImageManager.shared.setImage(for: avatar, from: member.profilePic)
+                    avatar.contentMode = .scaleAspectFill
+                    avatar.layer.cornerRadius = 12
+                    avatar.clipsToBounds = true
+                    avatar.translatesAutoresizingMaskIntoConstraints = false
+                    avatar.widthAnchor.constraint(equalToConstant: 24).isActive = true
+                    avatar.heightAnchor.constraint(equalToConstant: 24).isActive = true
+                    
+                    let label = UILabel()
+                    label.font = .systemFont(ofSize: 12, weight: .regular)
+                    label.numberOfLines = 0
+                    
+                    var reason = ""
+                    switch abnormal.type {
+                    case "low_hr": reason = "Sudden drop in HR (\(Int(abnormal.value)) bpm)"
+                    case "high_hr": reason = "Sudden spike in HR (\(Int(abnormal.value)) bpm)"
+                    case "low_hrv": reason = "Significant drop in HRV (\(Int(abnormal.value)) ms)"
+                    default: reason = "Abnormal vitals detected."
+                    }
+                    
+                    let attrText = NSMutableAttributedString(string: "\(member.displayName)\n", attributes: [.font: UIFont.systemFont(ofSize: 13, weight: .semibold)])
+                    attrText.append(NSAttributedString(string: reason, attributes: [.font: UIFont.systemFont(ofSize: 11, weight: .regular), .foregroundColor: UIColor.secondaryLabel]))
+                    label.attributedText = attrText
+                    
+                    container.addArrangedSubview(avatar)
+                    container.addArrangedSubview(label)
+                    stack.addArrangedSubview(container)
+                }
+            }
+        }
+        
         NSLayoutConstraint.activate([
             stack.topAnchor.constraint(equalTo: view.topAnchor, constant: 16),
             stack.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
@@ -423,6 +536,88 @@ class LegendViewController: UIViewController, UIPopoverPresentationControllerDel
     }
     
     // Force popover style on iPhone
+    func adaptivePresentationStyle(for controller: UIPresentationController) -> UIModalPresentationStyle {
+        return .none
+    }
+}
+
+// MARK: - Single Attention VC
+class SingleAttentionViewController: UIViewController, UIPopoverPresentationControllerDelegate {
+    var member: Profile!
+    var abnormal: (type: String, value: Double)!
+    var isFullAction: Bool = false
+    var onNav: (() -> Void)?
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        view.backgroundColor = .systemBackground
+        
+        let stack = UIStackView()
+        stack.axis = .vertical
+        stack.spacing = 8
+        stack.alignment = .center
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(stack)
+        
+        let titleStack = UIStackView()
+        titleStack.axis = .horizontal
+        titleStack.spacing = 6
+        titleStack.alignment = .center
+        
+        let iconView = UIImageView(image: UIImage(systemName: "exclamationmark.triangle.fill"))
+        iconView.tintColor = .systemRed
+        iconView.contentMode = .scaleAspectFit
+        iconView.translatesAutoresizingMaskIntoConstraints = false
+        iconView.widthAnchor.constraint(equalToConstant: 16).isActive = true
+        iconView.heightAnchor.constraint(equalToConstant: 16).isActive = true
+        
+        let titleLabel = UILabel()
+        titleLabel.font = .systemFont(ofSize: 14, weight: .bold)
+        titleLabel.textColor = .systemRed
+        titleLabel.text = "Needs Attention"
+        
+        titleStack.addArrangedSubview(iconView)
+        titleStack.addArrangedSubview(titleLabel)
+        stack.addArrangedSubview(titleStack)
+        
+        let messageLabel = UILabel()
+        messageLabel.font = .systemFont(ofSize: 13, weight: .medium)
+        messageLabel.numberOfLines = 0
+        messageLabel.textAlignment = .center
+        
+        var reason = ""
+        switch abnormal.type {
+        case "low_hr": reason = "Sudden drop in Heart Rate to \(Int(abnormal.value)) bpm."
+        case "high_hr": reason = "Sudden spike in Heart Rate to \(Int(abnormal.value)) bpm."
+        case "low_hrv": reason = "Significant drop in HRV to \(Int(abnormal.value)) ms."
+        default: reason = "Abnormal vitals detected."
+        }
+        
+        messageLabel.text = "\(reason)"
+        stack.addArrangedSubview(messageLabel)
+        
+        if isFullAction {
+            let navButton = UIButton(type: .system)
+            navButton.setTitle("View Profile", for: .normal)
+            navButton.titleLabel?.font = .systemFont(ofSize: 14, weight: .semibold)
+            navButton.addTarget(self, action: #selector(navTapped), for: .touchUpInside)
+            stack.addArrangedSubview(navButton)
+        }
+        
+        NSLayoutConstraint.activate([
+            stack.topAnchor.constraint(equalTo: view.topAnchor, constant: 16),
+            stack.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
+            stack.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
+            stack.bottomAnchor.constraint(lessThanOrEqualTo: view.bottomAnchor, constant: -16)
+        ])
+    }
+    
+    @objc func navTapped() {
+        dismiss(animated: true) {
+            self.onNav?()
+        }
+    }
+    
     func adaptivePresentationStyle(for controller: UIPresentationController) -> UIModalPresentationStyle {
         return .none
     }

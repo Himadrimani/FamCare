@@ -8,14 +8,48 @@ final class SignupFamilyViewController: UIViewController {
     var onSignupComplete: (() -> Void)?
 
     // MARK: - Views
+    private let scrollView: UIScrollView = {
+        let sv = UIScrollView()
+        sv.translatesAutoresizingMaskIntoConstraints = false
+        sv.keyboardDismissMode = .interactive
+        sv.contentInsetAdjustmentBehavior = .always
+        sv.showsVerticalScrollIndicator = false
+        return sv
+    }()
+
+    private let contentView: UIView = {
+        let v = UIView()
+        v.translatesAutoresizingMaskIntoConstraints = false
+        return v
+    }()
+
+    private let familyImageView: UIImageView = {
+        let iv = UIImageView(image: UIImage(named: "login_family"))
+        iv.contentMode = .scaleAspectFill
+        iv.translatesAutoresizingMaskIntoConstraints = false
+        return iv
+    }()
+
+    private lazy var backToLoginButton: UIButton = {
+        let button = UIButton(type: .system)
+        button.setTitle("Back to Login", for: .normal)
+        button.setImage(UIImage(systemName: "chevron.left"), for: .normal)
+        button.tintColor = .systemBlue
+        button.titleLabel?.font = .systemFont(ofSize: 15, weight: .medium)
+        button.imageEdgeInsets = UIEdgeInsets(top: 0, left: -8, bottom: 0, right: 0)
+        button.translatesAutoresizingMaskIntoConstraints = false
+        button.addTarget(self, action: #selector(backTapped), for: .touchUpInside)
+        return button
+    }()
+
     private let cardView: UIView = {
         let v = UIView()
-        v.backgroundColor = .systemBackground
-        v.layer.cornerRadius = 18
+        v.backgroundColor = .white
+        v.layer.cornerRadius = 24
         v.layer.shadowColor = UIColor.black.cgColor
         v.layer.shadowOpacity = 0.05
-        v.layer.shadowRadius = 14
-        v.layer.shadowOffset = CGSize(width: 0, height: 6)
+        v.layer.shadowRadius = 12
+        v.layer.shadowOffset = CGSize(width: 0, height: 4)
         v.translatesAutoresizingMaskIntoConstraints = false
         return v
     }()
@@ -68,41 +102,77 @@ final class SignupFamilyViewController: UIViewController {
         setupUI()
     }
 
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        navigationController?.setNavigationBarHidden(true, animated: animated)
+    }
+
     private func setupUI() {
         view.backgroundColor = .systemGroupedBackground
-        title = "Sign Up"
-        navigationController?.navigationBar.tintColor = .systemBlue
+        title = ""
 
-        view.addSubview(cardView)
+        view.addSubview(scrollView)
+        scrollView.addSubview(contentView)
+        contentView.addSubview(familyImageView)
+        contentView.addSubview(cardView)
+
         cardView.addSubview(headerStack)
         headerStack.addArrangedSubview(titleLabel)
         headerStack.addArrangedSubview(subtitleLabel)
 
         cardView.addSubview(joinCard)
         cardView.addSubview(createCard)
+        cardView.addSubview(backToLoginButton)
 
-        let pad: CGFloat = 20
+        let pad: CGFloat = 24
         NSLayoutConstraint.activate([
-            cardView.centerYAnchor.constraint(equalTo: view.centerYAnchor, constant: -20),
-            cardView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: pad),
-            cardView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -pad),
+            scrollView.topAnchor.constraint(equalTo: view.topAnchor),
+            scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            scrollView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
 
-            headerStack.topAnchor.constraint(equalTo: cardView.topAnchor, constant: 28),
+            contentView.topAnchor.constraint(equalTo: scrollView.contentLayoutGuide.topAnchor),
+            contentView.leadingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.leadingAnchor),
+            contentView.trailingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.trailingAnchor),
+            contentView.bottomAnchor.constraint(equalTo: scrollView.contentLayoutGuide.bottomAnchor),
+            contentView.widthAnchor.constraint(equalTo: scrollView.frameLayoutGuide.widthAnchor),
+
+            familyImageView.topAnchor.constraint(equalTo: contentView.topAnchor),
+            familyImageView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
+            familyImageView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
+            familyImageView.heightAnchor.constraint(equalTo: contentView.widthAnchor, multiplier: 0.55),
+            
+            cardView.topAnchor.constraint(equalTo: familyImageView.bottomAnchor, constant: -40),
+            cardView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
+            cardView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
+            cardView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -40),
+
+            headerStack.topAnchor.constraint(equalTo: cardView.topAnchor, constant: 32),
             headerStack.leadingAnchor.constraint(equalTo: cardView.leadingAnchor, constant: pad),
             headerStack.trailingAnchor.constraint(equalTo: cardView.trailingAnchor, constant: -pad),
 
-            joinCard.topAnchor.constraint(equalTo: headerStack.bottomAnchor, constant: 28),
+            joinCard.topAnchor.constraint(equalTo: headerStack.bottomAnchor, constant: 32),
             joinCard.leadingAnchor.constraint(equalTo: cardView.leadingAnchor, constant: pad),
             joinCard.trailingAnchor.constraint(equalTo: cardView.trailingAnchor, constant: -pad),
 
-            createCard.topAnchor.constraint(equalTo: joinCard.bottomAnchor, constant: 14),
+            createCard.topAnchor.constraint(equalTo: joinCard.bottomAnchor, constant: 16),
             createCard.leadingAnchor.constraint(equalTo: cardView.leadingAnchor, constant: pad),
             createCard.trailingAnchor.constraint(equalTo: cardView.trailingAnchor, constant: -pad),
-            createCard.bottomAnchor.constraint(equalTo: cardView.bottomAnchor, constant: -28)
+            
+            backToLoginButton.topAnchor.constraint(equalTo: createCard.bottomAnchor, constant: 32),
+            backToLoginButton.leadingAnchor.constraint(equalTo: cardView.leadingAnchor, constant: pad),
+            backToLoginButton.bottomAnchor.constraint(equalTo: cardView.bottomAnchor, constant: -32)
         ])
     }
 
     // MARK: - Actions
+    @objc private func backTapped() {
+        if let nav = navigationController {
+            nav.popViewController(animated: true)
+        } else {
+            dismiss(animated: true)
+        }
+    }
     @objc private func joinFamilyTapped() {
         let joinVC = JoinFamilyViewController()
         joinVC.onSignupComplete = onSignupComplete
@@ -121,7 +191,7 @@ final class SignupFamilyViewController: UIViewController {
         card.backgroundColor = .secondarySystemGroupedBackground
         card.layer.cornerRadius = 14
         card.layer.borderWidth = 1
-        card.layer.borderColor = UIColor.separator.cgColor
+        card.layer.borderColor = UIColor.systemGray5.cgColor
         card.translatesAutoresizingMaskIntoConstraints = false
         card.addTarget(self, action: action, for: .touchUpInside)
 

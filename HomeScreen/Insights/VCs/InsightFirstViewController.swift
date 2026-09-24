@@ -385,9 +385,9 @@ extension InsightFirstViewController: UICollectionViewDataSource {
         let comp = comparisonText(for: memberData.profile, isWeek: isWeek)
 
         if isWeek {
-            cell.configureCell(score: memberData.scoreWeekly, comparison: comp, isWeek: true)
+            cell.configureCell(score: memberData.scoreWeekly, comparison: comp, isWeek: true, profileId: memberData.profile.profileId)
         } else {
-            cell.configureCell(score: memberData.scoreMonthly, comparison: comp, isWeek: false)
+            cell.configureCell(score: memberData.scoreMonthly, comparison: comp, isWeek: false, profileId: memberData.profile.profileId)
         }
 
         cell.layer.cornerRadius = 12
@@ -446,5 +446,39 @@ extension InsightFirstViewController: GraphCollectionViewCellDelegate {
         if targetDate > today { return }
         
         performSegue(withIdentifier: "detailed_insight", sender: (indexPath, targetDate))
+    }
+    
+    func graphCellDidTapShare(_ cell: GraphCollectionViewCell) {
+        guard let indexPath = graphCollectionView.indexPath(for: cell) else { return }
+        let memberData = data[indexPath.section - 1]
+        let name = memberData.profile.firstName
+        
+        let scores = isWeek ? memberData.scoreWeekly : memberData.scoreMonthly
+        let todayDay = Calendar.current.component(.day, from: Date())
+        let todayIndex = isWeek ? (Calendar.current.component(.weekday, from: Date()) - 1) : (todayDay - 1)
+        let safeIndex = max(0, min(todayIndex, scores.count - 1))
+        let score = scores.isEmpty ? 0 : scores[safeIndex]
+        
+        let title = "\(name)'s Insight"
+        let message = "[SHARE_CARD:INSIGHT|\(name)|\(score)%]"
+        
+        let storyboard = UIStoryboard(name: "Messages", bundle: nil)
+        guard let createVC = storyboard.instantiateViewController(withIdentifier: "CreateTopicViewController") as? CreateTopicViewController else { return }
+        
+        createVC.prefilledTitle = title
+        createVC.prefilledMessage = message
+        
+        let nav = UINavigationController(rootViewController: createVC)
+        
+        createVC.onTopicCreated = { [weak self] topicId in
+            if let topic = DataManager.shared.topics.first(where: { $0.id == topicId }) {
+                let chatVC = storyboard.instantiateViewController(withIdentifier: "TopicChatViewController") as! TopicChatViewController
+                chatVC.viewModel = TopicChatViewModel(topic: topic)
+                chatVC.hidesBottomBarWhenPushed = true
+                self?.navigationController?.pushViewController(chatVC, animated: true)
+            }
+        }
+        
+        present(nav, animated: true)
     }
 }

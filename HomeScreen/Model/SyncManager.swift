@@ -31,10 +31,11 @@ class SyncManager {
     private let topicMessageBroadcastEvent = "topic-message-changed"
     private let topicCreatedBroadcastEvent = "topic-created"
 
-    // Grace period: recently created topic IDs are protected from reconciliation pruning
-    // for 60 seconds to give the Supabase push time to complete.
+    // Grace period:    // Memory for recently created topics and messages to prevent local UI rows from vanishing
+    // during a sync reconciliation before they've had a chance to propagate through Supabase.
     private var recentlyCreatedTopicIds: [UUID: Date] = [:]
-    private let topicGracePeriod: TimeInterval = 60
+    private var recentlyCreatedTopicMessageIds: [UUID: Date] = [:]
+    private let topicGracePeriod: TimeInterval = 60 // 60 seconds
 
     private init() {}
     // MARK: - Core Two-Way Sync
@@ -149,6 +150,7 @@ class SyncManager {
     }
 
     func pushNewTopicMessage(_ message: TopicMessage) {
+        recentlyCreatedTopicMessageIds[message.id] = Date()
         Task {
             do {
                 struct TopicMsgDTO: Encodable {
@@ -157,11 +159,25 @@ class SyncManager {
                 }
                 let dto = TopicMsgDTO(id: message.id, topicId: message.topicId, senderId: message.senderId,
                                      content: message.content, createdAt: message.createdAt.map { isoString($0) }, isSynced: true)
-                try await client.from("TopicMessages").insert(dto).execute()
-                db.markAsSyncedBatch(table: "TopicMessages", idColumn: "id", ids: [message.id.uuidString])
-                await broadcastTopicMessageChange(message)
-                print("SyncManager: Pushed new TopicMessage \(message.id)")
-            } catch { print("SyncManager Error pushing TopicMessage: \(error)") }
+                                     
+                var lastError: Error?
+                for attempt in 1...3 {
+                    do {
+                        try await client.from("TopicMessages").insert(dto).execute()
+                        db.markAsSyncedBatch(table: "TopicMessages", idColumn: "id", ids: [message.id.uuidString])
+                        await broadcastTopicMessageChange(message)
+                        print("SyncManager: Pushed new TopicMessage \(message.id)")
+                        return
+                    } catch {
+                        lastError = error
+                        print("SyncManager Error pushing TopicMessage (Attempt \(attempt)): \(error)")
+                        if attempt < 3 {
+                            try await Task.sleep(nanoseconds: 1_000_000_000 * UInt64(attempt)) // Wait 1s, then 2s
+                        }
+                    }
+                }
+                print("SyncManager Error pushing TopicMessage permanently failed: \(lastError!)")
+            } catch { print("SyncManager Error pushing TopicMessage setup: \(error)") }
         }
     }
 
@@ -1470,6 +1486,10 @@ class SyncManager {
 
             let remoteMemberIds = Set(remoteMembers.map(\.id))
             for topic in remoteTopics {
+                if recentlyCreatedTopicIds[topic.id] != nil {
+                    print("SyncManager: Skipping reconciliation prune for recently created topic members '\(topic.title)' (grace period active).")
+                    continue
+                }
                 for localMember in db.fetchTopicMembers(for: topic.id) where !remoteMemberIds.contains(localMember.id) {
                     db.deleteTopicMember(id: localMember.id)
                 }
@@ -1478,14 +1498,19 @@ class SyncManager {
     }
     
     private func reconcileTopicMessages(remoteMessages: [TopicMessage]) async {
+        let now = Date()
+        recentlyCreatedTopicMessageIds = recentlyCreatedTopicMessageIds.filter { now.timeIntervalSince($0.value) < topicGracePeriod }
+        
         // --- Safety Guard: Pruning ---
         // Only prune local topic messages if remote results were returned.
         if !remoteMessages.isEmpty {
             let remoteSet = Set(remoteMessages.map(\.id))
             let allTopics = db.fetchTopics()
             for topic in allTopics {
+                if recentlyCreatedTopicIds[topic.id] != nil { continue }
                 let msgs = db.fetchTopicMessages(for: topic.id)
                 for msg in msgs where !remoteSet.contains(msg.id) {
+                    if recentlyCreatedTopicMessageIds[msg.id] != nil { continue }
                     db.deleteTopicMessage(id: msg.id)
                     print("SyncManager Reconciliation: Pruned local topic message \(msg.id)")
                 }

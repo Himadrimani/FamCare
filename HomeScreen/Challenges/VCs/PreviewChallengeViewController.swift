@@ -13,6 +13,9 @@ class PreviewChallengeViewController: UIViewController {
     var initialPrompt: String = ""
     var familyMembers: [Profile] = []
     
+    var onChallengeSaved: ((UUID) -> Void)?
+    var sourceSelection: String?
+    
     // Properties to catch AI-generated or pre-filled sandbox content
     var precompiledDetails: ChallengeDetails?
     var precompiledProgress: [ChallengeProgress]?
@@ -23,7 +26,7 @@ class PreviewChallengeViewController: UIViewController {
     
     let nameTextField = UITextField()
     let descriptionTextField = UITextField()
-    let subtypeSegment = UISegmentedControl(items: ["Steps", "Calories", "Distance"])
+    let subtypeSegment = UISegmentedControl(items: ["Steps", "Calories", "Distance", "Sleep"])
     
     let participantsStack = UIStackView()
     var memberSwitches: [UUID: UISwitch] = [:]
@@ -170,7 +173,7 @@ class PreviewChallengeViewController: UIViewController {
             rowStack.addArrangedSubview(goalTF)
             
             let toggle = UISwitch()
-            toggle.isOn = (member.profileId == DataManager.shared.currentUser?.profileId)
+            toggle.isOn = true
             let action = UIAction { _ in
                 goalTF.isEnabled = toggle.isOn
             }
@@ -235,6 +238,8 @@ class PreviewChallengeViewController: UIViewController {
                     subtypeSegment.selectedSegmentIndex = 1
                 } else if subTypeLower == "distance" {
                     subtypeSegment.selectedSegmentIndex = 2
+                } else if subTypeLower == "sleep" {
+                    subtypeSegment.selectedSegmentIndex = 3
                 }
             }
             
@@ -244,13 +249,19 @@ class PreviewChallengeViewController: UIViewController {
             // Populate internal arrays / update UI based on precompiledProgress
             if let progressList = precompiledProgress {
                 for member in familyMembers {
+                    memberSwitches[member.profileId]?.isOn = true
+                    memberGoalTextFields[member.profileId]?.isEnabled = true
+                    
                     if let progress = progressList.first(where: { $0.memberId == member.profileId }) {
-                        memberSwitches[member.profileId]?.isOn = true
-                        memberGoalTextFields[member.profileId]?.isEnabled = true
                         memberGoalTextFields[member.profileId]?.text = "\(Int(progress.goalValue))"
                     } else {
-                        memberSwitches[member.profileId]?.isOn = false
-                        memberGoalTextFields[member.profileId]?.isEnabled = false
+                        let index = subtypeSegment.selectedSegmentIndex
+                        var defVal = 10000
+                        if index == 0 { defVal = member.stepGoal }
+                        else if index == 1 { defVal = member.caloriesGoal }
+                        else if index == 2 { defVal = member.distanceGoal }
+                        else if index == 3 { defVal = 8 }
+                        memberGoalTextFields[member.profileId]?.text = "\(defVal)"
                     }
                 }
             }
@@ -283,6 +294,8 @@ class PreviewChallengeViewController: UIViewController {
                 goalValue = member.caloriesGoal
             } else if selectedIndex == 2 { // Distance
                 goalValue = member.distanceGoal
+            } else if selectedIndex == 3 { // Sleep
+                goalValue = 8
             }
             tf.text = "\(goalValue)"
         }
@@ -303,8 +316,9 @@ class PreviewChallengeViewController: UIViewController {
             let index = subtypeSegment.selectedSegmentIndex
             if index == 1 { subTypeStr = "calories" }
             else if index == 2 { subTypeStr = "distance" }
+            else if index == 3 { subTypeStr = "sleep" }
         } else {
-            subTypeStr = "social_task"
+            subTypeStr = precompiledDetails?.subType ?? "social_task"
         }
         
         // Adjust start date to current time if today
@@ -317,18 +331,35 @@ class PreviewChallengeViewController: UIViewController {
         let familyId = DataManager.shared.family?.familyId ?? UUID()
         
         var bgImageValue = "challenge_bg_1"
-        if challengeType == "social" {
-            bgImageValue = "task_image"
-        } else {
-            switch subTypeStr {
-            case "calories":
-                bgImageValue = "family_trek_challenge"
-            case "steps":
-                bgImageValue = "family_trek_challenge"
-            case "distance":
-                bgImageValue = "family_trek_challenge"
-            default:
+        if let source = sourceSelection {
+            if source == "OtherTask" {
+                bgImageValue = "other_task_challenge"
+            } else if source == "Recreational" {
                 bgImageValue = "task_image"
+            } else if source == "Fitness" {
+                // Determine subtype for fitness
+                let index = subtypeSegment.selectedSegmentIndex
+                if index == 3 {
+                    bgImageValue = "sleep_challenge"
+                } else {
+                    bgImageValue = "family_trek_challenge"
+                }
+            }
+        } else {
+            // Fallback for LLM or existing challenges
+            if challengeType == "social" {
+                if subTypeStr == "social_task" {
+                    bgImageValue = "other_task_challenge"
+                } else {
+                    bgImageValue = "task_image"
+                }
+            } else {
+                switch subTypeStr {
+                case "sleep":
+                    bgImageValue = "sleep_challenge"
+                default:
+                    bgImageValue = "family_trek_challenge"
+                }
             }
         }
         
@@ -403,9 +434,13 @@ class PreviewChallengeViewController: UIViewController {
         // 5. Dismiss UI
         // Check if embedded in NavController
         if let nav = self.navigationController {
-            nav.dismiss(animated: true)
+            nav.dismiss(animated: true) {
+                self.onChallengeSaved?(details.challengeId)
+            }
         } else {
-            self.dismiss(animated: true)
+            self.dismiss(animated: true) {
+                self.onChallengeSaved?(details.challengeId)
+            }
         }
     }
 

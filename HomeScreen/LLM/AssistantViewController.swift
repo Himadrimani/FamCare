@@ -1,4 +1,5 @@
 import UIKit
+import AVFoundation
 
 class AssistantViewController: UIViewController {
     
@@ -11,10 +12,26 @@ class AssistantViewController: UIViewController {
     private let suggestionsStack = UIStackView()
     
     // MARK: - Data
+    struct DisplayMessage {
+        let role: String
+        let content: String
+        let actionTitle: String?
+        let actionURL: URL?
+        
+        init(role: String, content: String, actionTitle: String? = nil, actionURL: URL? = nil) {
+            self.role = role
+            self.content = content
+            self.actionTitle = actionTitle
+            self.actionURL = actionURL
+        }
+    }
+    
     /// Only user + assistant messages (no internal context).
-    private var displayMessages: [AIAssistantMessage] = []
+    private var displayMessages: [DisplayMessage] = []
     /// Full conversation sent to the AI (excludes context — that's injected by the service).
     private var conversationHistory: [AIAssistantMessage] = []
+    
+    private let speechSynthesizer = AVSpeechSynthesizer()
     
     private var isSending = false
     private var typingIndicatorVisible = false
@@ -32,6 +49,9 @@ class AssistantViewController: UIViewController {
         super.viewDidLoad()
         setupUI()
         addGreeting()
+        
+        NotificationCenter.default.addObserver(self, selector: #selector(handleCreateChallengeNotification(_:)), name: .didInvokeCreateChallenge, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(handleCreateMessageGroupNotification(_:)), name: .didInvokeCreateMessageGroup, object: nil)
     }
     
     // MARK: - UI Setup
@@ -155,7 +175,7 @@ class AssistantViewController: UIViewController {
     // MARK: - Greeting
     
     private func addGreeting() {
-        let greeting = AIAssistantMessage(
+        let greeting = DisplayMessage(
             role: "assistant",
             content: "Hi! I'm your FamCare Assistant ✨\nI can help you understand your family's health data, create challenges, or start message groups. How can I help today?"
         )
@@ -184,10 +204,7 @@ class AssistantViewController: UIViewController {
         if VoiceRecognitionService.shared.getIsRecording() {
             VoiceRecognitionService.shared.stopRecording()
             voiceButton.tintColor = .systemBlue
-            
-            if let text = textField.text, !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                sendMessage(text: text)
-            }
+            // Removed auto-sendMessage here. Let the user manually tap Send after reviewing the transcribed text.
         } else {
             VoiceRecognitionService.shared.requestPermissions { [weak self] granted in
                 guard let self = self else { return }
@@ -211,9 +228,7 @@ class AssistantViewController: UIViewController {
         VoiceRecognitionService.shared.onFinalTranscription = { [weak self] text in
             self?.textField.text = text
             self?.voiceButton.tintColor = .systemBlue
-            if !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                self?.sendMessage(text: text)
-            }
+            // Removed auto-sendMessage here. Let the user manually tap Send after reviewing the transcribed text.
         }
         
         VoiceRecognitionService.shared.onError = { [weak self] error in
@@ -244,7 +259,8 @@ class AssistantViewController: UIViewController {
         
         // Add user message to display and history
         let userMsg = AIAssistantMessage(role: "user", content: text)
-        displayMessages.append(userMsg)
+        let displayMsg = DisplayMessage(role: "user", content: text)
+        displayMessages.append(displayMsg)
         conversationHistory.append(userMsg)
         reloadAndScroll()
         
@@ -254,28 +270,29 @@ class AssistantViewController: UIViewController {
         // Send to AI
         isSending = true
         sendButton.isEnabled = false
-        
-        Task {
+           Task {
             do {
-                let response = try await AIAssistantService.shared.sendMessage(userMessages: conversationHistory)
-                
-                await MainActor.run {
-                    hideTypingIndicator()
+                if #available(iOS 18.0, *) {
+                    let response = try await AppleAssistantService.shared.sendMessage(userMessages: conversationHistory)
                     
-                    // Handle tool calls (create challenge / create group)
-                    if let toolCalls = response.tool_calls, !toolCalls.isEmpty {
-                        for toolCall in toolCalls {
-                            handleToolCall(toolCall)
+                    await MainActor.run {
+                        hideTypingIndicator()
+                        
+                        // Handle text content
+                        if let content = response.content, !content.isEmpty {
+                            appendAssistantMessage(content)
+                            conversationHistory.append(AIAssistantMessage(role: "assistant", content: content))
+                            
+                            // Speak the response aloud (Disabled per user request)
+                            // speak(text: content)
+                        } else {
+                            appendAssistantMessage("I'm not sure how to respond to that. Could you rephrase?")
                         }
                     }
-                    
-                    // Handle text content
-                    if let content = response.content, !content.isEmpty {
-                        appendAssistantMessage(content)
-                        conversationHistory.append(AIAssistantMessage(role: "assistant", content: content))
-                    } else if response.tool_calls == nil || response.tool_calls?.isEmpty == true {
-                        // No content and no tool calls — shouldn't happen, but handle gracefully
-                        appendAssistantMessage("I'm not sure how to respond to that. Could you rephrase?")
+                } else {
+                    await MainActor.run {
+                        hideTypingIndicator()
+                        appendAssistantMessage("Apple Intelligence requires iOS 18.0 or later.")
                     }
                 }
             } catch {
@@ -292,42 +309,55 @@ class AssistantViewController: UIViewController {
         }
     }
     
+    private func speak(text: String) {
+        let utterance = AVSpeechUtterance(string: text)
+        utterance.voice = AVSpeechSynthesisVoice(language: "en-US")
+        // Optional: customize rate, pitch, volume here
+        utterance.rate = AVSpeechUtteranceDefaultSpeechRate
+        
+        // Ensure audio session is ready for playback
+        do {
+            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: .duckOthers)
+            try AVAudioSession.sharedInstance().setActive(true)
+        } catch {
+            print("Failed to set audio session category for speech synthesis: \(error)")
+        }
+        
+        speechSynthesizer.speak(utterance)
+    }
+
     // MARK: - Tool Call Handling (Actions Only)
     
-    private func handleToolCall(_ toolCall: ToolCall) {
-        let toolName = toolCall.function.name
-        
-        if toolName == "create_challenge" {
-            guard let argsData = toolCall.function.arguments.data(using: .utf8),
-                  let args = try? JSONDecoder().decode(CreateChallengeArgs.self, from: argsData) else {
-                appendAssistantMessage("I wanted to create a challenge but couldn't parse the details. Try again?")
-                return
-            }
-            
-            self.showChallengePreview(args: args)
-        } else if toolName == "create_message_group" {
-            guard let argsData = toolCall.function.arguments.data(using: .utf8),
-                  let args = try? JSONDecoder().decode(CreateMessageGroupArgs.self, from: argsData) else {
-                appendAssistantMessage("I wanted to create a message group but couldn't parse the details. Try again?")
-                return
-            }
-            
-            let alert = UIAlertController(
-                title: "Create Group",
-                message: "Create group '\(args.groupName)' with \(args.participants.joined(separator: ", "))?",
-                preferredStyle: .alert
-            )
-            
-            alert.addAction(UIAlertAction(title: "Cancel", style: .cancel) { _ in
-                self.appendAssistantMessage("Group creation cancelled.")
-            })
-            
-            alert.addAction(UIAlertAction(title: "Create", style: .default) { _ in
-                self.executeCreateGroup(args: args)
-            })
-            
-            present(alert, animated: true)
+    @objc private func handleCreateChallengeNotification(_ notification: Notification) {
+        guard let args = notification.userInfo?["args"] as? CreateChallengeArgs else {
+            appendAssistantMessage("I wanted to create a challenge but couldn't parse the details. Try again?")
+            return
         }
+        
+        self.showChallengePreview(args: args)
+    }
+    
+    @objc private func handleCreateMessageGroupNotification(_ notification: Notification) {
+        guard let args = notification.userInfo?["args"] as? CreateMessageGroupArgs else {
+            appendAssistantMessage("I wanted to create a message group but couldn't parse the details. Try again?")
+            return
+        }
+        
+        let alert = UIAlertController(
+            title: "Create Group",
+            message: "Create group '\(args.groupName)' with \(args.participants.joined(separator: ", "))?",
+            preferredStyle: .alert
+        )
+        
+        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel) { _ in
+            self.appendAssistantMessage("Group creation cancelled.")
+        })
+        
+        alert.addAction(UIAlertAction(title: "Create", style: .default) { _ in
+            self.executeCreateGroup(args: args)
+        })
+        
+        present(alert, animated: true)
     }
     
     // MARK: - Challenge / Group Execution
@@ -340,15 +370,20 @@ class AssistantViewController: UIViewController {
         // Use the AI's description if provided, otherwise default to the challenge name
         let challengeDescription = (args.description != nil && !args.description!.isEmpty) ? args.description! : args.challengeName
         
+        let metricLower = args.metric.lowercased()
+        let isStandard = ["steps", "calories", "caloriesburned", "distance", "sleep"].contains(metricLower)
+        let cType = isStandard ? "physical" : "social"
+        let finalSubType = isStandard ? args.metric : "social_task"
+        
         let challenge = ChallengeDetails(
             challengeId: UUID(),
             familyId: familyId,
             name: args.challengeName,
             description: challengeDescription,
-            type: "physical",
-            subType: args.metric,
-            status: "pending",
-            bgImage: "",
+            type: cType,
+            subType: finalSubType,
+            status: isStandard ? "pending" : "ongoing",
+            bgImage: isStandard ? "" : "task_image",
             startDate: startDate,
             endDate: endDate,
             lastUpdatedAt: startDate,
@@ -382,7 +417,7 @@ class AssistantViewController: UIViewController {
             let progress = ChallengeProgress(
                 challengeId: challenge.challengeId,
                 memberId: profile.profileId,
-                goalValue: args.goalValue,
+                goalValue: isStandard ? args.goalValue : 1.0,
                 currentValue: 0.0,
                 lastUpdatedAt: Date(),
                 isSynced: false
@@ -390,20 +425,46 @@ class AssistantViewController: UIViewController {
             progressArray.append(progress)
         }
         
-        let previewVC = PreviewChallengeViewController()
-        previewVC.precompiledDetails = challenge
-        previewVC.precompiledProgress = progressArray
-        previewVC.challengeType = "physical"
-        
-        let nav = UINavigationController(rootViewController: previewVC)
-        nav.modalPresentationStyle = .pageSheet
-        if let sheet = nav.sheetPresentationController {
-            sheet.detents = [.large()]
-            sheet.prefersGrabberVisible = true
-        }
-        
-        self.present(nav, animated: true) {
-            self.appendAssistantMessage("I've set up the challenge. You can review and adjust the goals before saving!")
+        if isStandard {
+            let previewVC = PreviewChallengeViewController()
+            previewVC.precompiledDetails = challenge
+            previewVC.precompiledProgress = progressArray
+            previewVC.challengeType = cType
+            
+            let nav = UINavigationController(rootViewController: previewVC)
+            nav.modalPresentationStyle = .pageSheet
+            if let sheet = nav.sheetPresentationController {
+                sheet.detents = [.large()]
+                sheet.prefersGrabberVisible = true
+            }
+            
+            previewVC.onChallengeSaved = { [weak self] challengeId in
+                let url = URL(string: "homescreenapp://challenge/\(challengeId)")
+                self?.appendAssistantMessage("Challenge saved successfully!", actionTitle: "View Challenge", actionURL: url)
+            }
+            
+            self.present(nav, animated: true) {
+                self.appendAssistantMessage("I've set up the challenge. You can review and adjust the goals before saving!")
+            }
+        } else {
+            let alert = UIAlertController(
+                title: "Create Challenge",
+                message: "Are you sure you want to create the challenge '\(args.challengeName)'?",
+                preferredStyle: .alert
+            )
+            
+            alert.addAction(UIAlertAction(title: "Cancel", style: .cancel) { _ in
+                self.appendAssistantMessage("Challenge creation cancelled.")
+            })
+            
+            alert.addAction(UIAlertAction(title: "Create", style: .default) { _ in
+                let dummyVC = PreviewChallengeViewController()
+                dummyVC.saveChallenge(details: challenge, progressList: progressArray)
+                let url = URL(string: "homescreenapp://challenge/\(challenge.challengeId)")
+                self.appendAssistantMessage("Okay, this challenge has been created. You can view it in the Challenge tab.", actionTitle: "View Challenge", actionURL: url)
+            })
+            
+            self.present(alert, animated: true)
         }
     }
     
@@ -430,10 +491,11 @@ class AssistantViewController: UIViewController {
         Task {
             do {
                 let viewModel = TopicsViewModel()
-                let _ = try await viewModel.createTopic(title: args.groupName, message: "Group created by Assistant", memberIds: resolvedIds)
+                let topicId = try await viewModel.createTopic(title: args.groupName, message: "Group created by Assistant", memberIds: resolvedIds)
                 
                 await MainActor.run {
-                    self.appendAssistantMessage("✅ Group '\(args.groupName)' has been created successfully!")
+                    let url = URL(string: "homescreenapp://group/\(topicId)")
+                    self.appendAssistantMessage("✅ Group '\(args.groupName)' has been created successfully!", actionTitle: "View Group", actionURL: url)
                 }
             } catch {
                 await MainActor.run {
@@ -445,8 +507,8 @@ class AssistantViewController: UIViewController {
     
     // MARK: - Display Helpers
     
-    private func appendAssistantMessage(_ text: String) {
-        let msg = AIAssistantMessage(role: "assistant", content: text)
+    private func appendAssistantMessage(_ text: String, actionTitle: String? = nil, actionURL: URL? = nil) {
+        let msg = DisplayMessage(role: "assistant", content: text, actionTitle: actionTitle, actionURL: actionURL)
         displayMessages.append(msg)
         reloadAndScroll()
     }
@@ -464,7 +526,7 @@ class AssistantViewController: UIViewController {
     private func showTypingIndicator() {
         typingIndicatorVisible = true
         // Add a temporary "typing" message
-        let typing = AIAssistantMessage(role: "assistant", content: "typing...")
+        let typing = DisplayMessage(role: "assistant", content: "typing...")
         displayMessages.append(typing)
         reloadAndScroll()
     }
@@ -538,7 +600,7 @@ extension AssistantViewController: UITableViewDataSource, UITableViewDelegate {
         }
         
         let label = UILabel()
-        label.text = msg.content ?? ""
+        label.text = msg.content
         label.numberOfLines = 0
         label.font = .systemFont(ofSize: 15)
         label.translatesAutoresizingMaskIntoConstraints = false
@@ -549,9 +611,38 @@ extension AssistantViewController: UITableViewDataSource, UITableViewDelegate {
         bubbleView.backgroundColor = isUser ? .systemBlue : .secondarySystemGroupedBackground
         label.textColor = isUser ? .white : .label
         
+        var bottomAnchorConstraint = label.bottomAnchor.constraint(equalTo: bubbleView.bottomAnchor, constant: -12)
+        
+        if let actionTitle = msg.actionTitle, let actionURL = msg.actionURL {
+            let actionButton = UIButton(type: .system)
+            actionButton.setTitle(actionTitle, for: .normal)
+            actionButton.setTitleColor(isUser ? .white : .systemBlue, for: .normal)
+            actionButton.titleLabel?.font = .systemFont(ofSize: 15, weight: .bold)
+            actionButton.translatesAutoresizingMaskIntoConstraints = false
+            
+            let action = UIAction { [weak self] _ in
+                self?.dismiss(animated: true) {
+                    if let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+                       let delegate = scene.delegate as? SceneDelegate {
+                        delegate.handleIncomingURL(actionURL)
+                    }
+                }
+            }
+            actionButton.addAction(action, for: .touchUpInside)
+            
+            bubbleView.addSubview(actionButton)
+            
+            NSLayoutConstraint.activate([
+                actionButton.topAnchor.constraint(equalTo: label.bottomAnchor, constant: 8),
+                actionButton.leadingAnchor.constraint(equalTo: bubbleView.leadingAnchor, constant: 16),
+                actionButton.bottomAnchor.constraint(equalTo: bubbleView.bottomAnchor, constant: -12)
+            ])
+            
+            bottomAnchorConstraint = actionButton.topAnchor.constraint(equalTo: label.bottomAnchor, constant: -8)
+        }
+        
         NSLayoutConstraint.activate([
             label.topAnchor.constraint(equalTo: bubbleView.topAnchor, constant: 12),
-            label.bottomAnchor.constraint(equalTo: bubbleView.bottomAnchor, constant: -12),
             label.leadingAnchor.constraint(equalTo: bubbleView.leadingAnchor, constant: 16),
             label.trailingAnchor.constraint(equalTo: bubbleView.trailingAnchor, constant: -16),
             
@@ -559,6 +650,10 @@ extension AssistantViewController: UITableViewDataSource, UITableViewDelegate {
             bubbleView.bottomAnchor.constraint(equalTo: cell.contentView.bottomAnchor, constant: -4),
             bubbleView.widthAnchor.constraint(lessThanOrEqualTo: cell.contentView.widthAnchor, multiplier: 0.78)
         ])
+        
+        if msg.actionTitle == nil {
+            bottomAnchorConstraint.isActive = true
+        }
         
         if isUser {
             bubbleView.trailingAnchor.constraint(equalTo: cell.contentView.trailingAnchor, constant: -16).isActive = true

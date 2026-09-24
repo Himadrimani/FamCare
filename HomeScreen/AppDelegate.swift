@@ -17,6 +17,19 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         
         // Setup HealthKit background observers so data syncs while app is inactive
         HealthKitService.shared.setupBackgroundDelivery()
+        
+        // Initialize WidgetDataProvider so it registers its notification observer
+        _ = WidgetDataProvider.shared
+        
+        // Initialize ChallengeActivityManager for Live Activities
+        if #available(iOS 16.2, *) {
+            _ = ChallengeActivityManager.shared
+            // Auto-start Live Activities for any currently active challenges
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                ChallengeActivityManager.shared.startActivitiesForActiveChallenges()
+            }
+        }
+        
         return true
     }
 
