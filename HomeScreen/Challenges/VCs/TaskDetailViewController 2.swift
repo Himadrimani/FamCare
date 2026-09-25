@@ -267,19 +267,8 @@ class TaskDetailViewController: UIViewController {
             // Fetch latest progress from DataManager to determine state
             let progressRecords = DataManager.shared.challengeProgress.filter { $0.challengeId == challengeDetails.challengeId }
             
-            var allComplete = true
-            for record in progressRecords {
-                if record.goalValue > 0 && record.currentValue < record.goalValue {
-                    allComplete = false
-                    break
-                }
-            }
-            
-            let isFamilyChallenge = progressRecords.count > 1
-            let finalAchievementType: AchievementType = (allComplete && isFamilyChallenge) ? .family : .individual
-            
             let overlay = RewardsViewController(
-                achievementType: finalAchievementType, 
+                achievementType: .individual, 
                 challengeId: challengeDetails.challengeId.uuidString, 
                 challengeTitle: challengeDetails.name,
                 challengeType: challengeDetails.type,
