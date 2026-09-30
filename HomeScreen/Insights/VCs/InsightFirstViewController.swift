@@ -460,7 +460,8 @@ extension InsightFirstViewController: GraphCollectionViewCellDelegate {
         let score = scores.isEmpty ? 0 : scores[safeIndex]
         
         let title = "\(name)'s Insight"
-        let message = "[SHARE_CARD:INSIGHT|\(name)|\(score)%]"
+        let comp = comparisonText(for: memberData.profile, isWeek: isWeek)
+        let message = "[SHARE_CARD:INSIGHT|\(name)|\(score)%|\(isWeek ? "Weekly" : "Monthly")|\(comp)]"
         
         let storyboard = UIStoryboard(name: "Messages", bundle: nil)
         guard let createVC = storyboard.instantiateViewController(withIdentifier: "CreateTopicViewController") as? CreateTopicViewController else { return }

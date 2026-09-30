@@ -66,8 +66,36 @@ class MemberWellnessViewController: UIViewController {
 
     private func loadWellnessData() {
         guard let profile else { return }
-        wellnessCards = WellnessDataProvider.getWellnessCards(for: profile, date: selectedDate)
-        collectionView.reloadData()
+        let newCards = WellnessDataProvider.getWellnessCards(for: profile, date: selectedDate)
+        
+        // Strict anti-flicker: Never overwrite valid data with "No data" during a refresh
+        var safeCards = newCards
+        if wellnessCards.count == newCards.count {
+            for i in 0..<newCards.count {
+                if newCards[i].primaryValue == "No data" && wellnessCards[i].primaryValue != "No data" {
+                    safeCards[i] = wellnessCards[i]
+                }
+            }
+        }
+        
+        if safeCards != wellnessCards {
+            let oldCards = wellnessCards
+            wellnessCards = safeCards
+            
+            // Flicker-free targeted updates
+            if oldCards.count == safeCards.count {
+                for (index, safeCard) in safeCards.enumerated() {
+                    if oldCards[index] != safeCard {
+                        let indexPath = IndexPath(item: index, section: 0)
+                        if let cell = collectionView.cellForItem(at: indexPath) as? WellnessCardCell {
+                            cell.configure(with: safeCard)
+                        }
+                    }
+                }
+            } else {
+                collectionView.reloadData()
+            }
+        }
     }
 
     private func setupCollectionView() {

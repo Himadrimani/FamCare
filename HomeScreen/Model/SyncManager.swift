@@ -22,11 +22,7 @@ class SyncManager {
     private var isPullingRealtimeData = false
     private var realtimeRefreshNeeded = false
     private let realtimeSafetyPullInterval: TimeInterval = 2 * 60
-    #if targetEnvironment(simulator)
-    private let deferredPullInterval: TimeInterval = 15 // 15 seconds for faster testing
-    #else
-    private let deferredPullInterval: TimeInterval = 15 * 60 // 15 min for production
-    #endif
+    private let deferredPullInterval: TimeInterval = 15 * 60 // 15 min for production/simulator
     private let directMessageBroadcastEvent = "direct-message-changed"
     private let topicMessageBroadcastEvent = "topic-message-changed"
     private let topicCreatedBroadcastEvent = "topic-created"
@@ -42,14 +38,12 @@ class SyncManager {
     func syncAll(force: Bool = false) async {
         let hasRealtimeLocalChanges = hasPendingRealtimeLocalChanges()
         let hasDeferredLocalChanges = hasPendingDeferredLocalChanges()
-        #if targetEnvironment(simulator)
-        let shouldPullDeferred = true 
-        #else
         let shouldPullDeferred = force || shouldRunDeferredPull()
-        #endif
 
-        DispatchQueue.main.async {
-            DataManager.shared.refreshCurrentUserHealthDataFromHealthKit()
+        if force || shouldPullDeferred {
+            DispatchQueue.main.async {
+                DataManager.shared.refreshCurrentUserHealthDataFromHealthKit()
+            }
         }
 
         if !force && !hasRealtimeLocalChanges && !hasDeferredLocalChanges && hasRealtimeSubscriptions && !shouldPullDeferred {
@@ -851,7 +845,7 @@ class SyncManager {
                 db.replaceRelationshipNicknames(for: uId, rows: relationships)
             }
 
-            await refreshLocalUI()
+            await refreshLocalUI(reason: targetTable ?? "ALL")
 
             print("SyncManager: Realtime pull complete for target: \(targetTable ?? "ALL").")
         } catch { print("SyncManager Error during realtime pull: \(error)") }
@@ -881,11 +875,8 @@ class SyncManager {
             for profile in uniqueProfilesById.values {
                 let pid = profile.profileId
                 
-                // Skip remote overwrite only when current login is the HealthKit owner.
-                // For non-owner logins (e.g. papa), we still pull their Supabase data.
-                if pid == DataManager.shared.currentUser?.profileId && DataManager.shared.isCurrentUserHealthKitLinked() {
-                    continue
-                }
+                // Fetch full remote health snapshot for all members (including current user)
+                // so manual Supabase edits reflect locally.
                 
                 // Always fetch full remote health snapshot for non-current members,
                 // then replace local rows to avoid stale/mock duplicates.
@@ -920,7 +911,7 @@ class SyncManager {
 
             await refreshChallenges(for: familyId)
 
-            await refreshLocalUI()
+            await refreshLocalUI(reason: "HealthDeferred")
             print("SyncManager: Deferred pull complete.")
         } catch {
             print("SyncManager Error during deferred pull: \(error)")
@@ -1083,9 +1074,44 @@ class SyncManager {
             }
         }
         channels.append(chatChannel)
+        let healthActDailyChannel = client.realtimeV2.channel("public:health_activity_daily")
+        let token12 = healthActDailyChannel.onPostgresChange(AnyAction.self, schema: "public", table: "Health_ActivityDaily") { [weak self] _ in
+            self?.scheduleRealtimeRefresh(userId: UUID(), familyId: familyId, reason: "Health")
+        }
+        channels.append(healthActDailyChannel)
+        
+        let healthActHourlyChannel = client.realtimeV2.channel("public:health_activity_hourly")
+        let token13 = healthActHourlyChannel.onPostgresChange(AnyAction.self, schema: "public", table: "Health_ActivityHourly") { [weak self] _ in
+            self?.scheduleRealtimeRefresh(userId: UUID(), familyId: familyId, reason: "Health")
+        }
+        channels.append(healthActHourlyChannel)
+        
+        let healthVitalsDailyChannel = client.realtimeV2.channel("public:health_vitals_daily")
+        let token14 = healthVitalsDailyChannel.onPostgresChange(AnyAction.self, schema: "public", table: "Health_VitalsDaily") { [weak self] _ in
+            self?.scheduleRealtimeRefresh(userId: UUID(), familyId: familyId, reason: "Health")
+        }
+        channels.append(healthVitalsDailyChannel)
+        
+        let healthVitalsHourlyChannel = client.realtimeV2.channel("public:health_vitals_hourly")
+        let token15 = healthVitalsHourlyChannel.onPostgresChange(AnyAction.self, schema: "public", table: "Health_VitalsHourly") { [weak self] _ in
+            self?.scheduleRealtimeRefresh(userId: UUID(), familyId: familyId, reason: "Health")
+        }
+        channels.append(healthVitalsHourlyChannel)
+        
+        let healthSleepDailyChannel = client.realtimeV2.channel("public:health_sleep_daily")
+        let token16 = healthSleepDailyChannel.onPostgresChange(AnyAction.self, schema: "public", table: "Health_SleepDaily") { [weak self] _ in
+            self?.scheduleRealtimeRefresh(userId: UUID(), familyId: familyId, reason: "Health")
+        }
+        channels.append(healthSleepDailyChannel)
+
         observationTokens.append(token9)
         observationTokens.append(token10)
         observationTokens.append(token11)
+        observationTokens.append(token12)
+        observationTokens.append(token13)
+        observationTokens.append(token14)
+        observationTokens.append(token15)
+        observationTokens.append(token16)
 
         // Connect the Realtime client
         await client.realtimeV2.connect()
@@ -1102,6 +1128,11 @@ class SyncManager {
             try await cdChannel.subscribeWithError()
             try await cpChannel.subscribeWithError()
             try await chatChannel.subscribeWithError()
+            try await healthActDailyChannel.subscribeWithError()
+            try await healthActHourlyChannel.subscribeWithError()
+            try await healthVitalsDailyChannel.subscribeWithError()
+            try await healthVitalsHourlyChannel.subscribeWithError()
+            try await healthSleepDailyChannel.subscribeWithError()
         } catch {
             print("SyncManager: Error subscribing to Realtime channels: \(error)")
         }
@@ -1192,9 +1223,9 @@ class SyncManager {
 
     // MARK: - Reconciliation & Helper Refresh
 
-    private func refreshLocalUI() async {
+    private func refreshLocalUI(reason: String? = nil) async {
         await MainActor.run {
-            DataManager.shared.refreshLoadedCachesAfterSync()
+            DataManager.shared.refreshLoadedCachesAfterSync(reason: reason)
         }
     }
 
@@ -1229,7 +1260,11 @@ class SyncManager {
             else if reason.contains("TopicMembers") { targetTable = "TopicMembers" }
             else if reason.contains("UserRelationships") { targetTable = "UserRelationships" }
             
-            await self.pullRealtimeData(targetTable: targetTable)
+            if reason == "Health" {
+                await self.pullDeferredData()
+            } else {
+                await self.pullRealtimeData(targetTable: targetTable)
+            }
             
             self.isPullingRealtimeData = false
             

@@ -284,16 +284,22 @@ extension ViewChallengeViewController: UICollectionViewDataSource {
             let goal = max(1.0, progressRecord?.goalValue ?? 1.0)
             
             var metric = "Completed"
+            var displayCompleted = completed
+            var displayGoal = goal
+            
             switch challenge.subType {
             case "steps": metric = "Steps"
-            case "distance": metric = "km"
+            case "distance": 
+                metric = "km"
+                displayCompleted = completed / 1000.0
+                displayGoal = goal / 1000.0
             case "caloriesBurned": metric = "kcal"
             case "sleepDuration": metric = "hrs Slept"
             case "activeMinutes": metric = "min Active"
             default: metric = "Completed"
             }
             
-            return (completed, goal, metric)
+            return (displayCompleted, displayGoal, metric)
         }
         
         func collectionView(_ collectionView: UICollectionView, viewForSupplementaryElementOfKind kind: String, at indexPath: IndexPath) -> UICollectionReusableView {

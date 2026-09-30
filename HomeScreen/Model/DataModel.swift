@@ -1,7 +1,7 @@
 import Foundation
 import UIKit
 
-struct Profile: Codable {
+struct Profile: Codable, Equatable {
     let profileId: UUID
     var familyId: UUID
 
@@ -155,7 +155,7 @@ struct Family: Codable {
 
 
 
-struct ChallengeDetails: Codable {
+struct ChallengeDetails: Codable, Equatable {
     let challengeId: UUID
     let familyId: UUID
     let name: String

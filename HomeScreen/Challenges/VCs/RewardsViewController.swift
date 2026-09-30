@@ -20,7 +20,7 @@ class RewardsManager {
     static let shared = RewardsManager()
     private var key: String {
         let profileId = DataManager.shared.currentUser?.profileId.uuidString ?? "default"
-        return "FamCare_EarnedRewards_v4_\(profileId)"
+        return "FamCare_EarnedRewards_v3_\(profileId)"
     }
     
     var rewards: [EarnedReward] {
@@ -38,11 +38,6 @@ class RewardsManager {
         }
     }
     
-    func hasReward(type: AchievementType, challengeId: String?) -> Bool {
-        guard let challengeId = challengeId else { return false }
-        return rewards.contains(where: { $0.challengeId == challengeId && $0.type == type })
-    }
-    
     func addReward(type: AchievementType, challengeId: String?, challengeTitle: String?, challengeType: String?, participantsCount: Int?) {
         var current = rewards
         if let challengeId = challengeId {
@@ -53,6 +48,32 @@ class RewardsManager {
         let reward = EarnedReward(id: UUID().uuidString, type: type, challengeId: challengeId, challengeTitle: challengeTitle, challengeType: challengeType, participantsCount: participantsCount, dateEarned: Date())
         current.insert(reward, at: 0)
         rewards = current
+    }
+    
+    // MARK: - Shown Family Shields Tracker
+    // Tracks which family challenge shields have already been auto-presented
+    // so the modal only appears ONCE per user per completed family challenge.
+    private var shownShieldsKey: String {
+        let profileId = DataManager.shared.currentUser?.profileId.uuidString ?? "default"
+        return "FamCare_ShownShields_\(profileId)"
+    }
+    
+    func hasShownFamilyShield(challengeId: String) -> Bool {
+        let shown = UserDefaults.standard.stringArray(forKey: shownShieldsKey) ?? []
+        return shown.contains(challengeId)
+    }
+    
+    func markFamilyShieldAsShown(challengeId: String) {
+        var shown = UserDefaults.standard.stringArray(forKey: shownShieldsKey) ?? []
+        if !shown.contains(challengeId) {
+            shown.append(challengeId)
+        }
+        UserDefaults.standard.set(shown, forKey: shownShieldsKey)
+    }
+    
+    func clearAllRewards() {
+        rewards = []
+        UserDefaults.standard.removeObject(forKey: shownShieldsKey)
     }
 }
 
@@ -155,14 +176,6 @@ class RewardsViewController: UIViewController {
         
         setupUI()
         configureContent()
-        
-        RewardsManager.shared.addReward(
-            type: achievementType,
-            challengeId: challengeId,
-            challengeTitle: challengeTitle,
-            challengeType: challengeType,
-            participantsCount: participantsCount
-        )
     }
     
     private func setupUI() {
@@ -354,6 +367,7 @@ class RewardsViewController: UIViewController {
     }
     
     @objc private func doneTapped() {
+        RewardsManager.shared.addReward(type: achievementType, challengeId: challengeId, challengeTitle: challengeTitle, challengeType: challengeType, participantsCount: participantsCount)
         dismiss(animated: true, completion: nil)
     }
 }

@@ -728,7 +728,7 @@ final class DataManager {
         print("DataManager: Core identity/family loaded (Profiles: \(snapshot.profilesCount)). Messages, topics, and health are now lazy-loaded per screen.")
     }
 
-    func refreshLoadedCachesAfterSync() {
+    func refreshLoadedCachesAfterSync(reason: String? = nil) {
         let snapshot = makeBootstrapSnapshot()
         currentUser = snapshot.currentUser
         family = snapshot.family
@@ -754,9 +754,16 @@ final class DataManager {
             reloadTopicsFromSQLite(includePreviouslyLoadedMessages: true)
         }
 
-        let healthProfileIds = loadedHealthProfileIds
-        for profileId in healthProfileIds {
-            reloadHealthDataAsync(for: profileId)
+        // Only reload health data if the reason implies health data changed or is unknown.
+        let isHealthChange = reason == nil || reason == "ALL" || reason?.contains("Health") == true
+        if isHealthChange {
+            let healthProfileIds = loadedHealthProfileIds
+            for profileId in healthProfileIds {
+                reloadHealthDataAsync(for: profileId)
+            }
+        } else {
+            // Still post a general update so the UI refreshes for non-health changes (like profiles/messages)
+            NotificationCenter.default.post(name: NSNotification.Name("DataManagerDidUpdate"), object: nil)
         }
     }
 

@@ -330,7 +330,12 @@ extension TopicChatViewController: UICollectionViewDataSource, UICollectionViewD
             let isCurrentUser = (msg.senderId == currentUserId)
             
             if msg.content.hasPrefix("[SHARE_CARD:") {
-                return CGSize(width: width, height: 320)
+                if msg.content.hasPrefix("[SHARE_CARD:INSIGHT") {
+                    return CGSize(width: width, height: 206)
+                } else if msg.content.hasPrefix("[SHARE_CARD:CHALLENGE") {
+                    return CGSize(width: width, height: 243)
+                }
+                return CGSize(width: width, height: 243)
             }
             
             // Dynamic height calculation for regular text

@@ -63,6 +63,18 @@ class ChallengeFirstViewController: UIViewController {
         setupRefreshControl()
         setupFilterButton()
         setupTrophyButton()
+        
+        // One-time cleanup: wipe all stale rewards data from previous sessions
+        let cleanupKey = "FamCare_RewardsCleanup_v3_done"
+        if !UserDefaults.standard.bool(forKey: cleanupKey) {
+            let allKeys = UserDefaults.standard.dictionaryRepresentation().keys
+            for key in allKeys {
+                if key.hasPrefix("FamCare_EarnedRewards_") || key.hasPrefix("FamCare_ShownShields_") {
+                    UserDefaults.standard.removeObject(forKey: key)
+                }
+            }
+            UserDefaults.standard.set(true, forKey: cleanupKey)
+        }
     }
     
     override func viewDidAppear(_ animated: Bool) {
@@ -75,19 +87,19 @@ class ChallengeFirstViewController: UIViewController {
         
         let allChallenges = DataManager.shared.challenges
         let progressRecords = DataManager.shared.challengeProgress
-        let existingRewards = RewardsManager.shared.rewards
         
         for challenge in allChallenges {
             let records = progressRecords.filter { $0.challengeId == challenge.challengeId }
             let isFamilyChallenge = records.count > 1
             if !isFamilyChallenge { continue }
             
-            // User must be part of the challenge to care
+            // User must be part of the challenge
             let currentUserParticipated = records.contains { $0.memberId == currentUser.profileId }
             if !currentUserParticipated { continue }
             
-            // Check if this family reward is already shown and saved
-            if existingRewards.contains(where: { $0.challengeId == challenge.challengeId.uuidString && $0.type == .family }) {
+            // Already shown this shield to this user — skip
+            let challengeIdStr = challenge.challengeId.uuidString
+            if RewardsManager.shared.hasShownFamilyShield(challengeId: challengeIdStr) {
                 continue
             }
             
@@ -100,15 +112,18 @@ class ChallengeFirstViewController: UIViewController {
             }
             
             if allComplete {
+                // Mark as shown BEFORE presenting so it never repeats
+                RewardsManager.shared.markFamilyShieldAsShown(challengeId: challengeIdStr)
+                
                 let overlay = RewardsViewController(
                     achievementType: .family,
-                    challengeId: challenge.challengeId.uuidString,
+                    challengeId: challengeIdStr,
                     challengeTitle: challenge.name,
                     challengeType: challenge.type,
                     participantsCount: records.count
                 )
                 self.present(overlay, animated: true)
-                break // Only show one at a time so they don't stack awkwardly
+                break // Only show one at a time
             }
         }
     }

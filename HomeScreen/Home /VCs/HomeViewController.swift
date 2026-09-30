@@ -63,8 +63,8 @@ class HomeViewController: UIViewController {
         Task {
             await SyncManager.shared.syncAll(force: true)
             DispatchQueue.main.async { [weak self] in
-                self?.refreshFromDataManager()
                 self?.homeCollectionView.refreshControl?.endRefreshing()
+                self?.refreshFromDataManager()
             }
         }
     }
@@ -99,21 +99,72 @@ class HomeViewController: UIViewController {
             dataManager.ensureHealthDataLoaded(for: profile.profileId)
         }
 
+
+        let oldFamilyMembers = familyMembers
         buildFamilyMembers()
+        
+        let oldWellnessCards = wellnessCards
         loadWellnessData(for: selectedDate)
-        refreshChallenges()
+        
+        let oldChallengesCount = ongoingChallenges.count
+        self.ongoingChallenges = DataManager.shared.challenges.filter { $0.status == "ongoing" }
+        
         setupProfileButton()
-        homeCollectionView.reloadData()
+        
+        var sectionsToReload = IndexSet()
+        
+        if oldWellnessCards != wellnessCards {
+            if oldWellnessCards.count == wellnessCards.count {
+                for (index, newCard) in wellnessCards.enumerated() {
+                    if oldWellnessCards[index] != newCard {
+                        let indexPath = IndexPath(item: index, section: 3)
+                        if let cell = homeCollectionView.cellForItem(at: indexPath) as? WellnessCardCell {
+                            cell.configure(with: newCard)
+                        }
+                    }
+                }
+            } else {
+                sectionsToReload.insert(3)
+            }
+        }
+        
+        if oldFamilyMembers != familyMembers {
+            sectionsToReload.insert(1)
+        } else {
+            let isPulling = homeCollectionView.refreshControl?.isRefreshing ?? false
+            if !isPulling {
+                let indexPath = IndexPath(item: 0, section: 1)
+                if let cell = homeCollectionView.cellForItem(at: indexPath) as? FamilyActivityScoreCollectionViewCell {
+                    cell.configure(members: familyMembers, for: selectedDate)
+                }
+            }
+        }
+        
+        if ongoingChallenges.count != oldChallengesCount {
+            sectionsToReload.insert(2)
+        } else {
+            // optionally reload section 2 if contents changed
+            sectionsToReload.insert(2)
+        }
+        
+        if !sectionsToReload.isEmpty {
+            UIView.performWithoutAnimation {
+                self.homeCollectionView.reloadSections(sectionsToReload)
+            }
+        }
     }
     
     @objc func refreshChallenges() {
         self.ongoingChallenges = DataManager.shared.challenges.filter { $0.status == "ongoing" }
         DispatchQueue.main.async { [weak self] in
             if self?.homeCollectionView.numberOfSections ?? 0 > 2 {
-                self?.homeCollectionView.reloadSections(IndexSet(integer: 2))
+                UIView.performWithoutAnimation {
+                    self?.homeCollectionView.reloadSections(IndexSet(integer: 2))
+                }
             }
         }
     }
+
     
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
@@ -173,7 +224,18 @@ class HomeViewController: UIViewController {
             wellnessCards = []
             return
         }
-        wellnessCards = WellnessDataProvider.getWellnessCards(for: currentUser, date: date)
+        let newCards = WellnessDataProvider.getWellnessCards(for: currentUser, date: date)
+        
+        // Strict anti-flicker: Never overwrite valid data with "No data" during a refresh
+        var safeCards = newCards
+        if wellnessCards.count == newCards.count {
+            for i in 0..<newCards.count {
+                if newCards[i].primaryValue == "No data" && wellnessCards[i].primaryValue != "No data" {
+                    safeCards[i] = wellnessCards[i]
+                }
+            }
+        }
+        wellnessCards = safeCards
     }
 
     //CollectionView Setup

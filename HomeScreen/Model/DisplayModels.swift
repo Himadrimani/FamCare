@@ -1,10 +1,10 @@
 import UIKit
 
-enum WellnessCardType {
+enum WellnessCardType: Equatable {
     case steps, distance, sleep, calories, heartRate, hrv
 }
 
-struct WellnessCard {
+struct WellnessCard: Equatable {
     let type: WellnessCardType
     let title: String
     let primaryValue: String
@@ -14,13 +14,13 @@ struct WellnessCard {
     let chartData: [ChartDataPoint]?
     let sleepBreakdown: SleepBreakdown?  // ← only set for sleep card
 
-    struct ChartDataPoint {
+    struct ChartDataPoint: Equatable {
         let label: String
         let value: Double
         let rawValue: Int
     }
 
-    struct SleepBreakdown {
+    struct SleepBreakdown: Equatable {
         let deepMinutes: Int
         let remMinutes: Int
         let lightMinutes: Int

@@ -419,61 +419,28 @@ class SQLiteHelper {
         }
 
         // Activity daily
-        if let w = dayWindow(activityDaily, { $0.date }) {
-            let presentTypes = Set(activityDaily.map { $0.type })
-            let keptIds = Set(mergedActivityDaily.map { $0.id })
-            let staleIds = existingActivityDaily.filter {
-                presentTypes.contains($0.type) &&
-                w.contains(calendar.startOfDay(for: $0.date)) &&
-                !keptIds.contains($0.id)
-            }.map { $0.id }
-            deleteHealthRows(table: "Health_ActivityDaily", ids: staleIds)
+        if let _ = dayWindow(activityDaily, { $0.date }) {
+            // No longer deleting stale IDs to prevent clearing valid data during refresh
         }
 
         // Activity hourly
-        if let w = window(activityHourly, { $0.hourStart }) {
-            let presentTypes = Set(activityHourly.map { $0.type })
-            let keptIds = Set(mergedActivityHourly.map { $0.id })
-            let staleIds = existingActivityHourly.filter {
-                presentTypes.contains($0.type) &&
-                w.contains($0.hourStart) &&
-                !keptIds.contains($0.id)
-            }.map { $0.id }
-            deleteHealthRows(table: "Health_ActivityHourly", ids: staleIds)
+        if let _ = window(activityHourly, { $0.hourStart }) {
+            // No longer deleting stale IDs to prevent clearing valid data during refresh
         }
 
         // Vitals daily
-        if let w = dayWindow(vitalsDaily, { $0.date }) {
-            let presentTypes = Set(vitalsDaily.map { $0.type })
-            let keptIds = Set(mergedVitalsDaily.map { $0.id })
-            let staleIds = existingVitalsDaily.filter {
-                presentTypes.contains($0.type) &&
-                w.contains(calendar.startOfDay(for: $0.date)) &&
-                !keptIds.contains($0.id)
-            }.map { $0.id }
-            deleteHealthRows(table: "Health_VitalsDaily", ids: staleIds)
+        if let _ = dayWindow(vitalsDaily, { $0.date }) {
+            // No longer deleting stale IDs
         }
 
         // Vitals hourly
-        if let w = window(vitalsHourly, { $0.hourStart }) {
-            let presentTypes = Set(vitalsHourly.map { $0.type })
-            let keptIds = Set(mergedVitalsHourly.map { $0.id })
-            let staleIds = existingVitalsHourly.filter {
-                presentTypes.contains($0.type) &&
-                w.contains($0.hourStart) &&
-                !keptIds.contains($0.id)
-            }.map { $0.id }
-            deleteHealthRows(table: "Health_VitalsHourly", ids: staleIds)
+        if let _ = window(vitalsHourly, { $0.hourStart }) {
+            // No longer deleting stale IDs
         }
 
         // Sleep daily (single, untyped metric)
-        if let w = dayWindow(sleepDaily, { $0.date }) {
-            let keptIds = Set(mergedSleepDaily.map { $0.id })
-            let staleIds = existingSleepDaily.filter {
-                w.contains(calendar.startOfDay(for: $0.date)) &&
-                !keptIds.contains($0.id)
-            }.map { $0.id }
-            deleteHealthRows(table: "Health_SleepDaily", ids: staleIds)
+        if let _ = dayWindow(sleepDaily, { $0.date }) {
+            // No longer deleting stale IDs
         }
     }
 

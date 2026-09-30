@@ -83,9 +83,26 @@ class MessageViewController: UIViewController {
         addTopicButton.isHidden = true
         topicsContainerView.isHidden = true
         
+        setupAddTopicButton()
         setupTopicsVC()
         NotificationCenter.default.addObserver(self, selector: #selector(handleDataManagerUpdate), name: NSNotification.Name("DataManagerDidUpdate"), object: nil)
         refreshFromDataManager()
+    }
+    
+    private func setupAddTopicButton() {
+        // Match the styling of the system "add" bar button item used on the Challenge screen
+        addTopicButton.tintColor = .label
+        
+        let config = UIImage.SymbolConfiguration(pointSize: 18, weight: .regular)
+        addTopicButton.setImage(UIImage(systemName: "plus", withConfiguration: config), for: .normal)
+        
+        // Remove the custom background/corner radius if it was previously set
+        addTopicButton.backgroundColor = .clear
+        addTopicButton.layer.cornerRadius = 0
+        
+        if #available(iOS 15.0, *) {
+            addTopicButton.configuration = nil
+        }
     }
     
     // MARK: - Group Chat Setup

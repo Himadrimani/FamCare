@@ -264,15 +264,13 @@ class TaskDetailViewController: UIViewController {
             
             SQLiteHelper.shared.saveChallengeProgress(progress)
             
-            // Fetch latest progress from DataManager to determine state
-            let progressRecords = DataManager.shared.challengeProgress.filter { $0.challengeId == challengeDetails.challengeId }
-            
+            // Always show the individual trophy for completing your own goal
             let overlay = RewardsViewController(
                 achievementType: .individual, 
                 challengeId: challengeDetails.challengeId.uuidString, 
                 challengeTitle: challengeDetails.name,
                 challengeType: challengeDetails.type,
-                participantsCount: progressRecords.count
+                participantsCount: DataManager.shared.challengeProgress.filter({ $0.challengeId == challengeDetails.challengeId }).count
             )
             self.present(overlay, animated: true)
             
