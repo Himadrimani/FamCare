@@ -394,14 +394,30 @@ extension SleepDaily {
 
 
 
-struct NotificationItem: Codable {
+struct NotificationItem: Codable, Equatable {
     let id: UUID
+    let familyId: UUID
+    let recipientProfileId: UUID
     let title: String
     let body: String
-    let timestamp: Date
     let type: NotificationType
-    var isRead: Bool
     let relatedProfileId: UUID?
+    let relatedEntityId: UUID?
+    let dedup_key: String?
+    let created_at: Date
+    var read_at: Date?
+    let is_deleted: Bool?
+    
+    // Compatibility properties for UI
+    var isRead: Bool {
+        get { return read_at != nil }
+        set { if newValue { read_at = Date() } else { read_at = nil } }
+    }
+    var timestamp: Date { return created_at }
+    
+    static func == (lhs: NotificationItem, rhs: NotificationItem) -> Bool {
+        return lhs.id == rhs.id
+    }
 }
 
 enum NotificationType: String, Codable {

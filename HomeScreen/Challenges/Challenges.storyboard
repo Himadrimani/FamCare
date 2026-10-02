@@ -372,7 +372,7 @@
         <!--Navigation Controller-->
         <scene sceneID="0Jx-6r-W6g">
             <objects>
-                <navigationController automaticallyAdjustsScrollViewInsets="NO" id="WHM-8g-UnP" sceneMemberID="viewController">
+                <navigationController storyboardIdentifier="AddChallengeNavController" automaticallyAdjustsScrollViewInsets="NO" id="WHM-8g-UnP" sceneMemberID="viewController">
                     <toolbarItems/>
                     <navigationItem key="navigationItem" id="5FZ-eh-Uqa"/>
                     <navigationBar key="navigationBar" contentMode="scaleToFill" id="4oN-AN-ebl">

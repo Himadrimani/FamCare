@@ -267,7 +267,10 @@ extension WellnessViewController: UICollectionViewDataSource, UICollectionViewDe
     }
 
     @objc private func startChallengeTapped() {
-        tabBarController?.selectedIndex = 2
+        let storyboard = UIStoryboard(name: "Challenges", bundle: nil)
+        if let addNav = storyboard.instantiateViewController(withIdentifier: "AddChallengeNavController") as? UINavigationController {
+            self.present(addNav, animated: true)
+        }
     }
 
     private func configureStatCell(_ cell: StartRowCell, for index: Int, day: DayData) {

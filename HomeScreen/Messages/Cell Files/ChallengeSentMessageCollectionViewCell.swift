@@ -10,6 +10,16 @@ class ChallengeSentMessageCollectionViewCell: UICollectionViewCell {
 
     override func awakeFromNib() {
         super.awakeFromNib()
+        
+        // Modern iOS 27 bubble styling
+        bubbleView.layer.cornerRadius = 18
+        bubbleView.layer.cornerCurve = .continuous
+        bubbleView.backgroundColor = .systemBlue
+        bubbleView.layer.maskedCorners = [.layerMinXMinYCorner, .layerMinXMaxYCorner, .layerMaxXMinYCorner]
+        
+        messageLabel.textColor = .white
+        titleLabel.textColor = .white
+        challengeNameLabel.textColor = .white
     }
     
     func configure(with message: Message, challenge: ChallengeDetails?) {

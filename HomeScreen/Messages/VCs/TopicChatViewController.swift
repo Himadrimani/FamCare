@@ -43,7 +43,7 @@ class TopicChatViewController: UIViewController {
         collectionView.addGestureRecognizer(tap)
         
         setupBindings()
-        setupKeyboardObservers()
+        setupKeyboardLayout()
         viewModel.onAppear()
     }
     
@@ -110,9 +110,8 @@ class TopicChatViewController: UIViewController {
             messageTextView.text = ""
             textViewDidChange(messageTextView)
             
-            // Explicitly reset send button style for disabled state
-            sendButton.backgroundColor = .systemGray6
-            sendButton.tintColor = .systemGray3
+            sendButton.isHidden = true
+            voiceButton.isHidden = false
         }
     }
     
@@ -122,39 +121,77 @@ class TopicChatViewController: UIViewController {
         messageTextView.isScrollEnabled = true
         messageTextView.textContainer.lineBreakMode = .byWordWrapping
         messageTextView.textContainer.maximumNumberOfLines = 0
-        messageTextView.textContainerInset = UIEdgeInsets(top: 10, left: 12, bottom: 10, right: 12)
+        messageTextView.textContainerInset = UIEdgeInsets(top: 8, left: 4, bottom: 8, right: 4)
         
-        messageTextView.layer.cornerRadius = 16
-        messageTextView.layer.borderWidth = 1
-        messageTextView.layer.borderColor = UIColor.systemGray4.cgColor
+        // Remove old borders from text view
+        messageTextView.layer.borderWidth = 0
+        messageTextView.backgroundColor = .clear
         
         messageTextView.text = "Type your message here"
-        messageTextView.textColor = .systemGray
+        messageTextView.textColor = .secondaryLabel
+        
+        // Style the stack view as the unified container using Liquid Glass
+        inputStackView.backgroundColor = .clear
+        inputStackView.layer.borderWidth = 0
+        inputStackView.isLayoutMarginsRelativeArrangement = true
+        inputStackView.layoutMargins = UIEdgeInsets(top: 4, left: 4, bottom: 4, right: 4)
+        inputStackView.alignment = .center
+        
+        if inputStackView.viewWithTag(999) == nil {
+            let blurEffect = UIBlurEffect(style: .systemMaterial)
+            let effectView = UIVisualEffectView(effect: blurEffect)
+            effectView.tag = 999
+            effectView.layer.cornerRadius = 20
+            effectView.layer.cornerCurve = .continuous
+            effectView.layer.borderWidth = 0.5
+            effectView.layer.borderColor = UIColor.separator.withAlphaComponent(0.5).cgColor
+            effectView.clipsToBounds = true
+            effectView.translatesAutoresizingMaskIntoConstraints = false
+            
+            inputStackView.insertSubview(effectView, at: 0)
+            NSLayoutConstraint.activate([
+                effectView.topAnchor.constraint(equalTo: inputStackView.topAnchor),
+                effectView.bottomAnchor.constraint(equalTo: inputStackView.bottomAnchor),
+                effectView.leadingAnchor.constraint(equalTo: inputStackView.leadingAnchor),
+                effectView.trailingAnchor.constraint(equalTo: inputStackView.trailingAnchor)
+            ])
+        }
         
         // Setup Voice Button
-        voiceButton.setImage(UIImage(systemName: "mic.fill"), for: .normal)
-        voiceButton.tintColor = .systemBlue
+        var config = UIButton.Configuration.plain()
+        config.image = UIImage(systemName: "waveform", withConfiguration: UIImage.SymbolConfiguration(pointSize: 22, weight: .regular))
+        config.baseForegroundColor = .systemBlue
+        voiceButton.configuration = config
+        voiceButton.accessibilityLabel = "Voice message"
         voiceButton.translatesAutoresizingMaskIntoConstraints = false
         voiceButton.addTarget(self, action: #selector(voiceTapped), for: .touchUpInside)
         
         // Add Voice Button to stack view
         if !inputStackView.arrangedSubviews.contains(voiceButton) {
-            inputStackView.insertArrangedSubview(voiceButton, at: 0)
+            inputStackView.addArrangedSubview(voiceButton)
             NSLayoutConstraint.activate([
-                voiceButton.widthAnchor.constraint(equalToConstant: 40)
+                voiceButton.widthAnchor.constraint(equalToConstant: 36),
+                voiceButton.heightAnchor.constraint(equalToConstant: 36)
             ])
         }
         
         // Setup Send Button
-        sendButton.setImage(UIImage(systemName: "arrow.up.circle.fill"), for: .normal)
-        sendButton.setTitle("", for: .normal)
+        var sendConfig = UIButton.Configuration.plain()
+        sendConfig.image = UIImage(systemName: "arrow.up.circle.fill", withConfiguration: UIImage.SymbolConfiguration(pointSize: 28, weight: .semibold))
+        sendConfig.baseForegroundColor = .systemBlue
+        sendButton.configuration = sendConfig
+        sendButton.accessibilityLabel = "Send message"
         
-        // Size the send button image larger
-        let config = UIImage.SymbolConfiguration(pointSize: 28, weight: .semibold)
-        sendButton.setPreferredSymbolConfiguration(config, forImageIn: .normal)
-        sendButton.isEnabled = false
-        sendButton.backgroundColor = .clear
-        sendButton.tintColor = .systemGray3
+        // Constrain send button
+        sendButton.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            sendButton.widthAnchor.constraint(equalToConstant: 36),
+            sendButton.heightAnchor.constraint(equalToConstant: 36)
+        ])
+        
+        // Initial state: Waveform visible, Send hidden (since they share the trailing slot)
+        sendButton.isHidden = true
+        voiceButton.isHidden = false
     }
     
     @objc private func voiceTapped() {
@@ -163,7 +200,7 @@ class TopicChatViewController: UIViewController {
         
         if VoiceRecognitionService.shared.getIsRecording() {
             VoiceRecognitionService.shared.stopRecording()
-            voiceButton.tintColor = .systemBlue
+            voiceButton.configuration?.baseForegroundColor = .systemBlue
         } else {
             VoiceRecognitionService.shared.requestPermissions { [weak self] granted in
                 guard let self = self else { return }
@@ -178,7 +215,7 @@ class TopicChatViewController: UIViewController {
     
     private func startVoiceRecording() {
         DispatchQueue.main.async {
-            self.voiceButton.tintColor = .systemRed
+            self.voiceButton.configuration?.baseForegroundColor = .systemRed
             if self.messageTextView.text == "Type your message here" || self.messageTextView.text.isEmpty {
                 self.messageTextView.text = "Listening..."
                 self.messageTextView.textColor = .systemGray
@@ -196,20 +233,20 @@ class TopicChatViewController: UIViewController {
             guard let self = self else { return }
             self.messageTextView.text = text
             self.messageTextView.textColor = .label
-            self.voiceButton.tintColor = .systemBlue
+            self.voiceButton.configuration?.baseForegroundColor = .systemBlue
             self.textViewDidChange(self.messageTextView)
         }
         
         VoiceRecognitionService.shared.onError = { [weak self] error in
             print("Voice recognition error: \(error.localizedDescription)")
-            self?.voiceButton.tintColor = .systemBlue
+            self?.voiceButton.configuration?.baseForegroundColor = .systemBlue
         }
         
         do {
             try VoiceRecognitionService.shared.startRecording()
         } catch {
             print("Failed to start recording: \(error.localizedDescription)")
-            voiceButton.tintColor = .systemBlue
+            voiceButton.configuration?.baseForegroundColor = .systemBlue
         }
     }
     
@@ -249,33 +286,16 @@ class TopicChatViewController: UIViewController {
     }
     
     // MARK: - Keyboard Handling
-    private func setupKeyboardObservers() {
-        NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillShow), name: UIResponder.keyboardWillShowNotification, object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillHide), name: UIResponder.keyboardWillHideNotification, object: nil)
-    }
-
-    @objc private func keyboardWillShow(notification: NSNotification) {
-        if let keyboardSize = (notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? NSValue)?.cgRectValue,
-           let duration = notification.userInfo?[UIResponder.keyboardAnimationDurationUserInfoKey] as? Double {
-            
-            let window = UIApplication.shared.windows.first
-            let bottomPadding = window?.safeAreaInsets.bottom ?? 0
-            
-            UIView.animate(withDuration: duration) {
-                self.additionalSafeAreaInsets.bottom = keyboardSize.height - bottomPadding
-                self.view.layoutIfNeeded()
-                self.scrollToBottom(animated: false)
-            }
+    private func setupKeyboardLayout() {
+        let constraintsToRemove = view.constraints.filter { 
+            ($0.firstItem as? UIView == inputStackView && $0.firstAttribute == .bottom) ||
+            ($0.secondItem as? UIView == inputStackView && $0.secondAttribute == .bottom) ||
+            ($0.firstItem as? UILayoutGuide != nil && $0.secondItem as? UIView == inputStackView && $0.secondAttribute == .bottom) ||
+            ($0.secondItem as? UILayoutGuide != nil && $0.firstItem as? UIView == inputStackView && $0.firstAttribute == .bottom)
         }
-    }
-
-    @objc private func keyboardWillHide(notification: NSNotification) {
-        if let duration = notification.userInfo?[UIResponder.keyboardAnimationDurationUserInfoKey] as? Double {
-            UIView.animate(withDuration: duration) {
-                self.additionalSafeAreaInsets.bottom = 0
-                self.view.layoutIfNeeded()
-            }
-        }
+        NSLayoutConstraint.deactivate(constraintsToRemove)
+        
+        inputStackView.bottomAnchor.constraint(equalTo: view.keyboardLayoutGuide.topAnchor, constant: -10).isActive = true
     }
 }
 
@@ -341,7 +361,7 @@ extension TopicChatViewController: UICollectionViewDataSource, UICollectionViewD
             // Dynamic height calculation for regular text
             let maxWidth = width * 0.75
             let padding: CGFloat = 32
-            let font = UIFont.systemFont(ofSize: 17)
+            let font = UIFont.preferredFont(forTextStyle: .body)
             let textHeight = msg.content.height(withConstrainedWidth: maxWidth - padding, font: font)
             
             // Vertical space breakdown:
@@ -385,13 +405,14 @@ extension TopicChatViewController: UITextViewDelegate {
     
     func textViewDidChange(_ textView: UITextView) {
         let hasRealText = textView.text != "Type your message here" && !textView.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-        sendButton.isEnabled = hasRealText
         
         if hasRealText {
-            sendButton.tintColor = .systemBlue
+            sendButton.isHidden = false
+            voiceButton.isHidden = true
             textView.textColor = .label
         } else {
-            sendButton.tintColor = .systemGray3
+            sendButton.isHidden = true
+            voiceButton.isHidden = false
         }
     }
 }

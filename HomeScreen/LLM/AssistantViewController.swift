@@ -68,32 +68,60 @@ class AssistantViewController: UIViewController {
         )
         navigationItem.rightBarButtonItem?.tintColor = .systemBlue
         
-        // --- Input Container ---
-        inputContainerView.backgroundColor = .secondarySystemGroupedBackground
+        // --- Input Container (Liquid Glass) ---
+        inputContainerView.backgroundColor = .clear
+        inputContainerView.layer.borderWidth = 0
         inputContainerView.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(inputContainerView)
         
+        let blurEffect = UIBlurEffect(style: .systemMaterial)
+        let effectView = UIVisualEffectView(effect: blurEffect)
+        effectView.layer.cornerRadius = 20
+        effectView.layer.cornerCurve = .continuous
+        effectView.layer.borderWidth = 0.5
+        effectView.layer.borderColor = UIColor.separator.withAlphaComponent(0.5).cgColor
+        effectView.clipsToBounds = true
+        effectView.translatesAutoresizingMaskIntoConstraints = false
+        inputContainerView.addSubview(effectView)
+        NSLayoutConstraint.activate([
+            effectView.topAnchor.constraint(equalTo: inputContainerView.topAnchor),
+            effectView.bottomAnchor.constraint(equalTo: inputContainerView.bottomAnchor),
+            effectView.leadingAnchor.constraint(equalTo: inputContainerView.leadingAnchor),
+            effectView.trailingAnchor.constraint(equalTo: inputContainerView.trailingAnchor)
+        ])
+        
         // Voice button
-        voiceButton.setImage(UIImage(systemName: "mic.fill"), for: .normal)
-        voiceButton.tintColor = .systemBlue
+        var config = UIButton.Configuration.plain()
+        config.image = UIImage(systemName: "waveform", withConfiguration: UIImage.SymbolConfiguration(pointSize: 22, weight: .regular))
+        config.baseForegroundColor = .systemBlue
+        voiceButton.configuration = config
+        voiceButton.accessibilityLabel = "Voice message"
         voiceButton.translatesAutoresizingMaskIntoConstraints = false
         voiceButton.addTarget(self, action: #selector(voiceTapped), for: .touchUpInside)
         inputContainerView.addSubview(voiceButton)
         
         // Text field
         textField.placeholder = "Ask anything..."
-        textField.borderStyle = .roundedRect
+        textField.borderStyle = .none
+        textField.backgroundColor = .clear
         textField.returnKeyType = .send
         textField.delegate = self
         textField.translatesAutoresizingMaskIntoConstraints = false
+        textField.addTarget(self, action: #selector(textDidChange), for: .editingChanged)
         inputContainerView.addSubview(textField)
         
         // Send button
-        sendButton.setImage(UIImage(systemName: "arrow.up.circle.fill"), for: .normal)
+        let sendConfig = UIImage.SymbolConfiguration(pointSize: 28, weight: .semibold)
+        sendButton.setImage(UIImage(systemName: "arrow.up.circle.fill", withConfiguration: sendConfig), for: .normal)
         sendButton.tintColor = .systemBlue
+        sendButton.accessibilityLabel = "Send message"
         sendButton.translatesAutoresizingMaskIntoConstraints = false
         sendButton.addTarget(self, action: #selector(sendTapped), for: .touchUpInside)
         inputContainerView.addSubview(sendButton)
+        
+        // Initial state: Waveform visible, Send hidden (sharing trailing slot)
+        sendButton.isHidden = true
+        voiceButton.isHidden = false
         
         // --- Suggestions ---
         suggestionsStack.axis = .horizontal
@@ -103,12 +131,13 @@ class AssistantViewController: UIViewController {
         
         for (index, suggestion) in suggestions.enumerated() {
             let chip = UIButton(type: .system)
-            chip.setTitle(suggestion, for: .normal)
-            chip.titleLabel?.font = .systemFont(ofSize: 13, weight: .medium)
-            chip.backgroundColor = .systemBlue.withAlphaComponent(0.1)
-            chip.setTitleColor(.systemBlue, for: .normal)
-            chip.layer.cornerRadius = 14
-            chip.contentEdgeInsets = UIEdgeInsets(top: 6, left: 12, bottom: 6, right: 12)
+            var config = UIButton.Configuration.tinted()
+            config.title = suggestion
+            config.cornerStyle = .capsule
+            config.baseForegroundColor = .systemBlue
+            config.baseBackgroundColor = .systemBlue
+            config.contentInsets = NSDirectionalEdgeInsets(top: 8, leading: 14, bottom: 8, trailing: 14)
+            chip.configuration = config
             chip.tag = index
             chip.addTarget(self, action: #selector(suggestionTapped(_:)), for: .touchUpInside)
             suggestionsStack.addArrangedSubview(chip)
@@ -133,24 +162,25 @@ class AssistantViewController: UIViewController {
         // --- Layout ---
         NSLayoutConstraint.activate([
             // Input container at bottom
-            inputContainerView.bottomAnchor.constraint(equalTo: view.keyboardLayoutGuide.topAnchor),
-            inputContainerView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            inputContainerView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            inputContainerView.bottomAnchor.constraint(equalTo: view.keyboardLayoutGuide.topAnchor, constant: -10),
+            inputContainerView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 10),
+            inputContainerView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -10),
             
-            voiceButton.leadingAnchor.constraint(equalTo: inputContainerView.leadingAnchor, constant: 16),
-            voiceButton.centerYAnchor.constraint(equalTo: inputContainerView.centerYAnchor),
-            voiceButton.widthAnchor.constraint(equalToConstant: 30),
-            voiceButton.heightAnchor.constraint(equalToConstant: 30),
-            
-            textField.leadingAnchor.constraint(equalTo: voiceButton.trailingAnchor, constant: 12),
+            textField.leadingAnchor.constraint(equalTo: inputContainerView.leadingAnchor, constant: 12),
             textField.topAnchor.constraint(equalTo: inputContainerView.topAnchor, constant: 12),
             textField.bottomAnchor.constraint(equalTo: inputContainerView.bottomAnchor, constant: -12),
             
-            sendButton.leadingAnchor.constraint(equalTo: textField.trailingAnchor, constant: 12),
-            sendButton.trailingAnchor.constraint(equalTo: inputContainerView.trailingAnchor, constant: -16),
+            sendButton.leadingAnchor.constraint(equalTo: textField.trailingAnchor, constant: 8),
+            sendButton.trailingAnchor.constraint(equalTo: inputContainerView.trailingAnchor, constant: -8),
             sendButton.centerYAnchor.constraint(equalTo: inputContainerView.centerYAnchor),
-            sendButton.widthAnchor.constraint(equalToConstant: 30),
-            sendButton.heightAnchor.constraint(equalToConstant: 30),
+            sendButton.widthAnchor.constraint(equalToConstant: 36),
+            sendButton.heightAnchor.constraint(equalToConstant: 36),
+            
+            voiceButton.leadingAnchor.constraint(equalTo: sendButton.leadingAnchor),
+            voiceButton.trailingAnchor.constraint(equalTo: sendButton.trailingAnchor),
+            voiceButton.centerYAnchor.constraint(equalTo: sendButton.centerYAnchor),
+            voiceButton.widthAnchor.constraint(equalTo: sendButton.widthAnchor),
+            voiceButton.heightAnchor.constraint(equalTo: sendButton.heightAnchor),
             
             // Suggestions above input
             scrollView.bottomAnchor.constraint(equalTo: inputContainerView.topAnchor, constant: -4),
@@ -248,6 +278,16 @@ class AssistantViewController: UIViewController {
     @objc private func sendTapped() {
         guard let text = textField.text, !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
         sendMessage(text: text)
+    }
+    
+    @objc private func textDidChange() {
+        if let text = textField.text, !text.isEmpty {
+            sendButton.isHidden = false
+            voiceButton.isHidden = true
+        } else {
+            sendButton.isHidden = true
+            voiceButton.isHidden = false
+        }
     }
     
     // MARK: - Core Message Flow
@@ -563,12 +603,14 @@ extension AssistantViewController: UITableViewDataSource, UITableViewDelegate {
         let isTyping = msg.content == "typing..."
         
         let bubbleView = UIView()
-        bubbleView.layer.cornerRadius = 16
+        bubbleView.layer.cornerRadius = 18
+        bubbleView.layer.cornerCurve = .continuous
         bubbleView.translatesAutoresizingMaskIntoConstraints = false
         
         if isTyping {
             // Animated typing dots
             bubbleView.backgroundColor = .secondarySystemGroupedBackground
+            bubbleView.layer.maskedCorners = [.layerMaxXMinYCorner, .layerMaxXMaxYCorner, .layerMinXMinYCorner]
             
             let dotsLabel = UILabel()
             dotsLabel.text = "•  •  •"
@@ -602,14 +644,22 @@ extension AssistantViewController: UITableViewDataSource, UITableViewDelegate {
         let label = UILabel()
         label.text = msg.content
         label.numberOfLines = 0
-        label.font = .systemFont(ofSize: 15)
+        label.font = .preferredFont(forTextStyle: .body)
+        label.adjustsFontForContentSizeCategory = true
         label.translatesAutoresizingMaskIntoConstraints = false
         
         cell.contentView.addSubview(bubbleView)
         bubbleView.addSubview(label)
         
-        bubbleView.backgroundColor = isUser ? .systemBlue : .secondarySystemGroupedBackground
-        label.textColor = isUser ? .white : .label
+        if isUser {
+            bubbleView.layer.maskedCorners = [.layerMinXMinYCorner, .layerMinXMaxYCorner, .layerMaxXMinYCorner]
+            bubbleView.backgroundColor = .systemBlue
+            label.textColor = .white
+        } else {
+            bubbleView.layer.maskedCorners = [.layerMaxXMinYCorner, .layerMaxXMaxYCorner, .layerMinXMinYCorner]
+            bubbleView.backgroundColor = .secondarySystemGroupedBackground
+            label.textColor = .label
+        }
         
         var bottomAnchorConstraint = label.bottomAnchor.constraint(equalTo: bubbleView.bottomAnchor, constant: -12)
         

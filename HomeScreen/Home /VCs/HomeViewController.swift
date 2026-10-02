@@ -863,7 +863,6 @@ extension UIViewController {
     }
 
     @objc func universalNotificationTapped() {
-        NotificationManager.shared.checkRulesAndGenerateNotifications()
         NotificationManager.shared.markAllAsRead()
         let notificationVC = NotificationTableViewController()
         let navController = UINavigationController(rootViewController: notificationVC)

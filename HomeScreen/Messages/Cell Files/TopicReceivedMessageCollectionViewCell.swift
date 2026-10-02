@@ -16,6 +16,21 @@ class TopicReceivedMessageCollectionViewCell: UICollectionViewCell {
     
     override func awakeFromNib() {
         super.awakeFromNib()
+        
+        // Modern iOS 27 bubble styling
+        bubbleView.layer.cornerRadius = 18
+        bubbleView.layer.cornerCurve = .continuous
+        bubbleView.backgroundColor = .secondarySystemGroupedBackground
+        bubbleView.layer.maskedCorners = [.layerMaxXMinYCorner, .layerMaxXMaxYCorner, .layerMinXMinYCorner]
+        
+        messageLabel.textColor = .label
+        messageLabel.font = .preferredFont(forTextStyle: .body)
+        messageLabel.adjustsFontForContentSizeCategory = true
+        
+        // Also ensure avatar is rounded properly
+        avatarView.layer.cornerRadius = avatarView.bounds.width / 2
+        avatarView.clipsToBounds = true
+        
         originalBubbleColor = bubbleView.backgroundColor
         
         sharedCardView.translatesAutoresizingMaskIntoConstraints = false

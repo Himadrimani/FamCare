@@ -65,6 +65,8 @@ class SyncManager {
         lastRealtimePullAt = Date()
         lastSuccessfulSyncAt = Date()
         print("SyncManager: Sync complete.")
+        
+        NotificationManager.shared.checkRulesAndGenerateNotifications()
     }
 
 

@@ -15,6 +15,18 @@ class SentMessageCollectionViewCell: UICollectionViewCell {
 
     override func awakeFromNib() {
         super.awakeFromNib()
+        
+        // Modern iOS 27 bubble styling
+        bubbleView.layer.cornerRadius = 18
+        bubbleView.layer.cornerCurve = .continuous
+        bubbleView.backgroundColor = .systemBlue
+        
+        // Add native tail effect by not rounding the bottom-right corner
+        bubbleView.layer.maskedCorners = [.layerMinXMinYCorner, .layerMinXMaxYCorner, .layerMaxXMinYCorner]
+        
+        messageLabel.textColor = .white
+        messageLabel.font = .preferredFont(forTextStyle: .body)
+        messageLabel.adjustsFontForContentSizeCategory = true
     }
     
     func configure(with message: Message) {

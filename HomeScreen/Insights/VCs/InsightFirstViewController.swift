@@ -178,23 +178,9 @@ class InsightFirstViewController: UIViewController {
     }
 
     @objc private func openChallengesTab() {
-        tabBarController?.selectedIndex = 2
-        
-        if let navVC = tabBarController?.viewControllers?[2] as? UINavigationController,
-           let _ = navVC.viewControllers.first as? ChallengeFirstViewController {
-            
-            navVC.popToRootViewController(animated: false)
-            
-            // Allow layout to settle before presenting to avoid transition conflicts
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                let _ = UIStoryboard(name: "Challenges", bundle: nil)
-//                if let addNav = storyboard.instantiateViewController(withIdentifier: "AddChallengeNavController") as? UINavigationController
-//                   let destVC = addNav.topViewController as? AddChallengeDynamicTableViewController {
-//                    
-//                    destVC.defaultChallenges = challengeVC.defaultChallenges ?? []
-//                    challengeVC.present(addNav, animated: true)
-//                }
-            }
+        let storyboard = UIStoryboard(name: "Challenges", bundle: nil)
+        if let addNav = storyboard.instantiateViewController(withIdentifier: "AddChallengeNavController") as? UINavigationController {
+            self.present(addNav, animated: true)
         }
     }
 

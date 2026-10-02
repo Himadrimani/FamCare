@@ -333,24 +333,48 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate, UITabBarControllerDeleg
         
         globalAssistantButton?.removeFromSuperview()
         
-        let assistantButton = UIButton(type: .system)
-        assistantButton.setImage(UIImage(systemName: "sparkles"), for: .normal)
-        assistantButton.tintColor = .white
-        assistantButton.backgroundColor = .systemBlue
-        assistantButton.layer.cornerRadius = 28
-        assistantButton.layer.shadowColor = UIColor.black.cgColor
-        assistantButton.layer.shadowOpacity = 0.3
-        assistantButton.layer.shadowOffset = CGSize(width: 0, height: 4)
-        assistantButton.layer.shadowRadius = 4
+        // 48x48 is the perfect "Goldilocks" size for a floating button
+        let buttonSize: CGFloat = 48
+        let assistantButton = UIButton(type: .custom)
+        
+        if let aiImage = UIImage(named: "apple_bot") {
+            assistantButton.setImage(aiImage, for: .normal)
+            assistantButton.imageView?.contentMode = .scaleAspectFill
+            assistantButton.imageView?.layer.cornerRadius = buttonSize / 2
+            assistantButton.imageView?.layer.masksToBounds = true
+        } else {
+            assistantButton.setImage(UIImage(systemName: "sparkles"), for: .normal)
+            assistantButton.tintColor = .white
+            assistantButton.backgroundColor = .systemBlue
+            assistantButton.layer.cornerRadius = buttonSize / 2
+        }
+        
+        assistantButton.backgroundColor = .clear
+        
+        // Siri / Apple Intelligence inspired vibrant glow
+        assistantButton.layer.shadowColor = UIColor(red: 0.6, green: 0.4, blue: 1.0, alpha: 1.0).cgColor
+        assistantButton.layer.shadowOpacity = 0.8
+        assistantButton.layer.shadowOffset = .zero
+        assistantButton.layer.shadowRadius = 12
         assistantButton.translatesAutoresizingMaskIntoConstraints = false
+        
+        // Subtle pulsing animation for the glow to make it feel alive
+        let pulseAnimation = CABasicAnimation(keyPath: "shadowOpacity")
+        pulseAnimation.fromValue = 0.4
+        pulseAnimation.toValue = 0.9
+        pulseAnimation.duration = 1.5
+        pulseAnimation.autoreverses = true
+        pulseAnimation.repeatCount = .infinity
+        assistantButton.layer.add(pulseAnimation, forKey: "glowPulse")
         
         window.addSubview(assistantButton)
         
         NSLayoutConstraint.activate([
-            assistantButton.widthAnchor.constraint(equalToConstant: 56),
-            assistantButton.heightAnchor.constraint(equalToConstant: 56),
-            assistantButton.bottomAnchor.constraint(equalTo: window.safeAreaLayoutGuide.bottomAnchor, constant: -90),
-            assistantButton.trailingAnchor.constraint(equalTo: window.trailingAnchor, constant: -24)
+            assistantButton.widthAnchor.constraint(equalToConstant: buttonSize),
+            assistantButton.heightAnchor.constraint(equalToConstant: buttonSize),
+            // Positioned just above the tab bar, aligned near the Message tab on the right
+            assistantButton.bottomAnchor.constraint(equalTo: window.safeAreaLayoutGuide.bottomAnchor, constant: -65),
+            assistantButton.trailingAnchor.constraint(equalTo: window.trailingAnchor, constant: -20)
         ])
         
         assistantButton.addTarget(self, action: #selector(globalAssistantButtonTapped), for: .touchUpInside)

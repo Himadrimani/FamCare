@@ -97,7 +97,19 @@ class CircularRingView: UIView {
         // smaller icon (Apple style)
         let iconInset = bounds.width * 0.25
         iconView.frame = bounds.insetBy(dx: iconInset, dy: iconInset)
+        
+        // Recalculate stroke end if bounds changed
+        let circumference = 2 * .pi * radius
+        let capPercentage = circumference > 0 ? (lineWidth / circumference) : 0
+        
+        if currentProgress < 1.0 {
+            progressLayer.strokeEnd = max(0, currentProgress - capPercentage)
+        } else {
+            progressLayer.strokeEnd = 1.0
+        }
     }
+
+    private var currentProgress: CGFloat = 0
 
     func setProgress(_ value: CGFloat, color: UIColor) {
         // Make sure solid mode is off when using progress ring
@@ -106,15 +118,30 @@ class CircularRingView: UIView {
         progressLayer.isHidden = false
 
         let clamped = max(0, min(value, 1))
+        self.currentProgress = clamped
+        
+        let w = bounds.width > 0 ? bounds.width : 90
+        let h = bounds.height > 0 ? bounds.height : 90
+        let radius = min(w, h) / 2 - 8
+        let circumference = 2 * .pi * radius
+        let capPercentage = circumference > 0 ? (lineWidth / circumference) : 0
+        
+        let adjustedEnd: CGFloat
+        if clamped == 1.0 {
+            adjustedEnd = 1.0
+        } else {
+            adjustedEnd = max(0, clamped - capPercentage)
+        }
+
         progressLayer.strokeColor = color.cgColor
-        progressLayer.strokeEnd = clamped
+        progressLayer.strokeEnd = adjustedEnd
 
         // icon matches ring color
         iconView.tintColor = color
 
         let animation = CABasicAnimation(keyPath: "strokeEnd")
         animation.fromValue = 0
-        animation.toValue = clamped
+        animation.toValue = adjustedEnd
         animation.duration = 0.8
         progressLayer.add(animation, forKey: "progress")
     }

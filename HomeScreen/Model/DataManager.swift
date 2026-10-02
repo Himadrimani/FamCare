@@ -1920,6 +1920,9 @@ class NotificationManager {
 
     private init() {
         requestAuthorization()
+        Task {
+            await fetchNotifications()
+        }
     }
 
     var notifications: [NotificationItem] = []
@@ -1927,12 +1930,47 @@ class NotificationManager {
     var unreadCount: Int {
         notifications.filter { !$0.isRead }.count
     }
+    
+    func fetchNotifications() async {
+        guard let currentUser = DataManager.shared.currentUser else { return }
+        do {
+            let fetched: [NotificationItem] = try await SupabaseManager.shared.client
+                .from("Notifications")
+                .select()
+                .eq("recipientProfileId", value: currentUser.profileId.uuidString)
+                .order("created_at", ascending: false)
+                .execute()
+                .value
+            
+            DispatchQueue.main.async {
+                self.notifications = fetched
+                NotificationCenter.default.post(name: NSNotification.Name("NewNotificationAdded"), object: nil)
+            }
+        } catch {
+            print("Failed to fetch notifications: \(error)")
+        }
+    }
 
     func markAllAsRead() {
+        guard let currentUser = DataManager.shared.currentUser else { return }
+        
         for index in notifications.indices {
             notifications[index].isRead = true
         }
         NotificationCenter.default.post(name: NSNotification.Name("NewNotificationAdded"), object: nil)
+        
+        Task {
+            do {
+                try await SupabaseManager.shared.client
+                    .from("Notifications")
+                    .update(["read_at": Date().ISO8601Format()])
+                    .eq("recipientProfileId", value: currentUser.profileId.uuidString)
+                    .is("read_at", value: nil)
+                    .execute()
+            } catch {
+                print("Failed to mark notifications as read in Supabase: \(error)")
+            }
+        }
     }
 
     func requestAuthorization() {
@@ -1950,8 +1988,6 @@ class NotificationManager {
         let hour = calendar.component(.hour, from: Date())
 
         for member in allMembers {
-            // Only raise a low-wellness alert when there is enough data to trust the score (#2),
-            // using the centralized threshold (#9).
             let wellness = member.wellnessResult(for: Date())
             if wellness.hasSufficientData && wellness.score < StandardInsightConfig.lowWellnessNotificationThreshold {
                 addNotification(
@@ -1962,7 +1998,6 @@ class NotificationManager {
                 )
             }
             
-            // Abnormal Vitals Alert (HR / HRV)
             if let abnormalVital = member.getAbnormalVital(on: today) {
                 let title: String
                 let body: String
@@ -2039,26 +2074,48 @@ class NotificationManager {
     }
 
     private func addNotification(title: String, body: String, type: NotificationType, relatedProfileId: UUID?) {
-        let today = Calendar.current.startOfDay(for: Date())
-        let exists = notifications.contains {
-            $0.title == title && Calendar.current.isDate($0.timestamp, inSameDayAs: today)
-        }
+        guard let currentUser = DataManager.shared.currentUser,
+              let familyId = DataManager.shared.family?.familyId else { return }
 
-        guard !exists else { return }
+        let today = Calendar.current.startOfDay(for: Date())
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        let dateString = formatter.string(from: today)
+        let dedupKey = "\(currentUser.profileId.uuidString)_\(title)_\(dateString)"
 
         let item = NotificationItem(
             id: UUID(),
+            familyId: familyId,
+            recipientProfileId: currentUser.profileId,
             title: title,
             body: body,
-            timestamp: Date(),
             type: type,
-            isRead: false,
-            relatedProfileId: relatedProfileId
+            relatedProfileId: relatedProfileId,
+            relatedEntityId: nil,
+            dedup_key: dedupKey,
+            created_at: Date(),
+            read_at: nil,
+            is_deleted: false
         )
 
-        notifications.insert(item, at: 0)
-        scheduleLocalNotification(for: item)
-        NotificationCenter.default.post(name: NSNotification.Name("NewNotificationAdded"), object: nil)
+        Task {
+            do {
+                try await SupabaseManager.shared.client
+                    .from("Notifications")
+                    .insert(item)
+                    .execute()
+                
+                DispatchQueue.main.async {
+                    if !self.notifications.contains(where: { $0.dedup_key == dedupKey }) {
+                        self.notifications.insert(item, at: 0)
+                        self.scheduleLocalNotification(for: item)
+                        NotificationCenter.default.post(name: NSNotification.Name("NewNotificationAdded"), object: nil)
+                    }
+                }
+            } catch {
+                print("Failed to insert notification: \(error)")
+            }
+        }
     }
 
     private func scheduleLocalNotification(for item: NotificationItem) {
@@ -2073,7 +2130,20 @@ class NotificationManager {
     }
 
     func clearAll() {
+        guard let currentUser = DataManager.shared.currentUser else { return }
         notifications.removeAll()
         NotificationCenter.default.post(name: NSNotification.Name("NewNotificationAdded"), object: nil)
+        
+        Task {
+            do {
+                try await SupabaseManager.shared.client
+                    .from("Notifications")
+                    .delete()
+                    .eq("recipientProfileId", value: currentUser.profileId.uuidString)
+                    .execute()
+            } catch {
+                print("Failed to clear notifications in Supabase: \(error)")
+            }
+        }
     }
 }
