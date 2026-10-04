@@ -20,6 +20,15 @@ class TaskDetailViewController: UIViewController {
     var sortedMembers: [Profile] = []
     private var timer: Timer?
     
+    // MARK: - Custom UI Elements
+    private var backgroundImageView: UIImageView?
+    private var daysPillView: UIView?
+    private var hoursPillView: UIView?
+    private var daysValueLabel: UILabel?
+    private var daysSuffixLabel: UILabel?
+    private var hoursValueLabel: UILabel?
+    private var hoursSuffixLabel: UILabel?
+    private var endsInLabel: UILabel?
     override func viewDidLoad() {
         super.viewDidLoad()
         
@@ -90,90 +99,113 @@ class TaskDetailViewController: UIViewController {
 
             let strongNameLabel = nameLabel!
             let strongDescLabel = descriptionLabel!
-            let strongTimeLabel = timeLabel!
-            let strongTimeLeftLabel = timeLeftLabel!
 
             parentView.subviews.forEach { $0.removeFromSuperview() }
+            
+            // Deactivate the storyboard constraint that pins the card's bottom to the safe area
+            // This allows the card to shrink and wrap its contents properly, matching the Fitness card
+            for constraint in self.view.constraints {
+                if (constraint.firstItem as? UIView == parentView && constraint.firstAttribute == .bottom) ||
+                   (constraint.secondItem as? UIView == parentView && constraint.secondAttribute == .bottom) {
+                    if constraint.firstItem is UILayoutGuide || constraint.secondItem is UILayoutGuide ||
+                       constraint.firstItem as? UIView == self.view || constraint.secondItem as? UIView == self.view {
+                        constraint.isActive = false
+                    }
+                }
+            }
 
             parentView.backgroundColor = .systemBackground
-            parentView.layer.cornerRadius = 16
-            parentView.layer.borderWidth = 1
-            parentView.layer.borderColor = UIColor.systemGray6.cgColor
-            parentView.layer.masksToBounds = false
-            parentView.layer.shadowColor = UIColor.black.cgColor
-            parentView.layer.shadowOpacity = 0.08
-            parentView.layer.shadowOffset = CGSize(width: 0, height: 6)
-            parentView.layer.shadowRadius = 10
+            parentView.layer.cornerRadius = 20
+            parentView.clipsToBounds = true
+            parentView.layer.borderWidth = 0.5
+            parentView.layer.borderColor = UIColor.separator.cgColor
 
-            let imageView = UIImageView()
-            imageView.translatesAutoresizingMaskIntoConstraints = false
-            imageView.image = UIImage(named: challenge.bgImage)
-            imageView.contentMode = (challenge.bgImage == "family_trek_challenge" || challenge.bgImage == "sleep_challenge") ? .scaleAspectFill : .scaleAspectFit
-            imageView.layer.cornerRadius = 16
-            imageView.clipsToBounds = true
-            parentView.addSubview(imageView)
+            let bgImageView = UIImageView()
+            bgImageView.image = UIImage(named: challenge.bgImage)
+            bgImageView.contentMode = .scaleAspectFit
+            bgImageView.clipsToBounds = true
+            bgImageView.alpha = 0.25
+            bgImageView.translatesAutoresizingMaskIntoConstraints = false
+            bgImageView.setContentHuggingPriority(.defaultLow, for: .vertical)
+            bgImageView.setContentHuggingPriority(.defaultLow, for: .horizontal)
+            bgImageView.setContentCompressionResistancePriority(UILayoutPriority(1), for: .vertical)
+            bgImageView.setContentCompressionResistancePriority(UILayoutPriority(1), for: .horizontal)
+            parentView.insertSubview(bgImageView, at: 0)
+            self.backgroundImageView = bgImageView
 
-            let progressLabel = UILabel()
-            progressLabel.tag = 998
-            progressLabel.translatesAutoresizingMaskIntoConstraints = false
-            progressLabel.font = .systemFont(ofSize: 40)
-            progressLabel.textColor = .label
-            parentView.addSubview(progressLabel)
 
             strongNameLabel.translatesAutoresizingMaskIntoConstraints = false
             strongDescLabel.translatesAutoresizingMaskIntoConstraints = false
-            strongTimeLabel.translatesAutoresizingMaskIntoConstraints = false
-            strongTimeLeftLabel.translatesAutoresizingMaskIntoConstraints = false
 
             strongNameLabel.font = .systemFont(ofSize: 22, weight: .bold)
             strongNameLabel.textColor = .label
             strongDescLabel.font = .systemFont(ofSize: 15, weight: .regular)
             strongDescLabel.textColor = .secondaryLabel
             strongDescLabel.numberOfLines = 0
-            strongTimeLeftLabel.text = "ENDS IN:"
-            strongTimeLeftLabel.font = .systemFont(ofSize: 14, weight: .semibold)
-            strongTimeLeftLabel.textColor = .systemGray
-            strongTimeLabel.textColor = UIColor(red: 70/255, green: 40/255, blue: 255/255, alpha: 1)
 
             parentView.addSubview(strongNameLabel)
             parentView.addSubview(strongDescLabel)
-            parentView.addSubview(strongTimeLeftLabel)
-            parentView.addSubview(strongTimeLabel)
+            
+            // Build custom "Ends in" label + pill containers
+            let endsLabel = UILabel()
+            endsLabel.text = "Ends in"
+            endsLabel.font = UIFont.systemFont(ofSize: 13, weight: .medium)
+            endsLabel.textColor = .secondaryLabel
+            endsLabel.translatesAutoresizingMaskIntoConstraints = false
+            self.endsInLabel = endsLabel
+            
+            let daysPill = createTimePill()
+            self.daysPillView = daysPill.container
+            self.daysValueLabel = daysPill.valueLabel
+            self.daysSuffixLabel = daysPill.suffixLabel
+            
+            let hoursPill = createTimePill()
+            self.hoursPillView = hoursPill.container
+            self.hoursValueLabel = hoursPill.valueLabel
+            self.hoursSuffixLabel = hoursPill.suffixLabel
+            
+            let pillsStack = UIStackView(arrangedSubviews: [daysPill.container, hoursPill.container])
+            pillsStack.axis = .horizontal
+            pillsStack.spacing = 10
+            pillsStack.distribution = .fillEqually
+            pillsStack.translatesAutoresizingMaskIntoConstraints = false
+            
+            let timerStack = UIStackView(arrangedSubviews: [endsLabel, pillsStack])
+            timerStack.axis = .vertical
+            timerStack.spacing = 8
+            timerStack.alignment = .leading
+            timerStack.translatesAutoresizingMaskIntoConstraints = false
+            
+            parentView.addSubview(timerStack)
 
             NSLayoutConstraint.activate([
-                imageView.trailingAnchor.constraint(equalTo: parentView.trailingAnchor),
-                imageView.topAnchor.constraint(equalTo: parentView.topAnchor, constant: 16),
-                imageView.bottomAnchor.constraint(equalTo: parentView.bottomAnchor, constant: -16),
-                imageView.widthAnchor.constraint(equalTo: parentView.widthAnchor, multiplier: 0.5),
+                bgImageView.trailingAnchor.constraint(equalTo: parentView.trailingAnchor, constant: -4),
+                bgImageView.bottomAnchor.constraint(equalTo: parentView.bottomAnchor, constant: -4),
+                bgImageView.widthAnchor.constraint(equalTo: parentView.widthAnchor, multiplier: 0.45),
+                bgImageView.heightAnchor.constraint(equalTo: parentView.heightAnchor, multiplier: 0.7),
 
                 strongNameLabel.leadingAnchor.constraint(equalTo: parentView.leadingAnchor, constant: 20),
                 strongNameLabel.topAnchor.constraint(equalTo: parentView.topAnchor, constant: 20),
-                strongNameLabel.trailingAnchor.constraint(equalTo: imageView.leadingAnchor, constant: -10),
+                strongNameLabel.trailingAnchor.constraint(equalTo: parentView.trailingAnchor, constant: -20),
 
                 strongDescLabel.leadingAnchor.constraint(equalTo: strongNameLabel.leadingAnchor),
                 strongDescLabel.topAnchor.constraint(equalTo: strongNameLabel.bottomAnchor, constant: 8),
-                strongDescLabel.trailingAnchor.constraint(equalTo: strongNameLabel.trailingAnchor),
+                strongDescLabel.trailingAnchor.constraint(equalTo: parentView.trailingAnchor, constant: -20),
 
-                strongTimeLeftLabel.leadingAnchor.constraint(equalTo: strongNameLabel.leadingAnchor),
-                strongTimeLeftLabel.topAnchor.constraint(equalTo: strongDescLabel.bottomAnchor, constant: 24),
-
-                strongTimeLabel.leadingAnchor.constraint(equalTo: strongNameLabel.leadingAnchor),
-                strongTimeLabel.topAnchor.constraint(equalTo: strongTimeLeftLabel.bottomAnchor, constant: 4),
-
-                progressLabel.leadingAnchor.constraint(equalTo: strongNameLabel.leadingAnchor),
-                progressLabel.bottomAnchor.constraint(equalTo: parentView.bottomAnchor, constant: -20)
+                timerStack.topAnchor.constraint(equalTo: strongDescLabel.bottomAnchor, constant: 24),
+                timerStack.leadingAnchor.constraint(equalTo: strongNameLabel.leadingAnchor),
+                timerStack.bottomAnchor.constraint(equalTo: parentView.bottomAnchor, constant: -24),
+                
+                daysPill.container.widthAnchor.constraint(equalToConstant: 64),
+                daysPill.container.heightAnchor.constraint(equalToConstant: 44),
+                hoursPill.container.widthAnchor.constraint(equalToConstant: 64),
+                hoursPill.container.heightAnchor.constraint(equalToConstant: 44)
             ])
-        }
-
-        let progressRecords = DataManager.shared.challengeProgress.filter { $0.challengeId == challenge.challengeId }
-        var totalPercentage = 0.0
-        for record in progressRecords {
-            let percentage = record.goalValue > 0 ? (record.currentValue / record.goalValue) * 100.0 : 0.0
-            totalPercentage += min(100.0, percentage)
-        }
-        let progress = progressRecords.isEmpty ? 0.0 : totalPercentage / Double(progressRecords.count)
-        if let progressLabel = parentView.viewWithTag(998) as? UILabel {
-            progressLabel.text = "\(Int(progress))%"
+            
+            // Bring text labels to front so they're always readable
+            parentView.bringSubviewToFront(strongNameLabel)
+            parentView.bringSubviewToFront(strongDescLabel)
+            parentView.bringSubviewToFront(timerStack)
         }
         
         // Find Mark Done button and Family Status label
@@ -214,6 +246,38 @@ class TaskDetailViewController: UIViewController {
         timer = Timer.scheduledTimer(timeInterval: 1.0, target: self, selector: #selector(updateTimer), userInfo: nil, repeats: true)
     }
     
+    private func createTimePill() -> (container: UIView, valueLabel: UILabel, suffixLabel: UILabel) {
+        let container = UIView()
+        container.backgroundColor = UIColor.systemGray6
+        container.layer.cornerRadius = 12
+        container.translatesAutoresizingMaskIntoConstraints = false
+        
+        let valueLabel = UILabel()
+        valueLabel.font = UIFont.systemFont(ofSize: 20, weight: .bold)
+        valueLabel.textColor = .label
+        valueLabel.textAlignment = .center
+        valueLabel.translatesAutoresizingMaskIntoConstraints = false
+        
+        let suffixLabel = UILabel()
+        suffixLabel.font = UIFont.systemFont(ofSize: 13, weight: .medium)
+        suffixLabel.textColor = .tertiaryLabel
+        suffixLabel.translatesAutoresizingMaskIntoConstraints = false
+        
+        container.addSubview(valueLabel)
+        container.addSubview(suffixLabel)
+        
+        NSLayoutConstraint.activate([
+            valueLabel.centerYAnchor.constraint(equalTo: container.centerYAnchor),
+            valueLabel.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 8),
+            
+            suffixLabel.lastBaselineAnchor.constraint(equalTo: valueLabel.lastBaselineAnchor),
+            suffixLabel.leadingAnchor.constraint(equalTo: valueLabel.trailingAnchor, constant: 2),
+            suffixLabel.trailingAnchor.constraint(lessThanOrEqualTo: container.trailingAnchor, constant: -6),
+        ])
+        
+        return (container, valueLabel, suffixLabel)
+    }
+
     @objc private func updateTimer() {
         guard let challenge = challenge else { return }
         let now = Date()
@@ -221,23 +285,40 @@ class TaskDetailViewController: UIViewController {
         let timeInterval = endDate.timeIntervalSince(now)
         
         if timeInterval <= 0 {
-            timeLabel.text = "0d : 0h"
-            timeLeftLabel.text = "ENDED"
+            daysValueLabel?.text = "0"
+            daysSuffixLabel?.text = "d"
+            hoursValueLabel?.text = "0"
+            hoursSuffixLabel?.text = "h"
+            endsInLabel?.text = "Ended"
+            endsInLabel?.textColor = .systemRed
+            daysPillView?.backgroundColor = UIColor.systemRed.withAlphaComponent(0.1)
+            hoursPillView?.backgroundColor = UIColor.systemRed.withAlphaComponent(0.1)
+            daysValueLabel?.textColor = .systemRed
+            hoursValueLabel?.textColor = .systemRed
             timer?.invalidate()
         } else {
             let days = Int(timeInterval) / (3600 * 24)
             let hours = (Int(timeInterval) % (3600 * 24)) / 3600
             
-            // Format styling
-            let attrs: [NSAttributedString.Key: Any] = [.font: UIFont.boldSystemFont(ofSize: 28)]
-            let faintColon = NSAttributedString(string: " : ", attributes: [.font: UIFont.systemFont(ofSize: 22, weight: .light), .foregroundColor: UIColor.gray])
+            daysValueLabel?.text = "\(days)"
+            daysSuffixLabel?.text = "d"
+            hoursValueLabel?.text = "\(hours)"
+            hoursSuffixLabel?.text = "h"
+            endsInLabel?.text = "Ends in"
+            endsInLabel?.textColor = .secondaryLabel
             
-            let combined = NSMutableAttributedString(string: "\(days)d", attributes: attrs)
-            combined.append(faintColon)
-            combined.append(NSAttributedString(string: "\(hours)h", attributes: attrs))
-            
-            timeLabel.attributedText = combined
-            timeLeftLabel.text = "ENDS IN:"
+            // Use Apple system colors — indigo for urgency
+            if days <= 1 {
+                daysPillView?.backgroundColor = UIColor.systemOrange.withAlphaComponent(0.12)
+                hoursPillView?.backgroundColor = UIColor.systemOrange.withAlphaComponent(0.12)
+                daysValueLabel?.textColor = .systemOrange
+                hoursValueLabel?.textColor = .systemOrange
+            } else {
+                daysPillView?.backgroundColor = UIColor.systemGray6
+                hoursPillView?.backgroundColor = UIColor.systemGray6
+                daysValueLabel?.textColor = .label
+                hoursValueLabel?.textColor = .label
+            }
         }
     }
     
