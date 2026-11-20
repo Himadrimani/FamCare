@@ -1853,6 +1853,62 @@ extension DataManager {
             }
         }
     }
+
+    // MARK: - Health Permissions Management
+    func fetchMyHealthPermissions() async throws -> [FamilyHealthPermission] {
+        guard let currentUser = currentUser else { return [] }
+        return try await SupabaseManager.shared.client
+            .from("FamilyHealthPermissions")
+            .select()
+            .eq("ownerProfileId", value: currentUser.profileId.uuidString)
+            .execute()
+            .value
+    }
+
+    func fetchPermissionsGrantedToMe() async throws -> [FamilyHealthPermission] {
+        guard let currentUser = currentUser else { return [] }
+        return try await SupabaseManager.shared.client
+            .from("FamilyHealthPermissions")
+            .select()
+            .eq("viewerProfileId", value: currentUser.profileId.uuidString)
+            .execute()
+            .value
+    }
+
+    func setHealthPermission(
+        viewerProfileId: UUID,
+        metricType: HealthMetricType,
+        isAllowed: Bool,
+        permissionLevel: HealthPermissionLevel = .summaryOnly
+    ) async throws {
+        guard let currentUser = currentUser,
+              let familyId = family?.familyId else { return }
+
+        struct UpsertPermissionDTO: Encodable {
+            let familyId: String
+            let ownerProfileId: String
+            let viewerProfileId: String
+            let metricType: String
+            let permissionLevel: String
+            let isAllowed: Bool
+            let updatedAt: String
+        }
+
+        let dto = UpsertPermissionDTO(
+            familyId: familyId.uuidString,
+            ownerProfileId: currentUser.profileId.uuidString,
+            viewerProfileId: viewerProfileId.uuidString,
+            metricType: metricType.rawValue,
+            permissionLevel: permissionLevel.rawValue,
+            isAllowed: isAllowed,
+            updatedAt: Date().ISO8601Format()
+        )
+
+        try await SupabaseManager.shared.client
+            .from("FamilyHealthPermissions")
+            .upsert(dto, onConflict: "ownerProfileId,viewerProfileId,metricType")
+            .execute()
+    }
 }
 
 class ImageManager {
