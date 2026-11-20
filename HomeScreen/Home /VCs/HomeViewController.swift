@@ -678,6 +678,27 @@ extension HomeViewController: EditWellnessViewControllerDelegate {
         currentUser?.visibleMetricIds = visibleMetricIds
         loadWellnessData(for: selectedDate)
         homeCollectionView.reloadSections(IndexSet(integer: 3))
+
+        // Privacy Architecture (Option D): Sync updated sharing preferences directly to PostgreSQL RLS
+        Task {
+            guard let current = DataManager.shared.currentUser else { return }
+            let allFamily = DataManager.shared.allProfiles
+            let selectedSet = Set(visibleMetricIds)
+            let allMetrics: [HealthMetricType] = [.steps, .calories, .distance, .heartRate, .hrv, .sleep]
+
+            for member in allFamily {
+                for metric in allMetrics {
+                    let isAllowed = selectedSet.contains(metric.rawValue)
+                    let level: HealthPermissionLevel = isAllowed ? .summaryOnly : .none
+                    try? await DataManager.shared.setHealthPermission(
+                        viewerProfileId: member.profileId,
+                        metricType: metric,
+                        isAllowed: isAllowed,
+                        permissionLevel: level
+                    )
+                }
+            }
+        }
     }
 }
 

@@ -1182,6 +1182,9 @@ final class DataManager {
             allActivityHourly.removeAll()
             allSleepDaily.removeAll()
             
+            // Privacy Architecture (Option D): Purge any other profile's hourly readings from SQLite on disk
+            sqlite.purgeOtherFamilyHourlyData(except: profileId)
+            
             print("DataManager: Switched current user to \(newCurrent.firstName).")
             WellnessCache.shared.invalidateAll()
             NotificationCenter.default.post(name: NSNotification.Name("DataManagerDidUpdate"), object: nil)
