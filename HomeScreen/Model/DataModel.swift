@@ -1,5 +1,6 @@
 import Foundation
 import UIKit
+import EventKit
 
 struct Profile: Codable, Equatable {
     let profileId: UUID
@@ -170,6 +171,90 @@ struct ChallengeDetails: Codable, Equatable {
     var isSynced: Bool? = nil
 }
 
+extension ChallengeDetails {
+    var isRecreational: Bool {
+        if subType == "recreational" { return true }
+        if bgImage == "task_image" && type == "social" { return true }
+        if type == "social" && subType != "social_task" && !name.localizedCaseInsensitiveContains("task") {
+            return name.localizedCaseInsensitiveContains("recreational") || name.localizedCaseInsensitiveContains("activity")
+        }
+        return false
+    }
+    
+    var isOtherTask: Bool {
+        return type == "social" && (subType == "social_task" || bgImage == "other_task_challenge" || name.localizedCaseInsensitiveContains("task")) && !isRecreational
+    }
+    
+    var isFitness: Bool {
+        return type == "physical" || (!isRecreational && !isOtherTask)
+    }
+    
+    var formattedDateTime: String {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .short
+        return formatter.string(from: endDate)
+    }
+    
+    var countdownText: String {
+        let now = Date()
+        let interval = endDate.timeIntervalSince(now)
+        if interval <= 0 {
+            return "Time Over"
+        }
+        let days = Int(interval / 86400)
+        let hours = Int(interval.truncatingRemainder(dividingBy: 86400) / 3600)
+        let minutes = Int(interval.truncatingRemainder(dividingBy: 3600) / 60)
+        
+        if days > 0 {
+            return hours > 0 ? "\(days)d \(hours)h left" : "\(days)d left"
+        } else if hours > 0 {
+            return minutes > 0 ? "\(hours) hr \(minutes) min left" : "\(hours) hr left"
+        } else if minutes > 0 {
+            return "\(minutes) min left"
+        } else {
+            return "Less than 1 min left"
+        }
+    }
+}
+
+final class CalendarSyncManager {
+    static let shared = CalendarSyncManager()
+    private let eventStore = EKEventStore()
+    
+    private init() {}
+    
+    func syncRecreationalActivityToCalendar(activityName: String, date: Date, description: String? = nil) {
+        if #available(iOS 17.0, *) {
+            eventStore.requestFullAccessToEvents { [weak self] granted, error in
+                guard granted, error == nil else { return }
+                self?.createEvent(title: activityName, date: date, description: description)
+            }
+        } else {
+            eventStore.requestAccess(to: .event) { [weak self] granted, error in
+                guard granted, error == nil else { return }
+                self?.createEvent(title: activityName, date: date, description: description)
+            }
+        }
+    }
+    
+    private func createEvent(title: String, date: Date, description: String?) {
+        let event = EKEvent(eventStore: self.eventStore)
+        event.title = title
+        event.startDate = date
+        event.endDate = date.addingTimeInterval(3600)
+        event.notes = description
+        event.calendar = self.eventStore.defaultCalendarForNewEvents
+        
+        do {
+            try self.eventStore.save(event, span: .thisEvent)
+            print("CalendarSyncManager: Successfully added '\(title)' to iOS Calendar for \(date)")
+        } catch {
+            print("CalendarSyncManager: Failed to save event: \(error)")
+        }
+    }
+}
+
 struct ChallengeProgress: Codable {
     let challengeId: UUID
     let memberId: UUID
@@ -181,6 +266,25 @@ struct ChallengeProgress: Codable {
     enum CodingKeys: String, CodingKey {
         case challengeId, memberId, goalValue, currentValue, lastUpdatedAt, isSynced
     }
+}
+
+enum AchievementType: String, Codable {
+    case individual
+    case family
+}
+
+struct EarnedReward: Codable, Equatable {
+    let id: String
+    let profileId: String
+    let type: AchievementType
+    let challengeId: String?
+    let challengeTitle: String?
+    let challengeType: String?
+    let participantsCount: Int?
+    let dateEarned: Date
+    var hasBeenPresented: Bool
+    var isSynced: Bool?
+    var lastUpdatedAt: Date?
 }
 
 struct Message: Codable {

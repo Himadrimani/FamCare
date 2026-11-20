@@ -80,7 +80,7 @@ struct TopicMessage: Codable, Identifiable, Hashable {
     let id: UUID
     let topicId: UUID
     let senderId: UUID
-    let content: String
+    var content: String
     let createdAt: Date?
     var isSynced: Bool? = nil
 

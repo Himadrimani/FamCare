@@ -64,17 +64,7 @@ class ChallengeFirstViewController: UIViewController {
         setupFilterButton()
         setupTrophyButton()
         
-        // One-time cleanup: wipe all stale rewards data from previous sessions
-        let cleanupKey = "FamCare_RewardsCleanup_v3_done"
-        if !UserDefaults.standard.bool(forKey: cleanupKey) {
-            let allKeys = UserDefaults.standard.dictionaryRepresentation().keys
-            for key in allKeys {
-                if key.hasPrefix("FamCare_EarnedRewards_") || key.hasPrefix("FamCare_ShownShields_") {
-                    UserDefaults.standard.removeObject(forKey: key)
-                }
-            }
-            UserDefaults.standard.set(true, forKey: cleanupKey)
-        }
+        NotificationCenter.default.addObserver(self, selector: #selector(checkAndPresentPendingFamilyRewards), name: NSNotification.Name("FamilyChallengeDidComplete"), object: nil)
     }
     
     override func viewDidAppear(_ animated: Bool) {
@@ -82,50 +72,26 @@ class ChallengeFirstViewController: UIViewController {
         checkAndPresentPendingFamilyRewards()
     }
     
-    private func checkAndPresentPendingFamilyRewards() {
+    @objc func checkAndPresentPendingFamilyRewards() {
         guard let currentUser = DataManager.shared.currentUser else { return }
+        let profileId = currentUser.profileId.uuidString
         
-        let allChallenges = DataManager.shared.challenges
-        let progressRecords = DataManager.shared.challengeProgress
-        
-        for challenge in allChallenges {
-            let records = progressRecords.filter { $0.challengeId == challenge.challengeId }
-            let isFamilyChallenge = records.count > 1
-            if !isFamilyChallenge { continue }
-            
-            // User must be part of the challenge
-            let currentUserParticipated = records.contains { $0.memberId == currentUser.profileId }
-            if !currentUserParticipated { continue }
-            
-            // Already shown this shield to this user — skip
-            let challengeIdStr = challenge.challengeId.uuidString
-            if RewardsManager.shared.hasShownFamilyShield(challengeId: challengeIdStr) {
-                continue
-            }
-            
-            var allComplete = true
-            for record in records {
-                if record.goalValue > 0 && record.currentValue < record.goalValue {
-                    allComplete = false
-                    break
-                }
-            }
-            
-            if allComplete {
-                // Mark as shown BEFORE presenting so it never repeats
-                RewardsManager.shared.markFamilyShieldAsShown(challengeId: challengeIdStr)
-                
-                let overlay = RewardsViewController(
-                    achievementType: .family,
-                    challengeId: challengeIdStr,
-                    challengeTitle: challenge.name,
-                    challengeType: challenge.type,
-                    participantsCount: records.count
-                )
-                self.present(overlay, animated: true)
-                break // Only show one at a time
-            }
+        // ONLY present if an actual family shield was awarded and is pending presentation!
+        guard let pendingReward = RewardsManager.shared.getPendingFamilyShieldPresentation(profileId: profileId) else {
+            return
         }
+        
+        // Mark as presented durably in SQLite BEFORE presenting so it never repeats
+        RewardsManager.shared.markFamilyShieldAsPresented(rewardId: pendingReward.id)
+        
+        let overlay = RewardsViewController(
+            achievementType: .family,
+            challengeId: pendingReward.challengeId,
+            challengeTitle: pendingReward.challengeTitle,
+            challengeType: pendingReward.challengeType,
+            participantsCount: pendingReward.participantsCount
+        )
+        self.present(overlay, animated: true)
     }
     
     private func setupFilterButton() {

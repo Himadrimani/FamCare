@@ -7,6 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		F10000022F7695D6003258CA /* PollModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000012F7695D6003258CA /* PollModels.swift */; };
+		F10000042F7695D6003258CA /* PollCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000032F7695D6003258CA /* PollCardView.swift */; };
+		F10000062F7695D6003258CA /* CreatePollViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000052F7695D6003258CA /* CreatePollViewController.swift */; };
 		0016BB0AD14ADF2E74582FAB /* ChallengeActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A8BA900A57D4B864B9A7C19 /* ChallengeActivityAttributes.swift */; };
 		031ECA9D3836F8C656C22E18 /* WidgetSharedModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2665BE0A0FAB131AAB797538 /* WidgetSharedModels.swift */; };
 		0AB06E680BF6B63CB8E2C6EC /* WidgetDataProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55CB799A363161BCF7E671E9 /* WidgetDataProvider.swift */; };
@@ -172,6 +175,9 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		F10000012F7695D6003258CA /* PollModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PollModels.swift; sourceTree = "<group>"; };
+		F10000032F7695D6003258CA /* PollCardView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = PollCardView.swift; path = Views/PollCardView.swift; sourceTree = "<group>"; };
+		F10000052F7695D6003258CA /* CreatePollViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatePollViewController.swift; sourceTree = "<group>"; };
 		034F68F38114A415D4B450AC /* SharedCardView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = SharedCardView.swift; path = Views/SharedCardView.swift; sourceTree = "<group>"; };
 		0AADDB6BCC064D6238B32772 /* ChallengeLiveActivityView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ChallengeLiveActivityView.swift; sourceTree = "<group>"; };
 		2665BE0A0FAB131AAB797538 /* WidgetSharedModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetSharedModels.swift; sourceTree = "<group>"; };
@@ -340,6 +346,7 @@
 		1A85BA68A1E336ED2A17A338 /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				F10000032F7695D6003258CA /* PollCardView.swift */,
 				034F68F38114A415D4B450AC /* SharedCardView.swift */,
 			);
 			name = Views;
@@ -359,6 +366,7 @@
 		686744C82F3F48AC009CEC31 /* VCs */ = {
 			isa = PBXGroup;
 			children = (
+				F10000052F7695D6003258CA /* CreatePollViewController.swift */,
 				D6D9D1352F76A568003258CA /* CreateTopicViewController.swift */,
 				D6D9D1362F76A568003258CA /* TopicChatViewController.swift */,
 				D6D9D13D2F76A568003258CA /* TopicsViewController.swift */,
@@ -625,6 +633,7 @@
 		BB8CD7CF2F3D8FDC00513144 /* Model */ = {
 			isa = PBXGroup;
 			children = (
+				F10000012F7695D6003258CA /* PollModels.swift */,
 				6842925D2FBC259200B922F4 /* InferredChallengeOutput.swift */,
 				684292592FB37CFC00B922F4 /* HealthKitManager.swift */,
 				D69E70E32F7E1EF400CE7831 /* SQLiteHelper.swift */,
@@ -818,11 +827,18 @@
 				TargetAttributes = {
 					BBFD69732F2CEA4F0049AEC3 = {
 						CreatedOnToolsVersion = 26.2;
+						DevelopmentTeam = FB5434M2S3;
+						ProvisioningStyle = Automatic;
 						SystemCapabilities = {
 							com.apple.SignInWithApple = {
 								enabled = 1;
 							};
 						};
+					};
+					F8FD82F71516E96379F9C254 = {
+						CreatedOnToolsVersion = 26.2;
+						DevelopmentTeam = FB5434M2S3;
+						ProvisioningStyle = Automatic;
 					};
 				};
 			};
@@ -1011,6 +1027,9 @@
 				CBE1F71AECC74F999D2544CC /* SharedCardView.swift in Sources */,
 				613D8ACFA6BCDD832B086749 /* AppleAssistantService.swift in Sources */,
 				FCBFB50501395817A2C31A49 /* RewardsViewController.swift in Sources */,
+				F10000022F7695D6003258CA /* PollModels.swift in Sources */,
+				F10000042F7695D6003258CA /* PollCardView.swift in Sources */,
+				F10000062F7695D6003258CA /* CreatePollViewController.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1049,9 +1068,9 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
 				CLANG_ENABLE_OBJC_WEAK = NO;
 				CODE_SIGN_ENTITLEMENTS = FamCareWidget/FamCareWidget.entitlements;
+				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = FB5434M2S3;
 				GENERATE_INFOPLIST_FILE = NO;
@@ -1064,7 +1083,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.2;
 				PRODUCT_BUNDLE_IDENTIFIER = com.namanmittal.famcare.widget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
@@ -1085,7 +1104,13 @@
 				DEVELOPMENT_TEAM = FB5434M2S3;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = HomeScreen/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = FamCare;
+				INFOPLIST_KEY_CFBundleName = FamCare;
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "We need access to your steps, distance, sleep, and heart rate to display them in your family challenges and goals and to share your wellness progress with your family members.";
+				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "FamCare updates your health and activity data to keep your family challenges and wellness goals synchronized.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "FamCare needs microphone access so you can speak to the AI Assistant.";
+				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "FamCare needs speech recognition to understand your voice commands to the AI Assistant.";
+				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
 				INFOPLIST_KEY_UIMainStoryboardFile = Main;
@@ -1096,7 +1121,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.2;
 				PRODUCT_BUNDLE_IDENTIFIER = com.namanmittal.famcare;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -1124,7 +1149,13 @@
 				DEVELOPMENT_TEAM = FB5434M2S3;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = HomeScreen/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = FamCare;
+				INFOPLIST_KEY_CFBundleName = FamCare;
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "We need access to your steps, distance, sleep, and heart rate to display them in your family challenges and goals and to share your wellness progress with your family members.";
+				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "FamCare updates your health and activity data to keep your family challenges and wellness goals synchronized.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "FamCare needs microphone access so you can speak to the AI Assistant.";
+				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "FamCare needs speech recognition to understand your voice commands to the AI Assistant.";
+				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
 				INFOPLIST_KEY_UIMainStoryboardFile = Main;
@@ -1135,7 +1166,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.2;
 				PRODUCT_BUNDLE_IDENTIFIER = com.namanmittal.famcare;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -1187,7 +1218,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = dwarf;
-				DEVELOPMENT_TEAM = C8A8AMRN2H;
+				DEVELOPMENT_TEAM = FB5434M2S3;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
@@ -1251,7 +1282,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				DEVELOPMENT_TEAM = C8A8AMRN2H;
+				DEVELOPMENT_TEAM = FB5434M2S3;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
@@ -1277,9 +1308,9 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
 				CLANG_ENABLE_OBJC_WEAK = NO;
 				CODE_SIGN_ENTITLEMENTS = FamCareWidget/FamCareWidget.entitlements;
+				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = FB5434M2S3;
 				GENERATE_INFOPLIST_FILE = NO;
@@ -1292,7 +1323,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.2;
 				PRODUCT_BUNDLE_IDENTIFIER = com.namanmittal.famcare.widget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;

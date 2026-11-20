@@ -39,9 +39,9 @@ struct StandardInsightConfig {
     // MARK: Data completeness
 
     /// Fraction of the total scoring weight that must have real data before we treat a
-    /// wellness score as trustworthy. Below this we show an "insufficient data" state
-    /// instead of a misleading low percentage. (0.0–1.0)
-    static let minimumDataCompleteness: Double = 0.4
+    /// wellness score as trustworthy. Set low enough (0.05) that even a single recorded metric
+    /// (e.g. steps or calories) allows the wellness score and insights to reflect data.
+    static let minimumDataCompleteness: Double = 0.05
 
     // MARK: Metric-specific rule thresholds
 
@@ -75,8 +75,38 @@ struct FamilyMemberScores {
 }
 
 extension FamilyMemberScores {
+    /// Collects all distinct week and month dates needed to generate Insight scores.
+    static func relevantInsightDates() -> [Date] {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        let weekday = calendar.component(.weekday, from: today)
+        let daysFromSunday = weekday - 1
+        var dates: [Date] = []
+
+        if let weekStart = calendar.date(byAdding: .day, value: -daysFromSunday, to: today) {
+            for offset in 0..<7 {
+                if let d = calendar.date(byAdding: .day, value: offset, to: weekStart), d <= today {
+                    dates.append(d)
+                }
+            }
+        }
+
+        if let monthRange = calendar.range(of: .day, in: .month, for: today),
+           let monthStart = calendar.date(from: calendar.dateComponents([.year, .month], from: today)) {
+            for offset in 0..<monthRange.count {
+                if let d = calendar.date(byAdding: .day, value: offset, to: monthStart), d <= today {
+                    dates.append(d)
+                }
+            }
+        }
+        return dates
+    }
+
     // This function converts a User Profile into a Score object for the UI
     static func from(profile: Profile) -> FamilyMemberScores {
+        // Pre-fetch all missing daily health records in 3 batch queries instead of 114 individual queries
+        profile.prefetchWellnessScores(for: relevantInsightDates())
+
         // Get the name to display via the central resolver
         // (viewer nickname → profile nickname → firstName; never the legacy "Me").
         let name = profile.displayName

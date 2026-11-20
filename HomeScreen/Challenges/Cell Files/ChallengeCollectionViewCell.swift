@@ -88,12 +88,16 @@ class ChallengeCollectionViewCell: UICollectionViewCell {
             isCompleted = true
             timeLeftLabel.textColor = .systemGreen
         } else if timeInterval > 0 {
-            let days = Int(timeInterval / (3600 * 24))
-            if days > 0 {
-                timeText = "\(days) days "
+            if challenge.isRecreational {
+                timeText = challenge.countdownText + " "
             } else {
-                let hours = Int(timeInterval / 3600)
-                timeText = "\(hours) hrs "
+                let days = Int(timeInterval / (3600 * 24))
+                if days > 0 {
+                    timeText = "\(days) days "
+                } else {
+                    let hours = Int(timeInterval / 3600)
+                    timeText = "\(hours) hrs "
+                }
             }
             timeLeftLabel.textColor = .label
         } else {

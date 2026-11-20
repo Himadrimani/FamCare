@@ -12,11 +12,14 @@ class CircularRingView: UIView {
     private let backgroundLayer = CAShapeLayer()
     private let progressLayer = CAShapeLayer()
     private let solidLayer = CAShapeLayer() // New: for solid fill mode (heart rate)
+    private var lastBounds: CGRect = .zero
+    private var currentProgress: CGFloat = 0
 
     var lineWidth: CGFloat = 6 {
         didSet {
             backgroundLayer.lineWidth = lineWidth
             progressLayer.lineWidth = lineWidth
+            lastBounds = .zero
             setNeedsLayout()
         }
     }
@@ -67,57 +70,64 @@ class CircularRingView: UIView {
 
     override func layoutSubviews() {
         super.layoutSubviews()
+        guard bounds.width > 0 && bounds.height > 0 else { return }
 
         let center = CGPoint(x: bounds.midX, y: bounds.midY)
         let radius = min(bounds.width, bounds.height) / 2 - 8
 
-        let path = UIBezierPath(
-            arcCenter: center,
-            radius: radius,
-            startAngle: -.pi / 2,
-            endAngle: 1.5 * .pi,
-            clockwise: true
-        )
+        if bounds != lastBounds {
+            lastBounds = bounds
 
-        backgroundLayer.path = path.cgPath
-        progressLayer.path = path.cgPath
+            let path = UIBezierPath(
+                arcCenter: center,
+                radius: radius,
+                startAngle: -.pi / 2,
+                endAngle: 1.5 * .pi,
+                clockwise: true
+            )
 
-        // Solid circle radius matches OUTER edge of the ring stroke
-        // so it appears exactly the same size as other rings
-        let solidRadius = radius + lineWidth / 2
-        let solidPath = UIBezierPath(
-            arcCenter: center,
-            radius: solidRadius,
-            startAngle: 0,
-            endAngle: 2 * .pi,
-            clockwise: true
-        )
-        solidLayer.path = solidPath.cgPath
+            backgroundLayer.path = path.cgPath
+            progressLayer.path = path.cgPath
 
-        // smaller icon (Apple style)
-        let iconInset = bounds.width * 0.25
-        iconView.frame = bounds.insetBy(dx: iconInset, dy: iconInset)
+            // Solid circle radius matches OUTER edge of the ring stroke
+            // so it appears exactly the same size as other rings
+            let solidRadius = radius + lineWidth / 2
+            let solidPath = UIBezierPath(
+                arcCenter: center,
+                radius: solidRadius,
+                startAngle: 0,
+                endAngle: 2 * .pi,
+                clockwise: true
+            )
+            solidLayer.path = solidPath.cgPath
+
+            // smaller icon (Apple style)
+            let iconInset = bounds.width * 0.25
+            iconView.frame = bounds.insetBy(dx: iconInset, dy: iconInset)
+        }
         
         // Recalculate stroke end if bounds changed
         let circumference = 2 * .pi * radius
         let capPercentage = circumference > 0 ? (lineWidth / circumference) : 0
         
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
         if currentProgress < 1.0 {
             progressLayer.strokeEnd = max(0, currentProgress - capPercentage)
         } else {
             progressLayer.strokeEnd = 1.0
         }
+        CATransaction.commit()
     }
 
-    private var currentProgress: CGFloat = 0
-
-    func setProgress(_ value: CGFloat, color: UIColor) {
+    func setProgress(_ value: CGFloat, color: UIColor, animated: Bool = false) {
         // Make sure solid mode is off when using progress ring
         solidLayer.isHidden = true
         backgroundLayer.isHidden = false
         progressLayer.isHidden = false
 
         let clamped = max(0, min(value, 1))
+        let previousProgress = self.currentProgress
         self.currentProgress = clamped
         
         let w = bounds.width > 0 ? bounds.width : 90
@@ -134,20 +144,30 @@ class CircularRingView: UIView {
         }
 
         progressLayer.strokeColor = color.cgColor
-        progressLayer.strokeEnd = adjustedEnd
 
         // icon matches ring color
         iconView.tintColor = color
 
-        let animation = CABasicAnimation(keyPath: "strokeEnd")
-        animation.fromValue = 0
-        animation.toValue = adjustedEnd
-        animation.duration = 0.8
-        progressLayer.add(animation, forKey: "progress")
+        if animated {
+            let animation = CABasicAnimation(keyPath: "strokeEnd")
+            animation.fromValue = max(0, previousProgress - capPercentage)
+            animation.toValue = adjustedEnd
+            animation.duration = 0.8
+            animation.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+            progressLayer.add(animation, forKey: "progress")
+            progressLayer.strokeEnd = adjustedEnd
+        } else {
+            progressLayer.removeAnimation(forKey: "progress")
+            CATransaction.begin()
+            CATransaction.setDisableActions(true)
+            progressLayer.strokeEnd = adjustedEnd
+            CATransaction.commit()
+        }
     }
 
     // Solid filled circle with white icon — used for heart rate
     func setSolid(color: UIColor, icon: String) {
+        progressLayer.removeAnimation(forKey: "progress")
         // Hide the ring track and progress arc
         backgroundLayer.isHidden = true
         progressLayer.isHidden = true
@@ -160,6 +180,15 @@ class CircularRingView: UIView {
         // White icon stands out on solid background
         iconView.image = UIImage(systemName: icon)
         iconView.tintColor = .white
+    }
+
+    func prepareForReuse() {
+        progressLayer.removeAnimation(forKey: "progress")
+        currentProgress = 0
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        progressLayer.strokeEnd = 0
+        CATransaction.commit()
     }
 
     func setIcon(_ name: String) {

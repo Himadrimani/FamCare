@@ -12,6 +12,9 @@ class TopicChatViewController: UIViewController {
     private var cancellables = Set<AnyCancellable>()
     private var hasScrolledToBottom = false
     private let voiceButton = UIButton(type: .system)
+    private let attachButton = UIButton(type: .system)
+    private var actionsContainerView: UIView?
+    private var isActionsMenuOpen = false
     
     // Flattened items for the collection view, including messages and date headers
     private var chatItems: [TopicChatItem] = []
@@ -84,6 +87,7 @@ class TopicChatViewController: UIViewController {
 
     @objc private func dismissKeyboard() {
         view.endEditing(true)
+        if isActionsMenuOpen { dismissActionsMenu() }
     }
     
     private func setupBindings() {
@@ -157,6 +161,25 @@ class TopicChatViewController: UIViewController {
             ])
         }
         
+        // Setup Attach / Plus Button (opens actions menu with Poll)
+        var attachConfig = UIButton.Configuration.plain()
+        attachConfig.image = UIImage(systemName: "plus.circle.fill", withConfiguration: UIImage.SymbolConfiguration(pointSize: 24, weight: .regular))
+        attachConfig.baseForegroundColor = .systemBlue
+        attachConfig.contentInsets = .zero
+        attachButton.configuration = attachConfig
+        attachButton.accessibilityLabel = "Attach"
+        attachButton.translatesAutoresizingMaskIntoConstraints = false
+        attachButton.addTarget(self, action: #selector(attachButtonTapped), for: .touchUpInside)
+        
+        // Place Attach Button on the left side, before messageTextView
+        if !inputStackView.arrangedSubviews.contains(attachButton) {
+            inputStackView.insertArrangedSubview(attachButton, at: 0)
+            NSLayoutConstraint.activate([
+                attachButton.widthAnchor.constraint(equalToConstant: 36),
+                attachButton.heightAnchor.constraint(equalToConstant: 36)
+            ])
+        }
+
         // Setup Voice Button
         var config = UIButton.Configuration.plain()
         config.image = UIImage(systemName: "waveform", withConfiguration: UIImage.SymbolConfiguration(pointSize: 22, weight: .regular))
@@ -192,6 +215,113 @@ class TopicChatViewController: UIViewController {
         // Initial state: Waveform visible, Send hidden (since they share the trailing slot)
         sendButton.isHidden = true
         voiceButton.isHidden = false
+    }
+    
+    // MARK: - Attach Button (+ / × toggle) & Actions Menu
+    
+    @objc private func attachButtonTapped() {
+        let impact = UIImpactFeedbackGenerator(style: .medium)
+        impact.impactOccurred()
+        
+        if isActionsMenuOpen {
+            dismissActionsMenu()
+        } else {
+            showActionsMenu()
+        }
+    }
+    
+    private func showActionsMenu() {
+        isActionsMenuOpen = true
+        
+        // Rotate + to × (45° makes + look like ×)
+        UIView.animate(withDuration: 0.25, delay: 0, usingSpringWithDamping: 0.8, initialSpringVelocity: 0.5) {
+            self.attachButton.transform = CGAffineTransform(rotationAngle: .pi / 4)
+            var config = self.attachButton.configuration
+            config?.baseForegroundColor = .systemRed
+            self.attachButton.configuration = config
+        }
+        
+        // Create the actions container that sits just above the input bar
+        let container = UIView()
+        container.translatesAutoresizingMaskIntoConstraints = false
+        container.alpha = 0
+        container.transform = CGAffineTransform(translationX: 0, y: 10)
+        view.addSubview(container)
+        
+        NSLayoutConstraint.activate([
+            container.leadingAnchor.constraint(equalTo: inputStackView.leadingAnchor, constant: 8),
+            container.bottomAnchor.constraint(equalTo: inputStackView.topAnchor, constant: -8)
+        ])
+        
+        // Poll action button
+        let pollActionButton = UIButton(type: .system)
+        var pollConfig = UIButton.Configuration.filled()
+        pollConfig.title = "Poll"
+        pollConfig.image = UIImage(systemName: "chart.bar.fill", withConfiguration: UIImage.SymbolConfiguration(pointSize: 15, weight: .semibold))
+        pollConfig.imagePadding = 6
+        pollConfig.cornerStyle = .capsule
+        pollConfig.baseBackgroundColor = UIColor.systemBlue.withAlphaComponent(0.12)
+        pollConfig.baseForegroundColor = .systemBlue
+        pollConfig.contentInsets = NSDirectionalEdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 20)
+        pollActionButton.configuration = pollConfig
+        pollActionButton.translatesAutoresizingMaskIntoConstraints = false
+        pollActionButton.addTarget(self, action: #selector(pollActionTapped), for: .touchUpInside)
+        
+        container.addSubview(pollActionButton)
+        NSLayoutConstraint.activate([
+            pollActionButton.topAnchor.constraint(equalTo: container.topAnchor),
+            pollActionButton.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            pollActionButton.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+            pollActionButton.bottomAnchor.constraint(equalTo: container.bottomAnchor),
+            pollActionButton.heightAnchor.constraint(equalToConstant: 44)
+        ])
+        
+        self.actionsContainerView = container
+        
+        UIView.animate(withDuration: 0.3, delay: 0, usingSpringWithDamping: 0.8, initialSpringVelocity: 0.5) {
+            container.alpha = 1
+            container.transform = .identity
+        }
+    }
+    
+    private func dismissActionsMenu() {
+        isActionsMenuOpen = false
+        
+        // Rotate back to +
+        UIView.animate(withDuration: 0.25, delay: 0, usingSpringWithDamping: 0.8, initialSpringVelocity: 0.5) {
+            self.attachButton.transform = .identity
+            var config = self.attachButton.configuration
+            config?.baseForegroundColor = .systemBlue
+            self.attachButton.configuration = config
+        }
+        
+        if let container = actionsContainerView {
+            UIView.animate(withDuration: 0.2, animations: {
+                container.alpha = 0
+                container.transform = CGAffineTransform(translationX: 0, y: 10)
+            }, completion: { _ in
+                container.removeFromSuperview()
+            })
+            actionsContainerView = nil
+        }
+    }
+    
+    @objc private func pollActionTapped() {
+        dismissActionsMenu()
+        
+        let createPollVC = CreatePollViewController()
+        createPollVC.onPollCreated = { [weak self] question, options, allowsMultiple in
+            Task {
+                await self?.viewModel.sendPoll(question: question, options: options, allowsMultiple: allowsMultiple)
+            }
+        }
+        let nav = UINavigationController(rootViewController: createPollVC)
+        nav.modalPresentationStyle = .pageSheet
+        if let sheet = nav.sheetPresentationController {
+            sheet.detents = [.medium(), .large()]
+            sheet.prefersGrabberVisible = true
+        }
+        present(nav, animated: true)
     }
     
     @objc private func voiceTapped() {
@@ -323,6 +453,11 @@ extension TopicChatViewController: UICollectionViewDataSource, UICollectionViewD
                 cell.onViewCardTapped = { [weak self] in
                     self?.handleViewCardTapped(message: msg.content)
                 }
+                cell.onVoteTapped = { [weak self] optionId in
+                    Task {
+                        await self?.viewModel.voteOnPoll(message: msg, optionId: optionId)
+                    }
+                }
                 return cell
             } else {
                 let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "TopicReceivedCell", for: indexPath) as! TopicReceivedMessageCollectionViewCell
@@ -331,6 +466,11 @@ extension TopicChatViewController: UICollectionViewDataSource, UICollectionViewD
                 cell.configure(with: msg, profile: profile, showSenderInfo: showInfo)
                 cell.onViewCardTapped = { [weak self] in
                     self?.handleViewCardTapped(message: msg.content)
+                }
+                cell.onVoteTapped = { [weak self] optionId in
+                    Task {
+                        await self?.viewModel.voteOnPoll(message: msg, optionId: optionId)
+                    }
                 }
                 return cell
             }
@@ -348,6 +488,11 @@ extension TopicChatViewController: UICollectionViewDataSource, UICollectionViewD
         case .message(let msg):
             let currentUserId = DataManager.shared.currentUser?.profileId
             let isCurrentUser = (msg.senderId == currentUserId)
+            
+            if msg.content.hasPrefix("[POLL:") {
+                let height = PollCardView.calculateHeight(for: msg.content, width: width)
+                return CGSize(width: width, height: height)
+            }
             
             if msg.content.hasPrefix("[SHARE_CARD:") {
                 if msg.content.hasPrefix("[SHARE_CARD:INSIGHT") {

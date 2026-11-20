@@ -421,8 +421,29 @@ extension ProfileMainTableViewController {
         case "Notification":
             universalNotificationTapped()
         case "AppleHealth":
-            let appleHealthVC = HealthConnectionDetailsViewController(mode: .appleHealth, profile: currentUser)
-            navigationController?.pushViewController(appleHealthVC, animated: true)
+            HealthKitService.shared.readAccessState { [weak self] state in
+                DispatchQueue.main.async {
+                    guard let self else { return }
+                    if state == .notRequested {
+                        HealthKitService.shared.authorizeHealthKit { [weak self] result in
+                            Task { @MainActor in
+                                guard let self else { return }
+                                if case .success = result {
+                                    DataManager.shared.setFamilyHealthSharingConsent(true)
+                                    if let user = DataManager.shared.currentUser {
+                                        _ = DataManager.shared.resolveOrCreateHealthKitLink(for: user)
+                                    }
+                                    DataManager.shared.refreshCurrentUserHealthDataFromHealthKit(force: true)
+                                }
+                                self.tableView.reloadData()
+                            }
+                        }
+                    } else {
+                        let appleHealthVC = HealthConnectionDetailsViewController(mode: .appleHealth, profile: self.currentUser)
+                        self.navigationController?.pushViewController(appleHealthVC, animated: true)
+                    }
+                }
+            }
         case "Watch":
             let watchVC = HealthConnectionDetailsViewController(mode: .appleWatch, profile: currentUser)
             navigationController?.pushViewController(watchVC, animated: true)

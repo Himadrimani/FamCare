@@ -68,9 +68,14 @@ struct ProfileAvatarView: View {
     let profileId: String
     let displayName: String
     let size: CGFloat
+    var solidBackground: Bool = false
     
     private var initial: String {
-        String(displayName.prefix(1)).uppercased()
+        let trimmed = displayName.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let first = trimmed.first {
+            return String(first).uppercased()
+        }
+        return "F"
     }
     
     private var avatarColor: Color {
@@ -88,7 +93,8 @@ struct ProfileAvatarView: View {
     
     var body: some View {
         if let imagePath = WidgetDataLoader.profileImagePath(for: profileId),
-           let uiImage = UIImage(contentsOfFile: imagePath.path) {
+           let uiImage = UIImage(contentsOfFile: imagePath.path),
+           uiImage.size.width > 0 && uiImage.size.height > 0 {
             Image(uiImage: uiImage)
                 .resizable()
                 .aspectRatio(contentMode: .fill)
@@ -98,11 +104,11 @@ struct ProfileAvatarView: View {
             // Fallback: colored circle with initial
             ZStack {
                 Circle()
-                    .fill(avatarColor.opacity(0.2))
+                    .fill(solidBackground ? avatarColor : avatarColor.opacity(0.2))
                     .frame(width: size, height: size)
                 Text(initial)
-                    .font(.system(size: size * 0.4, weight: .bold, design: .rounded))
-                    .foregroundColor(avatarColor)
+                    .font(.system(size: size * 0.44, weight: .bold, design: .rounded))
+                    .foregroundColor(solidBackground ? .white : avatarColor)
             }
         }
     }

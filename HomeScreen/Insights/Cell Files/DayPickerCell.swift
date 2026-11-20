@@ -15,6 +15,40 @@ class DayPickerCell: UICollectionViewCell {
     @IBOutlet weak var dayLabel: UILabel!
     @IBOutlet weak var dateLabel: UILabel!
 
+    private static let formatterLock = NSLock()
+    private static let dayFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "EEEEE"
+        f.locale = Locale.current
+        f.calendar = Calendar.current
+        return f
+    }()
+
+    private static let dateFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "d"
+        f.locale = Locale.current
+        f.calendar = Calendar.current
+        return f
+    }()
+
+    private static func formatDay(_ date: Date) -> String {
+        formatterLock.lock()
+        defer { formatterLock.unlock() }
+        return dayFormatter.string(from: date)
+    }
+
+    private static func formatDate(_ date: Date) -> String {
+        formatterLock.lock()
+        defer { formatterLock.unlock() }
+        return dateFormatter.string(from: date)
+    }
+
+    override func prepareForReuse() {
+        super.prepareForReuse()
+        ringView.prepareForReuse()
+    }
+
     // awakeFromNib is called AFTER IBOutlets are connected — safe to configure here
     override func awakeFromNib() {
         super.awakeFromNib()
@@ -28,13 +62,10 @@ class DayPickerCell: UICollectionViewCell {
     }
 
     func configure(with data: DayData, isSelected: Bool) {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "EEEEE"
-        dayLabel.text = formatter.string(from: data.date).uppercased()
-        formatter.dateFormat = "d"
-        dateLabel.text = formatter.string(from: data.date)
+        dayLabel.text = Self.formatDay(data.date).uppercased()
+        dateLabel.text = Self.formatDate(data.date)
 
-        ringView.setProgress(CGFloat(data.score) / 100.0, color: colorForScore(data.score))
+        ringView.setProgress(CGFloat(data.score) / 100.0, color: colorForScore(data.score), animated: false)
 
         if isSelected {
             dayLabel.textColor  = .systemBlue

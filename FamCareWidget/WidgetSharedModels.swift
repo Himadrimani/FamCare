@@ -110,6 +110,62 @@ struct WidgetDataLoader {
         }
         return nil
     }
+
+    /// Loads the downscaled FamCare app logo from the App Group shared container.
+    static func appLogoImagePath() -> URL? {
+        guard let containerURL = FileManager.default.containerURL(
+            forSecurityApplicationGroupIdentifier: kWidgetAppGroupIdentifier
+        ) else { return nil }
+        let imagePath = containerURL
+            .appendingPathComponent("WidgetProfileImages", isDirectory: true)
+            .appendingPathComponent("famcare_logo.png")
+        if FileManager.default.fileExists(atPath: imagePath.path) {
+            return imagePath
+        }
+        return nil
+    }
+
+    /// Loads the cached dimmed/silver running trophy from the App Group shared container.
+    static func trophyDimmedImagePath() -> URL? {
+        guard let containerURL = FileManager.default.containerURL(
+            forSecurityApplicationGroupIdentifier: kWidgetAppGroupIdentifier
+        ) else { return nil }
+        let imagePath = containerURL
+            .appendingPathComponent("WidgetProfileImages", isDirectory: true)
+            .appendingPathComponent("trophy_dimmed.png")
+        if FileManager.default.fileExists(atPath: imagePath.path) {
+            return imagePath
+        }
+        return nil
+    }
+
+    /// Loads the cached gold trophy from the App Group shared container.
+    static func trophyGoldImagePath() -> URL? {
+        guard let containerURL = FileManager.default.containerURL(
+            forSecurityApplicationGroupIdentifier: kWidgetAppGroupIdentifier
+        ) else { return nil }
+        let imagePath = containerURL
+            .appendingPathComponent("WidgetProfileImages", isDirectory: true)
+            .appendingPathComponent("trophy_gold.png")
+        if FileManager.default.fileExists(atPath: imagePath.path) {
+            return imagePath
+        }
+        return nil
+    }
+
+    /// Loads the cached shield from the App Group shared container.
+    static func shieldImagePath() -> URL? {
+        guard let containerURL = FileManager.default.containerURL(
+            forSecurityApplicationGroupIdentifier: kWidgetAppGroupIdentifier
+        ) else { return nil }
+        let imagePath = containerURL
+            .appendingPathComponent("WidgetProfileImages", isDirectory: true)
+            .appendingPathComponent("shield.png")
+        if FileManager.default.fileExists(atPath: imagePath.path) {
+            return imagePath
+        }
+        return nil
+    }
 }
 
 // MARK: - Sample Data for Previews

@@ -70,15 +70,19 @@ class ChallengeDetailCollectionViewCell: UICollectionViewCell {
             timeLeft.text = "Expired"
             timeLeft.textColor = .systemRed
         } else {
-            let days = Int(interval / (3600 * 24))
-            var timeText = ""
-            if days > 0 {
-                timeText = "\(days) days left"
+            if challenge.isRecreational {
+                timeLeft.text = challenge.countdownText
             } else {
-                let hours = Int(interval / 3600)
-                timeText = "\(hours) hrs left"
+                let days = Int(interval / (3600 * 24))
+                var timeText = ""
+                if days > 0 {
+                    timeText = "\(days) days left"
+                } else {
+                    let hours = Int(interval / 3600)
+                    timeText = "\(hours) hrs left"
+                }
+                timeLeft.text = timeText
             }
-            timeLeft.text = timeText
             timeLeft.textColor = .label
         }
     }

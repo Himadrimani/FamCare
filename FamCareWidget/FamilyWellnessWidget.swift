@@ -239,7 +239,7 @@ struct FamilyWellnessWidgetView: View {
                 showLabel: true,
                 fontSize: 16
             )
-            Text("Family")
+            Text("Family wellness")
                 .font(.system(size: 13, weight: .semibold, design: .rounded))
                 .foregroundColor(.secondary)
             Spacer()
@@ -304,7 +304,7 @@ struct FamilyWellnessWidgetView: View {
             
             // Right: Title + interactive member avatars
             VStack(alignment: .leading, spacing: 8) {
-                Text("Family wellness")
+                Text("Members wellness")
                     .font(.system(size: 15, weight: .semibold, design: .rounded))
                     .foregroundColor(.primary)
                 

@@ -15,6 +15,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         
         NetworkMonitor.shared.startMonitoring()
         
+        // Ensure local user and SQLite data are loaded immediately (critical for background launches)
+        _ = DataManager.shared.loadFromSQLite()
+        
         // Setup HealthKit background observers so data syncs while app is inactive
         HealthKitService.shared.setupBackgroundDelivery()
         
@@ -24,9 +27,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         // Initialize ChallengeActivityManager for Live Activities
         if #available(iOS 16.2, *) {
             _ = ChallengeActivityManager.shared
-            // Auto-start Live Activities for any currently active challenges
+            // Reconcile Live Activities for the most recently created ongoing challenge
             DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                ChallengeActivityManager.shared.startActivitiesForActiveChallenges()
+                ChallengeActivityManager.shared.reconcileLiveActivity()
             }
         }
         

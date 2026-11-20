@@ -16,6 +16,31 @@ class CalendarCollectionViewCell: UICollectionViewCell {
 
     private let primaryBlue = UIColor(red: 0.35, green: 0.65, blue: 0.95, alpha: 1)
     private let lightBlue = UIColor(red: 0.35, green: 0.65, blue: 0.95, alpha: 0.15)
+    
+    private let activityDotView: UIView = {
+        let v = UIView()
+        v.backgroundColor = UIColor(red: 0.35, green: 0.65, blue: 0.95, alpha: 1)
+        v.layer.cornerRadius = 2.5
+        v.clipsToBounds = true
+        v.translatesAutoresizingMaskIntoConstraints = false
+        v.isHidden = true
+        return v
+    }()
+
+    private static let dayFormatterLock = NSLock()
+    private static let dayFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "EEE"
+        f.locale = Locale.current
+        f.calendar = Calendar.current
+        return f
+    }()
+
+    private static func formatDayName(_ date: Date) -> String {
+        dayFormatterLock.lock()
+        defer { dayFormatterLock.unlock() }
+        return dayFormatter.string(from: date)
+    }
 
     var isSelectedDay: Bool = false {
         didSet { updateSelectionState() }
@@ -35,6 +60,14 @@ class CalendarCollectionViewCell: UICollectionViewCell {
 
         dayNameLabel.textAlignment = .center
         dayNumberLabel.textAlignment = .center
+        
+        contentView.addSubview(activityDotView)
+        NSLayoutConstraint.activate([
+            activityDotView.centerXAnchor.constraint(equalTo: contentView.centerXAnchor),
+            activityDotView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -2),
+            activityDotView.widthAnchor.constraint(equalToConstant: 5),
+            activityDotView.heightAnchor.constraint(equalToConstant: 5)
+        ])
     }
 
     override func layoutSubviews() {
@@ -47,16 +80,16 @@ class CalendarCollectionViewCell: UICollectionViewCell {
         selectionBackgroundView.layer.cornerRadius = size / 2
     }
 
-    func configure(with date: Date, isSelected: Bool, isToday: Bool) {
+    func configure(with date: Date, isSelected: Bool, isToday: Bool, hasActivity: Bool = false) {
         let calendar = Calendar.current
+        
+        activityDotView.isHidden = !hasActivity
 
         let isFuture = date > calendar.startOfDay(for: Date()) &&
                        !calendar.isDateInToday(date)
 
         // Day name (small letters for aesthetic)
-        let dayFormatter = DateFormatter()
-        dayFormatter.dateFormat = "EEE"
-        dayNameLabel.text = dayFormatter.string(from: date).uppercased()
+        dayNameLabel.text = Self.formatDayName(date).uppercased()
 
         // Day number
         let day = calendar.component(.day, from: date)

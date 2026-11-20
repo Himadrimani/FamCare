@@ -26,6 +26,9 @@ class FamilyActivityScoreCollectionViewCell: UICollectionViewCell {
     weak var delegate: FamilyMemberTapDelegate?
     private var membersData: [Profile] = []
     private var progressLayers: [CAShapeLayer] = []
+    private var trackLayers: [CAShapeLayer] = []
+    private var avatarImageViews: [UIImageView] = []
+    private var abnormalShadowViews: [UIView] = []
     
     //constants for ring
     private let ringWidth: CGFloat = 28
@@ -84,30 +87,50 @@ class FamilyActivityScoreCollectionViewCell: UICollectionViewCell {
         ringsContainer.addGestureRecognizer(containerTap)
     }
 
+    override func prepareForReuse() {
+        super.prepareForReuse()
+        membersData = []
+        for shadowView in abnormalShadowViews {
+            shadowView.layer.removeAllAnimations()
+            shadowView.isHidden = true
+        }
+        for track in trackLayers {
+            track.removeAllAnimations()
+            track.isHidden = true
+        }
+        for progress in progressLayers {
+            progress.removeAllAnimations()
+            progress.isHidden = true
+        }
+        for avatar in avatarImageViews {
+            avatar.layer.removeAllAnimations()
+            avatar.transform = .identity
+            avatar.image = nil
+            avatar.isHidden = true
+        }
+    }
+
     func configure(members: [Profile], for date: Date = Date()) {
         // Main entry point to populate cell
         guard ringsContainer != nil else { return }
         membersData = members
-        // Stores data for tap use
-        ringsContainer.subviews.forEach { $0.removeFromSuperview() }
-        // Removes old avatar views
-        ringsContainer.layer.sublayers?.forEach {
-            $0.removeFromSuperlayer()
-        }
-        // Removes old ring layers
-        progressLayers.removeAll()
         layoutIfNeeded()
-        // Ensures container size is ready $0 represent current item in the loop
-        let scoredMembers = members.map {
-            ($0, $0.calculateWellnessScore(for: date))
+        
+        // Calculate each required wellness score once per configuration
+        var scoresByMemberId: [UUID: Double] = [:]
+        for member in members {
+            scoresByMemberId[member.profileId] = member.calculateWellnessScore(for: date)
         }
-        // Pairs each member with score
-        let sorted = scoredMembers.sorted { $0.1 > $1.1 }
-        // Sorts highest score first
-        var colorMap: [UUID: UIColor] = [:]
+        
+        // Sort highest score first using precalculated scores
+        let sorted = members.sorted {
+            (scoresByMemberId[$0.profileId] ?? 0.0) > (scoresByMemberId[$1.profileId] ?? 0.0)
+        }
+        
         // Stores ranking color per member
-        for (_, item) in sorted.enumerated() {
-            let score = item.1  // score is 0.0 to 1.0
+        var colorMap: [UUID: UIColor] = [:]
+        for item in sorted {
+            let score = scoresByMemberId[item.profileId] ?? 0.0  // score is 0.0 to 1.0
             let percent = Int(score * 100)
             
             let color: UIColor
@@ -118,7 +141,7 @@ class FamilyActivityScoreCollectionViewCell: UICollectionViewCell {
             default:       color = .systemRed     // Low
             }
 
-            colorMap[item.0.profileId] = color
+            colorMap[item.profileId] = color
         }
 
         let center = CGPoint(
@@ -126,21 +149,19 @@ class FamilyActivityScoreCollectionViewCell: UICollectionViewCell {
             y: ringsContainer.bounds.midY
         )
         // Center point for rings
-        var currentRadius =
-            ringsContainer.bounds.width * startingRadiusMultiplier
-        // Starting radius
-        for (index, member) in members.enumerated() {
+        var currentRadius = ringsContainer.bounds.width * startingRadiusMultiplier
 
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+
+        for (index, member) in members.enumerated() {
             if currentRadius < minimumRadius { currentRadius = minimumRadius }
-            // Ensure rings don't disappear
-            let progress = member.calculateWellnessScore(for: date)
-            // Member score (0–1)
-            let ringColor =
-                colorMap[member.profileId] ?? .systemGray
+            
+            // Reuse precalculated score
+            let progress = scoresByMemberId[member.profileId] ?? 0.0
+            let ringColor = colorMap[member.profileId] ?? .systemGray
             let startAngle = -CGFloat.pi / 2
-            // Top starting point
-            let endAngle =
-                startAngle + (2 * .pi * progress)
+            let endAngle = startAngle + (2 * .pi * progress)
 
             let path = UIBezierPath(
                 arcCenter: center,
@@ -149,17 +170,22 @@ class FamilyActivityScoreCollectionViewCell: UICollectionViewCell {
                 endAngle: startAngle + 2 * .pi,
                 clockwise: true
             )
-            // Full circular path
-            let track = CAShapeLayer()
-            // Background ring
+            
+            // Reuse or allocate track layer
+            let track: CAShapeLayer
+            if index < trackLayers.count {
+                track = trackLayers[index]
+                track.isHidden = false
+            } else {
+                track = CAShapeLayer()
+                track.lineCap = .round
+                track.fillColor = UIColor.clear.cgColor
+                ringsContainer.layer.addSublayer(track)
+                trackLayers.append(track)
+            }
             track.path = path.cgPath
-            track.strokeColor =
-                ringColor.withAlphaComponent(trackAlpha).cgColor
+            track.strokeColor = ringColor.withAlphaComponent(trackAlpha).cgColor
             track.lineWidth = ringWidth
-            track.lineCap = .round
-            track.fillColor = UIColor.clear.cgColor
-
-            ringsContainer.layer.addSublayer(track)
 
             let progressPath = UIBezierPath(
                 arcCenter: center,
@@ -169,103 +195,144 @@ class FamilyActivityScoreCollectionViewCell: UICollectionViewCell {
                 clockwise: true
             )
             
-            let progressLayer = CAShapeLayer()
-            // Foreground progress arc
+            // Reuse or allocate progress layer
+            let progressLayer: CAShapeLayer
+            if index < progressLayers.count {
+                progressLayer = progressLayers[index]
+                progressLayer.isHidden = false
+            } else {
+                progressLayer = CAShapeLayer()
+                progressLayer.lineCap = .round
+                progressLayer.fillColor = UIColor.clear.cgColor
+                progressLayer.shadowOffset = .zero
+                progressLayer.shadowRadius = 0
+                progressLayer.shadowOpacity = 0
+                ringsContainer.layer.addSublayer(progressLayer)
+                progressLayers.append(progressLayer)
+            }
             progressLayer.path = progressPath.cgPath
-            progressLayer.strokeColor =
-                ringColor.cgColor
+            progressLayer.strokeColor = ringColor.cgColor
             progressLayer.lineWidth = ringWidth
-            progressLayer.lineCap = .round
-            progressLayer.fillColor =
-                UIColor.clear.cgColor
-            progressLayer.strokeEnd = 1.0 // Fully fill the arc path
-            
-            // Set up shadow for glow effect (contained precisely to the ring stroke)
+            progressLayer.strokeEnd = 1.0
             progressLayer.shadowColor = ringColor.cgColor
-            // This creates a shadow path that matches the actual filled area of the stroke
             progressLayer.shadowPath = progressPath.cgPath.copy(strokingWithWidth: ringWidth, lineCap: .round, lineJoin: .round, miterLimit: 10)
-            progressLayer.shadowOffset = .zero
-            progressLayer.shadowRadius = 0
-            progressLayer.shadowOpacity = 0
-
-            ringsContainer.layer.addSublayer(progressLayer)
-            progressLayers.append(progressLayer)
+            progressLayer.removeAllAnimations()
 
             let avatarCenter = CGPoint(
-                x: center.x +
-                    currentRadius * cos(endAngle),
-                y: center.y +
-                    currentRadius * sin(endAngle)
+                x: center.x + currentRadius * cos(endAngle),
+                y: center.y + currentRadius * sin(endAngle)
             )
-            // Position of avatar
-            let imageView = UIImageView(
-                frame: CGRect(
-                    x: 0,
-                    y: 0,
-                    width: avatarSize,
-                    height: avatarSize
+            
+            // Reuse or allocate avatar image view
+            let imageView: UIImageView
+            if index < avatarImageViews.count {
+                imageView = avatarImageViews[index]
+                imageView.isHidden = false
+            } else {
+                imageView = UIImageView(
+                    frame: CGRect(
+                        x: 0,
+                        y: 0,
+                        width: avatarSize,
+                        height: avatarSize
+                    )
                 )
-            )
-            ImageManager.shared.setImage(for: imageView, from: member.profilePic)
-            imageView.contentMode = .scaleAspectFill
-            imageView.layer.cornerRadius =
-                avatarSize / 2
-            imageView.layer.borderWidth = avatarBorderWidth
-            imageView.layer.borderColor =
-                UIColor.white.cgColor
-            imageView.clipsToBounds = true
+                imageView.contentMode = .scaleAspectFill
+                imageView.layer.cornerRadius = avatarSize / 2
+                imageView.layer.borderWidth = avatarBorderWidth
+                imageView.layer.borderColor = UIColor.white.cgColor
+                imageView.clipsToBounds = true
+                imageView.isUserInteractionEnabled = true
+                let tap = UITapGestureRecognizer(
+                    target: self,
+                    action: #selector(avatarTapped(_:))
+                )
+                imageView.addGestureRecognizer(tap)
+                ringsContainer.addSubview(imageView)
+                avatarImageViews.append(imageView)
+            }
+            imageView.transform = .identity
+            imageView.layer.removeAllAnimations()
+            imageView.frame = CGRect(x: 0, y: 0, width: avatarSize, height: avatarSize)
             imageView.center = avatarCenter
             imageView.tag = index
-            imageView.isUserInteractionEnabled = true
-            // Check for abnormal vitals to apply a red glow boldly
-            if member.getAbnormalVital(on: Date()) != nil {
-                let shadowView = UIView(frame: CGRect(x: 0, y: 0, width: avatarSize, height: avatarSize))
-                shadowView.center = avatarCenter
-                shadowView.backgroundColor = .clear
-                shadowView.layer.shadowColor = UIColor.systemRed.cgColor
-                shadowView.layer.shadowRadius = 16 // Glow boldly
-                shadowView.layer.shadowOpacity = 1.0
-                shadowView.layer.shadowOffset = .zero
-                shadowView.layer.masksToBounds = false
-                shadowView.layer.shadowPath = UIBezierPath(ovalIn: shadowView.bounds).cgPath
-                
-                // Add pulsating animation for "Immediate Attention Glow"
-                let pulseAnim = CABasicAnimation(keyPath: "shadowRadius")
-                pulseAnim.fromValue = 12
-                pulseAnim.toValue = 22
-                pulseAnim.duration = 0.8
-                pulseAnim.autoreverses = true
-                pulseAnim.repeatCount = .infinity
-                
-                let opacityAnim = CABasicAnimation(keyPath: "shadowOpacity")
-                opacityAnim.fromValue = 0.6
-                opacityAnim.toValue = 1.0
-                opacityAnim.duration = 0.8
-                opacityAnim.autoreverses = true
-                opacityAnim.repeatCount = .infinity
-                
-                shadowView.layer.add(pulseAnim, forKey: "pulseRadius")
-                shadowView.layer.add(opacityAnim, forKey: "pulseOpacity")
-                
-                ringsContainer.addSubview(shadowView)
+            ImageManager.shared.setImage(for: imageView, from: member.profilePic)
+
+            // Abnormal vital glow view reuse
+            let shadowView: UIView
+            if index < abnormalShadowViews.count {
+                shadowView = abnormalShadowViews[index]
+            } else {
+                let sv = UIView(frame: CGRect(x: 0, y: 0, width: avatarSize, height: avatarSize))
+                sv.backgroundColor = .clear
+                sv.layer.shadowColor = UIColor.systemRed.cgColor
+                sv.layer.shadowRadius = 16
+                sv.layer.shadowOpacity = 1.0
+                sv.layer.shadowOffset = .zero
+                sv.layer.masksToBounds = false
+                ringsContainer.addSubview(sv)
+                abnormalShadowViews.append(sv)
+                shadowView = sv
             }
 
+            if member.getAbnormalVital(on: Date()) != nil {
+                shadowView.isHidden = false
+                shadowView.frame = CGRect(x: 0, y: 0, width: avatarSize, height: avatarSize)
+                shadowView.center = avatarCenter
+                shadowView.layer.shadowPath = UIBezierPath(ovalIn: shadowView.bounds).cgPath
+                
+                if shadowView.layer.animation(forKey: "pulseRadius") == nil {
+                    let pulseAnim = CABasicAnimation(keyPath: "shadowRadius")
+                    pulseAnim.fromValue = 12
+                    pulseAnim.toValue = 22
+                    pulseAnim.duration = 0.8
+                    pulseAnim.autoreverses = true
+                    pulseAnim.repeatCount = .infinity
+                    
+                    let opacityAnim = CABasicAnimation(keyPath: "shadowOpacity")
+                    opacityAnim.fromValue = 0.6
+                    opacityAnim.toValue = 1.0
+                    opacityAnim.duration = 0.8
+                    opacityAnim.autoreverses = true
+                    opacityAnim.repeatCount = .infinity
+                    
+                    shadowView.layer.add(pulseAnim, forKey: "pulseRadius")
+                    shadowView.layer.add(opacityAnim, forKey: "pulseOpacity")
+                }
+                ringsContainer.bringSubviewToFront(shadowView)
+            } else {
+                shadowView.isHidden = true
+                shadowView.layer.removeAllAnimations()
+            }
 
-            let tap = UITapGestureRecognizer(
-                target: self,
-                action: #selector(avatarTapped(_:))
-            )
-            // Tap recognizer
-            imageView.addGestureRecognizer(tap)
-
-            ringsContainer.addSubview(imageView)
-            // Adds avatar to view
-
-            currentRadius -=
-                (ringWidth + ringGap)
-            // Moves inward for next ring
+            ringsContainer.bringSubviewToFront(imageView)
+            currentRadius -= (ringWidth + ringGap)
         }
 
+        // Hide extra layers and views if member count decreased
+        if members.count < trackLayers.count {
+            for i in members.count..<trackLayers.count {
+                trackLayers[i].isHidden = true
+            }
+        }
+        if members.count < progressLayers.count {
+            for i in members.count..<progressLayers.count {
+                progressLayers[i].isHidden = true
+            }
+        }
+        if members.count < avatarImageViews.count {
+            for i in members.count..<avatarImageViews.count {
+                avatarImageViews[i].isHidden = true
+            }
+        }
+        if members.count < abnormalShadowViews.count {
+            for i in members.count..<abnormalShadowViews.count {
+                abnormalShadowViews[i].isHidden = true
+                abnormalShadowViews[i].layer.removeAllAnimations()
+            }
+        }
+
+        CATransaction.commit()
         containerView.bringSubviewToFront(infoButton)
         // Keeps info button visible
     }
@@ -307,7 +374,7 @@ class FamilyActivityScoreCollectionViewCell: UICollectionViewCell {
         let layer = progressLayers[index]
         
         // Find the corresponding avatar view
-        let avatarView = ringsContainer.subviews.compactMap { $0 as? UIImageView }.first { $0.tag == index }
+        let avatarView = avatarImageViews.indices.contains(index) ? avatarImageViews[index] : ringsContainer.subviews.compactMap { $0 as? UIImageView }.first { $0.tag == index }
         
         if let abnormal = member.getAbnormalVital(on: Date()) {
             performInteractiveAnimation(for: layer, imageView: avatarView, isFullAction: isFullAction)
@@ -457,7 +524,7 @@ class LegendViewController: UIViewController, UIPopoverPresentationControllerDel
         let rankingTitle = UILabel()
         rankingTitle.font = .systemFont(ofSize: 12, weight: .bold)
         rankingTitle.textColor = .secondaryLabel
-        rankingTitle.text = "COLOR LEGEND"
+        rankingTitle.text = "WELLNESS COLOR LEGEND"
         stack.addArrangedSubview(rankingTitle)
         
         let items = [

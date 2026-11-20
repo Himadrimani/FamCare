@@ -33,6 +33,75 @@ class SyncManager {
     private var recentlyCreatedTopicMessageIds: [UUID: Date] = [:]
     private let topicGracePeriod: TimeInterval = 60 // 60 seconds
 
+    // Event-Origin Filtering: track IDs recently pushed by THIS device to ignore Realtime echoes.
+    private var recentlyPushedHealthRows: [UUID: (lastUpdatedAt: String, registeredAt: Date)] = [:]
+    private var recentlyPushedMessages: [UUID: (lastUpdatedAt: String, registeredAt: Date)] = [:]
+    private var recentlyPushedTopicMessageIds: [UUID: Date] = [:]
+    private let pushedTrackerLock = NSLock()
+    private let pushedTrackerTTL: TimeInterval = 60 // 60 seconds
+
+    func registerLocallyPushedHealthRows(_ rows: [(id: UUID, lastUpdatedAt: String)]) {
+        guard !rows.isEmpty else { return }
+        pushedTrackerLock.lock()
+        defer { pushedTrackerLock.unlock() }
+        let now = Date()
+        pruneExpiredTrackers(now: now)
+        for row in rows {
+            recentlyPushedHealthRows[row.id] = (lastUpdatedAt: row.lastUpdatedAt, registeredAt: now)
+        }
+    }
+
+    func isLocallyPushedHealthRow(id: UUID, lastUpdatedAt: String?) -> Bool {
+        pushedTrackerLock.lock()
+        defer { pushedTrackerLock.unlock() }
+        pruneExpiredTrackers(now: Date())
+        guard let tracked = recentlyPushedHealthRows[id] else { return false }
+        guard let incomingLastUpdated = lastUpdatedAt, !incomingLastUpdated.isEmpty else {
+            return false
+        }
+        return tracked.lastUpdatedAt == incomingLastUpdated
+    }
+
+    func registerLocallyPushedMessage(id: UUID, lastUpdatedAt: String) {
+        pushedTrackerLock.lock()
+        defer { pushedTrackerLock.unlock() }
+        let now = Date()
+        pruneExpiredTrackers(now: now)
+        recentlyPushedMessages[id] = (lastUpdatedAt: lastUpdatedAt, registeredAt: now)
+    }
+
+    func isLocallyPushedMessage(id: UUID, lastUpdatedAt: String?) -> Bool {
+        pushedTrackerLock.lock()
+        defer { pushedTrackerLock.unlock() }
+        pruneExpiredTrackers(now: Date())
+        guard let tracked = recentlyPushedMessages[id] else { return false }
+        guard let incomingLastUpdated = lastUpdatedAt, !incomingLastUpdated.isEmpty else {
+            return false
+        }
+        return tracked.lastUpdatedAt == incomingLastUpdated
+    }
+
+    func registerLocallyPushedTopicMessage(id: UUID) {
+        pushedTrackerLock.lock()
+        defer { pushedTrackerLock.unlock() }
+        let now = Date()
+        pruneExpiredTrackers(now: now)
+        recentlyPushedTopicMessageIds[id] = now
+    }
+
+    func isLocallyPushedTopicMessage(id: UUID) -> Bool {
+        pushedTrackerLock.lock()
+        defer { pushedTrackerLock.unlock() }
+        pruneExpiredTrackers(now: Date())
+        return recentlyPushedTopicMessageIds[id] != nil
+    }
+
+    private func pruneExpiredTrackers(now: Date) {
+        recentlyPushedHealthRows = recentlyPushedHealthRows.filter { now.timeIntervalSince($0.value.registeredAt) < pushedTrackerTTL }
+        recentlyPushedMessages = recentlyPushedMessages.filter { now.timeIntervalSince($0.value.registeredAt) < pushedTrackerTTL }
+        recentlyPushedTopicMessageIds = recentlyPushedTopicMessageIds.filter { now.timeIntervalSince($0.value) < pushedTrackerTTL }
+    }
+
     private init() {}
     // MARK: - Core Two-Way Sync
     func syncAll(force: Bool = false) async {
@@ -42,7 +111,7 @@ class SyncManager {
 
         if force || shouldPullDeferred {
             DispatchQueue.main.async {
-                DataManager.shared.refreshCurrentUserHealthDataFromHealthKit()
+                DataManager.shared.refreshCurrentUserHealthDataFromHealthKit(force: force)
             }
         }
 
@@ -59,8 +128,12 @@ class SyncManager {
         }
         await pullRealtimeData()
         if shouldPullDeferred {
-            await pullDeferredData()
-            lastDeferredPullAt = Date()
+            let pullSucceeded = await pullDeferredData()
+            if pullSucceeded {
+                lastDeferredPullAt = Date()
+            } else {
+                print("SyncManager: Deferred pull failed or incomplete. Not updating lastDeferredPullAt so next pass will retry.")
+            }
         }
         lastRealtimePullAt = Date()
         lastSuccessfulSyncAt = Date()
@@ -101,7 +174,7 @@ class SyncManager {
         }
 
         print("SyncManager: \(reason.capitalized) sync triggered.")
-        await syncAll(force: true)
+        await syncAll(force: false)
     }
 
     private func hasPendingRealtimeLocalChanges() -> Bool {
@@ -135,6 +208,7 @@ class SyncManager {
     // MARK: - Immediate Push Helpers (called after local mutations)
 
     func pushNewDirectMessage(_ message: Message) {
+        registerLocallyPushedMessage(id: message.messageId, lastUpdatedAt: isoString(message.lastUpdatedAt))
         Task {
             do {
                 try await client.from("Messages").upsert(message).execute()
@@ -146,15 +220,16 @@ class SyncManager {
     }
 
     func pushNewTopicMessage(_ message: TopicMessage) {
+        registerLocallyPushedTopicMessage(id: message.id)
         recentlyCreatedTopicMessageIds[message.id] = Date()
         Task {
             do {
                 struct TopicMsgDTO: Encodable {
                     let id: UUID; let topicId: UUID; let senderId: UUID
-                    let content: String; let createdAt: String?; let isSynced: Bool?
+                    let content: String; let createdAt: String?
                 }
                 let dto = TopicMsgDTO(id: message.id, topicId: message.topicId, senderId: message.senderId,
-                                     content: message.content, createdAt: message.createdAt.map { isoString($0) }, isSynced: true)
+                                     content: message.content, createdAt: message.createdAt.map { isoString($0) })
                                      
                 var lastError: Error?
                 for attempt in 1...3 {
@@ -166,14 +241,60 @@ class SyncManager {
                         return
                     } catch {
                         lastError = error
+                        // If row already exists (duplicate key), update content
+                        struct TopicMsgUpdateDTO: Encodable { let content: String }
+                        if (try? await client.from("TopicMessages").update(TopicMsgUpdateDTO(content: message.content)).eq("id", value: message.id.uuidString).execute()) != nil {
+                            db.markAsSyncedBatch(table: "TopicMessages", idColumn: "id", ids: [message.id.uuidString])
+                            await broadcastTopicMessageChange(message)
+                            print("SyncManager: Updated existing TopicMessage \(message.id)")
+                            return
+                        }
                         print("SyncManager Error pushing TopicMessage (Attempt \(attempt)): \(error)")
                         if attempt < 3 {
-                            try await Task.sleep(nanoseconds: 1_000_000_000 * UInt64(attempt)) // Wait 1s, then 2s
+                            try await Task.sleep(nanoseconds: 1_000_000_000 * UInt64(attempt))
                         }
                     }
                 }
                 print("SyncManager Error pushing TopicMessage permanently failed: \(lastError!)")
             } catch { print("SyncManager Error pushing TopicMessage setup: \(error)") }
+        }
+    }
+
+    func updateTopicMessageAndWait(_ message: TopicMessage) async throws {
+        registerLocallyPushedTopicMessage(id: message.id)
+        struct TopicMsgDTO: Encodable {
+            let id: UUID; let topicId: UUID; let senderId: UUID
+            let content: String; let createdAt: String?
+        }
+        let dto = TopicMsgDTO(
+            id: message.id,
+            topicId: message.topicId,
+            senderId: message.senderId,
+            content: message.content,
+            createdAt: message.createdAt.map { isoString($0) }
+        )
+        
+        do {
+            try await client.from("TopicMessages").upsert(dto).execute()
+        } catch {
+            struct TopicMsgUpdateDTO: Encodable {
+                let content: String
+            }
+            _ = try? await client.from("TopicMessages").update(TopicMsgUpdateDTO(content: message.content)).eq("id", value: message.id.uuidString).execute()
+        }
+        
+        db.markAsSyncedBatch(table: "TopicMessages", idColumn: "id", ids: [message.id.uuidString])
+        await broadcastTopicMessageChange(message)
+        print("SyncManager: Updated and broadcasted TopicMessage \(message.id)")
+    }
+
+    func updateTopicMessage(_ message: TopicMessage) {
+        Task {
+            do {
+                try await updateTopicMessageAndWait(message)
+            } catch {
+                print("SyncManager Error in updateTopicMessage: \(error)")
+            }
         }
     }
 
@@ -307,6 +428,7 @@ class SyncManager {
         let unsyncedMessages = db.fetchAllMessages().filter { ($0.isSynced ?? false) == false }
         print("SyncManager: Attempting to push \(unsyncedMessages.count) messages")
         if !unsyncedMessages.isEmpty {
+            for m in unsyncedMessages { registerLocallyPushedMessage(id: m.messageId, lastUpdatedAt: isoString(m.lastUpdatedAt)) }
             do {
                 try await client.from("Messages").upsert(unsyncedMessages).execute()
                 db.markAsSyncedBatch(table: "Messages", idColumn: "messageId", ids: unsyncedMessages.map { $0.messageId.uuidString })
@@ -346,15 +468,23 @@ class SyncManager {
         for topic in allTopics {
             let topicMsgs = db.fetchTopicMessages(for: topic.id).filter { ($0.isSynced ?? false) == false }
             if !topicMsgs.isEmpty {
+                for tm in topicMsgs { registerLocallyPushedTopicMessage(id: tm.id) }
                 struct TopicMsgDTO: Encodable {
                     let id: UUID; let topicId: UUID; let senderId: UUID
-                    let content: String; let createdAt: String?; let isSynced: Bool?
+                    let content: String; let createdAt: String?
                 }
-                let dtos = topicMsgs.map { TopicMsgDTO(id: $0.id, topicId: $0.topicId, senderId: $0.senderId, content: $0.content, createdAt: $0.createdAt.map { isoString($0) }, isSynced: true) }
-                do {
-                    try await client.from("TopicMessages").insert(dtos).execute()
-                    db.markAsSyncedBatch(table: "TopicMessages", idColumn: "id", ids: topicMsgs.map { $0.id.uuidString })
-                } catch { print("SyncManager Error pushing TopicMessages: \(error)") }
+                for tm in topicMsgs {
+                    let dto = TopicMsgDTO(id: tm.id, topicId: tm.topicId, senderId: tm.senderId, content: tm.content, createdAt: tm.createdAt.map { isoString($0) })
+                    do {
+                        try await client.from("TopicMessages").insert(dto).execute()
+                        db.markAsSyncedBatch(table: "TopicMessages", idColumn: "id", ids: [tm.id.uuidString])
+                    } catch {
+                        struct TopicMsgUpdateDTO: Encodable { let content: String }
+                        if (try? await client.from("TopicMessages").update(TopicMsgUpdateDTO(content: tm.content)).eq("id", value: tm.id.uuidString).execute()) != nil {
+                            db.markAsSyncedBatch(table: "TopicMessages", idColumn: "id", ids: [tm.id.uuidString])
+                        }
+                    }
+                }
             }
         }
 
@@ -438,6 +568,7 @@ class SyncManager {
 
             let actDaily = db.fetchActivityDaily(for: pid).filter { ($0.isSynced ?? false) == false }
             if !actDaily.isEmpty {
+                registerLocallyPushedHealthRows(actDaily.map { ($0.id, isoString($0.lastUpdatedAt)) })
                 struct ActDailyDTO: Encodable {
                     let id: UUID; let profileId: UUID; let type: String; let value: Double
                     let date: String; let createdAt: String; let lastUpdatedAt: String; let isSynced: Bool?
@@ -450,6 +581,7 @@ class SyncManager {
 
             let actHourly = db.fetchActivityHourly(for: pid).filter { ($0.isSynced ?? false) == false }
             if !actHourly.isEmpty {
+                registerLocallyPushedHealthRows(actHourly.map { ($0.id, isoString($0.lastUpdatedAt)) })
                 struct ActHourlyDTO: Encodable {
                     let id: UUID; let profileId: UUID; let type: String; let value: Double
                     let hourStart: String; let sampleCount: Int; let createdAt: String; let lastUpdatedAt: String; let isSynced: Bool?
@@ -462,6 +594,7 @@ class SyncManager {
 
             let vitDaily = db.fetchVitalsDaily(for: pid).filter { ($0.isSynced ?? false) == false }
             if !vitDaily.isEmpty {
+                registerLocallyPushedHealthRows(vitDaily.map { ($0.id, isoString($0.lastUpdatedAt)) })
                 struct VitDailyDTO: Encodable {
                     let id: UUID; let profileId: UUID; let type: String; let date: String
                     let minValue: Double?; let avgValue: Double?; let maxValue: Double?
@@ -475,6 +608,7 @@ class SyncManager {
 
             let vitHourly = db.fetchVitalsHourly(for: pid).filter { ($0.isSynced ?? false) == false }
             if !vitHourly.isEmpty {
+                registerLocallyPushedHealthRows(vitHourly.map { ($0.id, isoString($0.lastUpdatedAt)) })
                 struct VitHourlyDTO: Encodable {
                     let id: UUID; let profileId: UUID; let type: String; let hourStart: String
                     let minValue: Double?; let avgValue: Double?; let maxValue: Double?; let sampleCount: Int
@@ -488,6 +622,7 @@ class SyncManager {
 
             let sleepDaily = db.fetchSleepDaily(for: pid).filter { ($0.isSynced ?? false) == false }
             if !sleepDaily.isEmpty {
+                registerLocallyPushedHealthRows(sleepDaily.map { ($0.id, isoString($0.lastUpdatedAt)) })
                 struct SleepDailyDTO: Encodable {
                     let id: UUID; let profileId: UUID; let date: String
                     var totalSleep: Double; var deepSleep: Double; var remSleep: Double; var lightSleep: Double
@@ -546,6 +681,7 @@ class SyncManager {
         
         do {
             if !actDaily.isEmpty {
+                registerLocallyPushedHealthRows(actDaily.map { ($0.id, isoString($0.lastUpdatedAt)) })
                 struct ActDailyDTO: Encodable {
                     let id: UUID; let profileId: UUID; let type: String; let value: Double
                     let date: String; let createdAt: String; let lastUpdatedAt: String; let isSynced: Bool?
@@ -556,6 +692,7 @@ class SyncManager {
             }
             
             if !actHourly.isEmpty {
+                registerLocallyPushedHealthRows(actHourly.map { ($0.id, isoString($0.lastUpdatedAt)) })
                 struct ActHourlyDTO: Encodable {
                     let id: UUID; let profileId: UUID; let type: String; let value: Double
                     let hourStart: String; let sampleCount: Int; let createdAt: String; let lastUpdatedAt: String; let isSynced: Bool?
@@ -566,6 +703,7 @@ class SyncManager {
             }
             
             if !vitDaily.isEmpty {
+                registerLocallyPushedHealthRows(vitDaily.map { ($0.id, isoString($0.lastUpdatedAt)) })
                 struct VitDailyDTO: Encodable {
                     let id: UUID; let profileId: UUID; let type: String; let date: String
                     let minValue: Double?; let avgValue: Double?; let maxValue: Double?
@@ -577,6 +715,7 @@ class SyncManager {
             }
             
             if !vitHourly.isEmpty {
+                registerLocallyPushedHealthRows(vitHourly.map { ($0.id, isoString($0.lastUpdatedAt)) })
                 struct VitHourlyDTO: Encodable {
                     let id: UUID; let profileId: UUID; let type: String; let hourStart: String
                     let minValue: Double?; let avgValue: Double?; let maxValue: Double?; let sampleCount: Int
@@ -588,6 +727,7 @@ class SyncManager {
             }
             
             if !sleepDaily.isEmpty {
+                registerLocallyPushedHealthRows(sleepDaily.map { ($0.id, isoString($0.lastUpdatedAt)) })
                 struct SleepDailyDTO: Encodable {
                     let id: UUID; let profileId: UUID; let date: String
                     var totalSleep: Double; var deepSleep: Double; var remSleep: Double; var lightSleep: Double
@@ -816,15 +956,66 @@ class SyncManager {
                 await reconcileTopics(remoteTopics: myTopics, remoteMembers: myMembers)
 
                 // --- 4. Topic Messages ---
+                let topicIds = myTopics.map { $0.id.uuidString }
                 var remoteTopicMessages: [TopicMessage] = []
-                for topic in myTopics {
-                    let q = client.from("TopicMessages").select().eq("topicId", value: topic.id.uuidString)
-                    let tMsgs = try dec.decode([TopicMessage].self, from: try await q.execute().data)
-                    for var tm in tMsgs {
-                        tm.isSynced = true
-                        db.saveTopicMessage(tm)
+                if !topicIds.isEmpty {
+                    remoteTopicMessages = try await fetchAllBatched(
+                        table: "TopicMessages",
+                        column: "topicId",
+                        values: topicIds
+                    )
+                    db.withTransaction {
+                        for var tm in remoteTopicMessages {
+                            if let local = db.fetchTopicMessage(id: tm.id), local.isSynced == false {
+                                // If local has an unsynced vote, merge voter IDs so no votes are lost
+                                if var localPoll = PollData.parse(from: local.content),
+                                   let remotePoll = PollData.parse(from: tm.content) {
+                                    localPoll.merge(with: remotePoll)
+                                    if let mergedContent = localPoll.encodeToMessageContent() {
+                                        let mergedMsg = TopicMessage(
+                                            id: local.id,
+                                            topicId: local.topicId,
+                                            senderId: local.senderId,
+                                            content: mergedContent,
+                                            createdAt: local.createdAt,
+                                            isSynced: false
+                                        )
+                                        db.saveTopicMessage(mergedMsg)
+                                    }
+                                }
+                                continue
+                            }
+                            tm.isSynced = true
+                            db.saveTopicMessage(tm)
+                        }
+                        
+                        // Aggregate and apply any poll votes from remoteTopicMessages to their parent polls
+                        var votesByPollId: [UUID: [PollVotePayload]] = [:]
+                        for tm in remoteTopicMessages {
+                            if let vote = PollVotePayload.parse(from: tm.content) {
+                                votesByPollId[vote.pollId, default: []].append(vote)
+                            }
+                        }
+                        if !votesByPollId.isEmpty {
+                            for (pollId, votes) in votesByPollId {
+                                let sorted = votes.sorted { $0.timestamp < $1.timestamp }
+                                if let pollMsg = db.fetchTopicMessage(id: pollId),
+                                   var poll = PollData.parse(from: pollMsg.content) {
+                                    for v in sorted {
+                                        poll.apply(vote: v)
+                                    }
+                                    if let updatedContent = poll.encodeToMessageContent() {
+                                        var merged = pollMsg
+                                        merged.content = updatedContent
+                                        db.saveTopicMessage(merged)
+                                        if let dIdx = DataManager.shared.topicMessages.firstIndex(where: { $0.id == pollId }) {
+                                            DataManager.shared.topicMessages[dIdx].content = updatedContent
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
-                    remoteTopicMessages.append(contentsOf: tMsgs)
                 }
                 await reconcileTopicMessages(remoteMessages: remoteTopicMessages)
             }
@@ -853,18 +1044,16 @@ class SyncManager {
         } catch { print("SyncManager Error during realtime pull: \(error)") }
     }
 
-    private func pullDeferredData() async {
+    private func pullDeferredData() async -> Bool {
         guard let familyId = DataManager.shared.family?.familyId ?? DataManager.shared.currentUser?.familyId else {
             print("SyncManager: No family context available for deferred pull.")
-            return
+            return false
         }
 
         print("SyncManager: Pulling deferred data for family \(familyId)...")
 
         do {
             let dec = supabaseDecoder()
-
-
 
             var uniqueProfilesById: [UUID: Profile] = [:]
             for profile in db.fetchProfiles() where profile.familyId == familyId {
@@ -874,49 +1063,58 @@ class SyncManager {
                 uniqueProfilesById[current.profileId] = current
             }
 
-            for profile in uniqueProfilesById.values {
-                let pid = profile.profileId
-                
-                // Fetch full remote health snapshot for all members (including current user)
-                // so manual Supabase edits reflect locally.
-                
-                // Always fetch full remote health snapshot for non-current members,
-                // then replace local rows to avoid stale/mock duplicates.
-                let adResp = try await client.from("Health_ActivityDaily").select().eq("profileId", value: pid.uuidString).execute()
-                var remoteAD = try dec.decode([ActivityDaily].self, from: adResp.data)
-                remoteAD = remoteAD.map { var row = $0; row.isSynced = true; return row }
-                
-                let ahResp = try await client.from("Health_ActivityHourly").select().eq("profileId", value: pid.uuidString).execute()
-                var remoteAH = try dec.decode([ActivityHourly].self, from: ahResp.data)
-                remoteAH = remoteAH.map { var row = $0; row.isSynced = true; return row }
-                
-                let vdResp = try await client.from("Health_VitalsDaily").select().eq("profileId", value: pid.uuidString).execute()
-                var remoteVD = try dec.decode([VitalsDaily].self, from: vdResp.data)
-                remoteVD = remoteVD.map { var row = $0; row.isSynced = true; return row }
-                
-                let vhResp = try await client.from("Health_VitalsHourly").select().eq("profileId", value: pid.uuidString).execute()
-                var remoteVH = try dec.decode([VitalsHourly].self, from: vhResp.data)
-                remoteVH = remoteVH.map { var row = $0; row.isSynced = true; return row }
-                
-                let sdResp = try await client.from("Health_SleepDaily").select().eq("profileId", value: pid.uuidString).execute()
-                var remoteSD = try dec.decode([SleepDaily].self, from: sdResp.data)
-                remoteSD = remoteSD.map { var row = $0; row.isSynced = true; return row }
-                
-                // Safe Sync: Instead of clearing everything, we use INSERT OR REPLACE (Upsert) 
-                // to update existing records and add new ones, preserving local history.
-                for row in remoteAD { db.saveActivityDaily(row) }
-                for row in remoteAH { db.saveActivityHourly(row) }
-                for row in remoteVD { db.saveVitalsDaily(row) }
-                for row in remoteVH { db.saveVitalsHourly(row) }
-                for row in remoteSD { db.saveSleepDaily(row) }
+            let allFamilyProfileIds = uniqueProfilesById.keys.map { $0.uuidString }
+            guard !allFamilyProfileIds.isEmpty else {
+                print("SyncManager: No family profile IDs found for deferred pull.")
+                return false
+            }
+
+            // Task 1: Fetch all 5 health tables concurrently across all family members using batched .in queries
+            async let adTask: [ActivityDaily] = fetchAllBatched(
+                table: "Health_ActivityDaily",
+                column: "profileId",
+                values: allFamilyProfileIds
+            )
+            async let ahTask: [ActivityHourly] = fetchAllBatched(
+                table: "Health_ActivityHourly",
+                column: "profileId",
+                values: allFamilyProfileIds
+            )
+            async let vdTask: [VitalsDaily] = fetchAllBatched(
+                table: "Health_VitalsDaily",
+                column: "profileId",
+                values: allFamilyProfileIds
+            )
+            async let vhTask: [VitalsHourly] = fetchAllBatched(
+                table: "Health_VitalsHourly",
+                column: "profileId",
+                values: allFamilyProfileIds
+            )
+            async let sdTask: [SleepDaily] = fetchAllBatched(
+                table: "Health_SleepDaily",
+                column: "profileId",
+                values: allFamilyProfileIds
+            )
+
+            let (remoteAD, remoteAH, remoteVD, remoteVH, remoteSD) = try await (adTask, ahTask, vdTask, vhTask, sdTask)
+
+            // Safe Sync: Save all downloaded health rows across all family members in a single atomic transaction
+            db.withTransaction {
+                db.saveActivityDailyBatch(remoteAD.map { var row = $0; row.isSynced = true; return row })
+                db.saveActivityHourlyBatch(remoteAH.map { var row = $0; row.isSynced = true; return row })
+                db.saveVitalsDailyBatch(remoteVD.map { var row = $0; row.isSynced = true; return row })
+                db.saveVitalsHourlyBatch(remoteVH.map { var row = $0; row.isSynced = true; return row })
+                db.saveSleepDailyBatch(remoteSD.map { var row = $0; row.isSynced = true; return row })
             }
 
             await refreshChallenges(for: familyId)
 
             await refreshLocalUI(reason: "HealthDeferred")
             print("SyncManager: Deferred pull complete.")
+            return true
         } catch {
             print("SyncManager Error during deferred pull: \(error)")
+            return false
         }
     }
 
@@ -935,11 +1133,20 @@ class SyncManager {
 
         // 1. Direct Messages
         let dmChannel = client.realtimeV2.channel("public:messages")
-        let token1 = dmChannel.onPostgresChange(AnyAction.self, schema: "public", table: "Messages") { [weak self] _ in
+        let token1 = dmChannel.onPostgresChange(AnyAction.self, schema: "public", table: "Messages") { [weak self] action in
             Task { @MainActor [weak self] in
+                guard let self = self else { return }
                 guard let cId = DataManager.shared.currentUser?.profileId,
                       let fId = DataManager.shared.currentUser?.familyId else { return }
-                self?.scheduleRealtimeRefresh(userId: cId, familyId: fId, reason: "Messages changed")
+                if let record = self.extractRecord(from: action),
+                   let msgId = self.uuid(from: record["messageId"]),
+                   self.isLocallyPushedMessage(id: msgId, lastUpdatedAt: record["lastUpdatedAt"]?.stringValue) {
+                    #if DEBUG
+                    print("SyncManager: Ignoring Messages postgres self-echo (\(msgId))")
+                    #endif
+                    return
+                }
+                self.scheduleRealtimeRefresh(userId: cId, familyId: fId, reason: "Messages changed")
             }
         }
         channels.append(dmChannel)
@@ -947,11 +1154,20 @@ class SyncManager {
 
         // 2. Topic Messages
         let topicChannel = client.realtimeV2.channel("public:topic_messages")
-        let token2 = topicChannel.onPostgresChange(AnyAction.self, schema: "public", table: "TopicMessages") { [weak self] _ in
+        let token2 = topicChannel.onPostgresChange(AnyAction.self, schema: "public", table: "TopicMessages") { [weak self] action in
             Task { @MainActor [weak self] in
+                guard let self = self else { return }
                 guard let cId = DataManager.shared.currentUser?.profileId,
                       let fId = DataManager.shared.currentUser?.familyId else { return }
-                self?.scheduleRealtimeRefresh(userId: cId, familyId: fId, reason: "TopicMessages changed")
+                if let record = self.extractRecord(from: action),
+                   let msgId = self.uuid(from: record["id"]),
+                   self.isLocallyPushedTopicMessage(id: msgId) {
+                    #if DEBUG
+                    print("SyncManager: Ignoring TopicMessages postgres self-echo (\(msgId))")
+                    #endif
+                    return
+                }
+                self.scheduleRealtimeRefresh(userId: cId, familyId: fId, reason: "TopicMessages changed")
             }
         }
         channels.append(topicChannel)
@@ -1046,20 +1262,32 @@ class SyncManager {
         let chatChannel = client.realtimeV2.channel(chatBroadcastTopic(familyId: familyId))
         let token9 = chatChannel.onBroadcast(event: directMessageBroadcastEvent) { [weak self] payload in
             Task { @MainActor [weak self] in
-                guard let self else { return }
+                guard let self = self else { return }
                 guard let cId = DataManager.shared.currentUser?.profileId,
                       let fId = DataManager.shared.currentUser?.familyId,
                       payload["familyId"]?.stringValue == fId.uuidString else { return }
+                if let messageId = self.uuid(from: payload["messageId"]), self.isLocallyPushedMessage(id: messageId, lastUpdatedAt: payload["lastUpdatedAt"]?.stringValue) {
+                    #if DEBUG
+                    print("SyncManager: Ignoring direct message self-broadcast (\(messageId))")
+                    #endif
+                    return
+                }
                 if await self.fetchDirectMessageFromBroadcast(payload) { return }
                 self.scheduleRealtimeRefresh(userId: cId, familyId: fId, reason: "Messages broadcast")
             }
         }
         let token10 = chatChannel.onBroadcast(event: topicMessageBroadcastEvent) { [weak self] payload in
             Task { @MainActor [weak self] in
-                guard let self else { return }
+                guard let self = self else { return }
                 guard let cId = DataManager.shared.currentUser?.profileId,
                       let fId = DataManager.shared.currentUser?.familyId,
                       payload["familyId"]?.stringValue == fId.uuidString else { return }
+                if let messageId = self.uuid(from: payload["messageId"]), self.isLocallyPushedTopicMessage(id: messageId) {
+                    #if DEBUG
+                    print("SyncManager: Ignoring topic message self-broadcast (\(messageId))")
+                    #endif
+                    return
+                }
                 if await self.fetchTopicMessageFromBroadcast(payload) { return }
                 self.scheduleRealtimeRefresh(userId: cId, familyId: fId, reason: "TopicMessages broadcast")
             }
@@ -1067,7 +1295,7 @@ class SyncManager {
         // 10. Topic-creation broadcast — immediately pull topics when another device creates a group
         let token11 = chatChannel.onBroadcast(event: topicCreatedBroadcastEvent) { [weak self] payload in
             Task { @MainActor [weak self] in
-                guard let self else { return }
+                guard let self = self else { return }
                 guard let cId = DataManager.shared.currentUser?.profileId,
                       let fId = DataManager.shared.currentUser?.familyId,
                       payload["familyId"]?.stringValue == fId.uuidString else { return }
@@ -1077,32 +1305,77 @@ class SyncManager {
         }
         channels.append(chatChannel)
         let healthActDailyChannel = client.realtimeV2.channel("public:health_activity_daily")
-        let token12 = healthActDailyChannel.onPostgresChange(AnyAction.self, schema: "public", table: "Health_ActivityDaily") { [weak self] _ in
-            self?.scheduleRealtimeRefresh(userId: UUID(), familyId: familyId, reason: "Health")
+        let token12 = healthActDailyChannel.onPostgresChange(AnyAction.self, schema: "public", table: "Health_ActivityDaily") { [weak self] action in
+            guard let self = self else { return }
+            if let record = self.extractRecord(from: action),
+               let id = self.uuid(from: record["id"]),
+               self.isLocallyPushedHealthRow(id: id, lastUpdatedAt: record["lastUpdatedAt"]?.stringValue) {
+                #if DEBUG
+                print("SyncManager: Ignoring Health_ActivityDaily self-echo (\(id))")
+                #endif
+                return
+            }
+            self.scheduleRealtimeRefresh(userId: UUID(), familyId: familyId, reason: "Health")
         }
         channels.append(healthActDailyChannel)
         
         let healthActHourlyChannel = client.realtimeV2.channel("public:health_activity_hourly")
-        let token13 = healthActHourlyChannel.onPostgresChange(AnyAction.self, schema: "public", table: "Health_ActivityHourly") { [weak self] _ in
-            self?.scheduleRealtimeRefresh(userId: UUID(), familyId: familyId, reason: "Health")
+        let token13 = healthActHourlyChannel.onPostgresChange(AnyAction.self, schema: "public", table: "Health_ActivityHourly") { [weak self] action in
+            guard let self = self else { return }
+            if let record = self.extractRecord(from: action),
+               let id = self.uuid(from: record["id"]),
+               self.isLocallyPushedHealthRow(id: id, lastUpdatedAt: record["lastUpdatedAt"]?.stringValue) {
+                #if DEBUG
+                print("SyncManager: Ignoring Health_ActivityHourly self-echo (\(id))")
+                #endif
+                return
+            }
+            self.scheduleRealtimeRefresh(userId: UUID(), familyId: familyId, reason: "Health")
         }
         channels.append(healthActHourlyChannel)
         
         let healthVitalsDailyChannel = client.realtimeV2.channel("public:health_vitals_daily")
-        let token14 = healthVitalsDailyChannel.onPostgresChange(AnyAction.self, schema: "public", table: "Health_VitalsDaily") { [weak self] _ in
-            self?.scheduleRealtimeRefresh(userId: UUID(), familyId: familyId, reason: "Health")
+        let token14 = healthVitalsDailyChannel.onPostgresChange(AnyAction.self, schema: "public", table: "Health_VitalsDaily") { [weak self] action in
+            guard let self = self else { return }
+            if let record = self.extractRecord(from: action),
+               let id = self.uuid(from: record["id"]),
+               self.isLocallyPushedHealthRow(id: id, lastUpdatedAt: record["lastUpdatedAt"]?.stringValue) {
+                #if DEBUG
+                print("SyncManager: Ignoring Health_VitalsDaily self-echo (\(id))")
+                #endif
+                return
+            }
+            self.scheduleRealtimeRefresh(userId: UUID(), familyId: familyId, reason: "Health")
         }
         channels.append(healthVitalsDailyChannel)
         
         let healthVitalsHourlyChannel = client.realtimeV2.channel("public:health_vitals_hourly")
-        let token15 = healthVitalsHourlyChannel.onPostgresChange(AnyAction.self, schema: "public", table: "Health_VitalsHourly") { [weak self] _ in
-            self?.scheduleRealtimeRefresh(userId: UUID(), familyId: familyId, reason: "Health")
+        let token15 = healthVitalsHourlyChannel.onPostgresChange(AnyAction.self, schema: "public", table: "Health_VitalsHourly") { [weak self] action in
+            guard let self = self else { return }
+            if let record = self.extractRecord(from: action),
+               let id = self.uuid(from: record["id"]),
+               self.isLocallyPushedHealthRow(id: id, lastUpdatedAt: record["lastUpdatedAt"]?.stringValue) {
+                #if DEBUG
+                print("SyncManager: Ignoring Health_VitalsHourly self-echo (\(id))")
+                #endif
+                return
+            }
+            self.scheduleRealtimeRefresh(userId: UUID(), familyId: familyId, reason: "Health")
         }
         channels.append(healthVitalsHourlyChannel)
         
         let healthSleepDailyChannel = client.realtimeV2.channel("public:health_sleep_daily")
-        let token16 = healthSleepDailyChannel.onPostgresChange(AnyAction.self, schema: "public", table: "Health_SleepDaily") { [weak self] _ in
-            self?.scheduleRealtimeRefresh(userId: UUID(), familyId: familyId, reason: "Health")
+        let token16 = healthSleepDailyChannel.onPostgresChange(AnyAction.self, schema: "public", table: "Health_SleepDaily") { [weak self] action in
+            guard let self = self else { return }
+            if let record = self.extractRecord(from: action),
+               let id = self.uuid(from: record["id"]),
+               self.isLocallyPushedHealthRow(id: id, lastUpdatedAt: record["lastUpdatedAt"]?.stringValue) {
+                #if DEBUG
+                print("SyncManager: Ignoring Health_SleepDaily self-echo (\(id))")
+                #endif
+                return
+            }
+            self.scheduleRealtimeRefresh(userId: UUID(), familyId: familyId, reason: "Health")
         }
         channels.append(healthSleepDailyChannel)
 
@@ -1263,7 +1536,7 @@ class SyncManager {
             else if reason.contains("UserRelationships") { targetTable = "UserRelationships" }
             
             if reason == "Health" {
-                await self.pullDeferredData()
+                _ = await self.pullDeferredData()
             } else {
                 await self.pullRealtimeData(targetTable: targetTable)
             }
@@ -1291,7 +1564,8 @@ class SyncManager {
                     "familyId": familyId.uuidString,
                     "messageId": message.messageId.uuidString,
                     "senderId": message.senderId.uuidString,
-                    "receiverId": message.receiverId.uuidString
+                    "receiverId": message.receiverId.uuidString,
+                    "lastUpdatedAt": isoString(message.lastUpdatedAt)
                 ]
             )
         } catch {
@@ -1309,7 +1583,8 @@ class SyncManager {
                     "familyId": familyId.uuidString,
                     "topicId": message.topicId.uuidString,
                     "messageId": message.id.uuidString,
-                    "senderId": message.senderId.uuidString
+                    "senderId": message.senderId.uuidString,
+                    "content": message.content
                 ]
             )
         } catch {
@@ -1366,13 +1641,50 @@ class SyncManager {
     private func fetchTopicMessageFromBroadcast(_ payload: JSONObject) async -> Bool {
         guard let currentUserId = DataManager.shared.currentUser?.profileId,
               let messageId = uuid(from: payload["messageId"]),
-              let topicId = uuid(from: payload["topicId"]),
-              let senderId = uuid(from: payload["senderId"]) else {
+              let topicId = uuid(from: payload["topicId"]) else {
             return false
         }
 
-        let isMember = db.fetchTopicMembers(for: topicId).contains { $0.userId == currentUserId }
-        guard isMember || senderId == currentUserId else { return false }
+        let isMember = db.fetchTopicMembers(for: topicId).contains { $0.userId == currentUserId } ||
+                       DataManager.shared.topics.contains { $0.id == topicId } ||
+                       db.fetchTopics().contains { $0.id == topicId }
+        guard isMember else { return false }
+
+        // If broadcast payload already carries content, apply immediately
+        if let rawContent = payload["content"]?.stringValue {
+            var msgContent = rawContent
+            if var incomingPoll = PollData.parse(from: rawContent),
+               let local = db.fetchTopicMessage(id: messageId),
+               let localPoll = PollData.parse(from: local.content) {
+                incomingPoll.merge(with: localPoll)
+                if let merged = incomingPoll.encodeToMessageContent() {
+                    msgContent = merged
+                }
+            }
+            let senderId = uuid(from: payload["senderId"]) ?? currentUserId
+            let msg = TopicMessage(
+                id: messageId,
+                topicId: topicId,
+                senderId: senderId,
+                content: msgContent,
+                createdAt: Date(),
+                isSynced: true
+            )
+            db.saveTopicMessage(msg)
+            if let idx = DataManager.shared.topicMessages.firstIndex(where: { $0.id == messageId }) {
+                DataManager.shared.topicMessages[idx] = msg
+            } else {
+                DataManager.shared.topicMessages.append(msg)
+            }
+            NotificationCenter.default.post(
+                name: .ChatDataDidUpdate,
+                object: nil,
+                userInfo: [NotificationPayloadKey.conversationId: topicId.uuidString]
+            )
+            await refreshLocalUI()
+            print("SyncManager: Applied instant broadcast TopicMessage \(messageId)")
+            return true
+        }
 
         do {
             let response = try await client.from("TopicMessages")
@@ -1384,6 +1696,19 @@ class SyncManager {
             }
             message.isSynced = true
             db.saveTopicMessage(message)
+            
+            // Update in-memory DataManager.shared.topicMessages
+            if let idx = DataManager.shared.topicMessages.firstIndex(where: { $0.id == message.id }) {
+                DataManager.shared.topicMessages[idx] = message
+            } else {
+                DataManager.shared.topicMessages.append(message)
+            }
+            
+            NotificationCenter.default.post(
+                name: .ChatDataDidUpdate,
+                object: nil,
+                userInfo: [NotificationPayloadKey.conversationId: message.topicId.uuidString]
+            )
             await refreshLocalUI()
             print("SyncManager: Applied targeted TopicMessage fetch \(messageId)")
             return true
@@ -1396,6 +1721,43 @@ class SyncManager {
     private func uuid(from value: AnyJSON?) -> UUID? {
         guard let string = value?.stringValue else { return nil }
         return UUID(uuidString: string)
+    }
+
+    private func extractRecord(from action: AnyAction) -> [String: AnyJSON]? {
+        switch action {
+        case .insert(let act): return act.record
+        case .update(let act): return act.record
+        case .delete(let act): return act.oldRecord
+        }
+    }
+
+    private func fetchAllBatched<T: Decodable>(
+        table: String,
+        column: String,
+        values: [String],
+        orderColumn: String = "id",
+        pageSize: Int = 1000
+    ) async throws -> [T] {
+        guard !values.isEmpty else { return [] }
+        let dec = supabaseDecoder()
+        var allResults: [T] = []
+        var from = 0
+        while true {
+            let to = from + pageSize - 1
+            let resp = try await client.from(table)
+                .select()
+                .in(column, values: values)
+                .order(orderColumn, ascending: true)
+                .range(from: from, to: to)
+                .execute()
+            let batch = try dec.decode([T].self, from: resp.data)
+            allResults.append(contentsOf: batch)
+            if batch.count < pageSize {
+                break
+            }
+            from += pageSize
+        }
+        return allResults
     }
 
     private func refreshChallenges(for familyId: UUID) async {
@@ -1448,8 +1810,28 @@ class SyncManager {
                                       lastUpdatedAt: $0.lastUpdatedAt, isSynced: true)
                 }
 
+                let priorLocalProgress = db.fetchChallengeProgress()
+                let wasTrackingLocally = !priorLocalProgress.isEmpty
+
                 for progress in remoteProgress {
                     db.saveChallengeProgress(progress)
+                }
+
+                // If we were already actively tracking challenges locally (not initial data hydration),
+                // check if any active family challenge transitioned from incomplete to complete via remote updates.
+                if wasTrackingLocally {
+                    for challenge in localDetails {
+                        let priorRecords = priorLocalProgress.filter { $0.challengeId == challenge.challengeId }
+                        guard priorRecords.count > 1 else { continue }
+                        let wasComplete = priorRecords.allSatisfy { $0.goalValue > 0 && $0.currentValue >= $0.goalValue }
+                        
+                        let updatedRecords = remoteProgress.filter { $0.challengeId == challenge.challengeId }
+                        let isNowComplete = updatedRecords.count > 1 && updatedRecords.allSatisfy { $0.goalValue > 0 && $0.currentValue >= $0.goalValue }
+                        
+                        if !wasComplete && isNowComplete {
+                            RewardsManager.shared.awardFamilyShield(challenge: challenge, participantsCount: updatedRecords.count)
+                        }
+                    }
                 }
 
                 let remoteProgressKeys = Set(remoteProgress.map { "\($0.challengeId)|\($0.memberId)" })
@@ -1471,9 +1853,19 @@ class SyncManager {
 
         let refreshedDetails = db.fetchChallengeDetails()
         let refreshedProgress = db.fetchChallengeProgress()
+        let affectedChallengeIds = Set(refreshedDetails.map { $0.challengeId })
         await MainActor.run {
             DataManager.shared.challenges = refreshedDetails
             DataManager.shared.challengeProgress = refreshedProgress
+            var userInfo: [String: Any] = [NotificationPayloadKey.challengeIds: affectedChallengeIds]
+            if let singleId = affectedChallengeIds.first, affectedChallengeIds.count == 1 {
+                userInfo[NotificationPayloadKey.challengeId] = singleId.uuidString
+            }
+            NotificationCenter.default.post(
+                name: .ChallengeDataDidUpdate,
+                object: nil,
+                userInfo: userInfo
+            )
             NotificationCenter.default.post(name: NSNotification.Name("DataManagerDidUpdate"), object: nil)
         }
     }
@@ -1548,6 +1940,7 @@ class SyncManager {
                 let msgs = db.fetchTopicMessages(for: topic.id)
                 for msg in msgs where !remoteSet.contains(msg.id) {
                     if recentlyCreatedTopicMessageIds[msg.id] != nil { continue }
+                    if msg.isSynced == false { continue } // Never prune unsynced local messages!
                     db.deleteTopicMessage(id: msg.id)
                     print("SyncManager Reconciliation: Pruned local topic message \(msg.id)")
                 }

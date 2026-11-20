@@ -48,7 +48,7 @@ class TopicsViewModel: ObservableObject {
         var latestMsgsMap: [UUID: TopicMessage] = [:]
         for topic in rawTopics {
             let latestMsg = DataManager.shared.topicMessages
-                .filter { $0.topicId == topic.id }
+                .filter { $0.topicId == topic.id && !$0.content.hasPrefix("[POLL_VOTE:") }
                 .sorted { ($0.createdAt ?? Date.distantPast) > ($1.createdAt ?? Date.distantPast) }
                 .first
             if let latestMsg = latestMsg {
@@ -127,6 +127,11 @@ class TopicsViewModel: ObservableObject {
         )
         
         DataManager.shared.insertTopicMessageLocally(topicMessagePayload)
+        NotificationCenter.default.post(
+            name: .ChatDataDidUpdate,
+            object: nil,
+            userInfo: [NotificationPayloadKey.conversationId: topicId.uuidString]
+        )
         NotificationCenter.default.post(name: Notification.Name("DataManagerDidUpdate"), object: nil)
         await fetchTopicsAndMessages()
         

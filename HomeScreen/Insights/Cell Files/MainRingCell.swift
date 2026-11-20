@@ -14,6 +14,26 @@ class MainRingCell: UICollectionViewCell {
     @IBOutlet weak var titleLabel: UILabel!
     @IBOutlet weak var dateLabel: UILabel!
 
+    private static let dateFormatterLock = NSLock()
+    private static let dateFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "EEEE, MMM d"
+        f.locale = Locale.current
+        f.calendar = Calendar.current
+        return f
+    }()
+
+    private static func formatDate(_ date: Date) -> String {
+        dateFormatterLock.lock()
+        defer { dateFormatterLock.unlock() }
+        return dateFormatter.string(from: date)
+    }
+
+    override func prepareForReuse() {
+        super.prepareForReuse()
+        ringView.prepareForReuse()
+    }
+
     override func awakeFromNib() {
         super.awakeFromNib()
         ringView.lineWidth  = 18
@@ -29,13 +49,10 @@ class MainRingCell: UICollectionViewCell {
     }
 
     func configure(with data: DayData) {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "EEEE, MMM d"
-        dateLabel.text  = formatter.string(from: data.date)
+        dateLabel.text  = Self.formatDate(data.date)
         scoreLabel.text = "\(data.score)%"
         scoreLabel.textColor = .label
-        ringView.setProgress(CGFloat(data.score) / 100.0, color: colorForScore(data.score))
-        ringView.setNeedsLayout()
+        ringView.setProgress(CGFloat(data.score) / 100.0, color: colorForScore(data.score), animated: false)
     }
 
     private func colorForScore(_ score: Int) -> UIColor {

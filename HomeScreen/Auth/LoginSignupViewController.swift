@@ -280,10 +280,14 @@ final class LoginSignupViewController: UIViewController {
         guard !isAuthenticating else { return }
         view.endEditing(true)
         
+        // [STAGE 1] Apple sign-in button tapped
+        print("[Auth Diagnostics][Stage 1] Apple sign-in button tapped")
+        
         setLoading(true)
         showStatus("Connecting to Apple...", isError: false)
         
-        appleAuthManager.startSignInWithAppleFlow { [weak self] result in
+        let presentingWindow = view.window ?? view.window?.windowScene?.windows.first
+        appleAuthManager.startSignInWithAppleFlow(presentingFrom: presentingWindow) { [weak self] result in
             DispatchQueue.main.async {
                 self?.processAppleAuthResult(result)
             }
@@ -300,33 +304,46 @@ final class LoginSignupViewController: UIViewController {
                     let authResult = try await DataManager.shared.signInWithApple(idToken: data.idToken, nonce: data.nonce, fullName: data.fullName)
                     await MainActor.run {
                         if authResult.profile != nil {
+                            // [STAGE 12] Authenticated application screen presented
+                            print("[Auth Diagnostics][Stage 12] Authentication complete. Presenting authenticated application screen.")
                             self.showStatus("Success.", isError: false)
-                            self.promptAppleHealthPermission {
-                                self.onAuthenticationComplete?()
-                            }
+                            self.onAuthenticationComplete?()
                         } else {
-                            // User authenticated via Apple but profile doesn't exist.
+                            // Fallback if profile creation was deferred
+                            print("[Auth Diagnostics][Stage 11] Profile incomplete. Redirecting to signup to finish.")
                             self.showStatus("Almost done! Please complete your profile.", isError: false)
                             self.setLoading(false)
                             
                             let signupVC = SignupFamilyViewController()
                             signupVC.onSignupComplete = self.onAuthenticationComplete
-                            // Inject Apple user context if SignupFamilyViewController was updated to handle it,
-                            // or for now, just push to signup where they create a new profile.
                             self.navigationController?.pushViewController(signupVC, animated: true)
                         }
                     }
                 } catch {
                     await MainActor.run {
-                        self.showStatus(error.localizedDescription, isError: true)
+                        let nsError = error as NSError
+                        print("[Auth Diagnostics][Stage 10 Failed] Supabase authentication/profile failure. Domain: \(nsError.domain), Code: \(nsError.code), Description: \(error.localizedDescription)")
+                        let message = self.friendlyAuthErrorMessage(from: error)
+                        self.showStatus(message, isError: true)
                         self.setLoading(false)
                     }
                 }
             }
         case .failure(let error):
             setLoading(false)
-            if (error as NSError).code != 999 { // 999 is our custom code for user cancelled
-                showStatus(error.localizedDescription, isError: true)
+            let nsError = error as NSError
+            print("[Auth Diagnostics][Flow Aborted] Apple Sign-In aborted. Domain: \(nsError.domain), Code: \(nsError.code), Description: \(error.localizedDescription)")
+            if nsError.code != 999 { // 999 is user cancelled
+                let message: String
+                if (nsError.domain == "com.apple.AuthenticationServices.AuthorizationError" && nsError.code == 1000) ||
+                   (nsError.domain == "AppleAuth" && nsError.code == 1000) {
+                    message = "Apple Sign-In could not connect (Error 1000). Please check your internet connection, disable Private Relay or VPN if active, and check Settings > Apple Account > Sign-In & Security > Sign in with Apple."
+                } else if nsError.domain == "AppleAuth" && (nsError.code == 1001 || nsError.code == 2) {
+                    message = "Apple Sign-In authorization failed. Please check your network connection and try again."
+                } else {
+                    message = error.localizedDescription
+                }
+                showStatus(message, isError: true)
             } else {
                 showStatus("", isError: false)
             }
@@ -413,9 +430,7 @@ final class LoginSignupViewController: UIViewController {
                 _ = try await action()
                 await MainActor.run {
                     self?.showStatus("Success.", isError: false)
-                    self?.promptAppleHealthPermission {
-                        self?.onAuthenticationComplete?()
-                    }
+                    self?.onAuthenticationComplete?()
                 }
             } catch {
                 await MainActor.run {
@@ -484,175 +499,6 @@ private extension UITextField {
         let paddingView = UIView(frame: CGRect(x: 0, y: 0, width: width, height: 1))
         leftView = paddingView
         leftViewMode = .always
-    }
-}
-//
-//  HealthKitOnboardingViewController.swift
-//  HomeScreen
-//
-
-import UIKit
-import HealthKit
-
-class HealthKitOnboardingViewController: UIViewController {
-
-    var onCompletion: (() -> Void)?
-
-    private let iconImageView: UIImageView = {
-        let iv = UIImageView()
-        iv.image = UIImage(systemName: "applewatch")
-        iv.contentMode = .scaleAspectFit
-        iv.tintColor = .systemGreen
-        iv.translatesAutoresizingMaskIntoConstraints = false
-        return iv
-    }()
-
-    private let titleLabel: UILabel = {
-        let label = UILabel()
-        label.text = "Sync Your Vitals"
-        label.font = .systemFont(ofSize: 32, weight: .bold)
-        label.textAlignment = .center
-        label.numberOfLines = 0
-        label.translatesAutoresizingMaskIntoConstraints = false
-        return label
-    }()
-
-    private let subtitleLabel: UILabel = {
-        let label = UILabel()
-        label.text = "Sleep, heart rate, and heart rate variability usually come from an Apple Watch or another compatible device that writes into Apple Health. We securely read them from Apple Health to calculate your wellness and share it with your family."
-        label.font = .systemFont(ofSize: 17, weight: .regular)
-        label.textColor = .secondaryLabel
-        label.textAlignment = .center
-        label.numberOfLines = 0
-        label.translatesAutoresizingMaskIntoConstraints = false
-        return label
-    }()
-
-    private let benefitsStackView: UIStackView = {
-        let sv = UIStackView()
-        sv.axis = .vertical
-        sv.spacing = 20
-        sv.translatesAutoresizingMaskIntoConstraints = false
-        return sv
-    }()
-
-    private let continueButton: UIButton = {
-        let btn = UIButton(type: .system)
-        btn.setTitle("Enable Apple Health", for: .normal)
-        btn.titleLabel?.font = .systemFont(ofSize: 18, weight: .semibold)
-        btn.backgroundColor = .systemGreen
-        btn.setTitleColor(.white, for: .normal)
-        btn.layer.cornerRadius = 14
-        btn.translatesAutoresizingMaskIntoConstraints = false
-        return btn
-    }()
-
-    override func viewDidLoad() {
-        super.viewDidLoad()
-        view.backgroundColor = .systemBackground
-        setupUI()
-    }
-
-    private func setupUI() {
-        view.addSubview(iconImageView)
-        view.addSubview(titleLabel)
-        view.addSubview(subtitleLabel)
-        view.addSubview(benefitsStackView)
-        view.addSubview(continueButton)
-
-        let b1 = createBulletPoint(icon: "moon.stars.fill", color: .systemIndigo, title: "Sleep", desc: "Track your sleep stages and recovery.")
-        let b2 = createBulletPoint(icon: "heart.fill", color: .systemPink, title: "Heart Rate", desc: "Follow your resting and active heart rate.")
-        let b3 = createBulletPoint(icon: "waveform.path.ecg", color: .systemTeal, title: "Heart Rate Variability", desc: "Gauge recovery and stress resilience.")
-        
-        benefitsStackView.addArrangedSubview(b1)
-        benefitsStackView.addArrangedSubview(b2)
-        benefitsStackView.addArrangedSubview(b3)
-
-        continueButton.addTarget(self, action: #selector(continueTapped), for: .touchUpInside)
-
-        NSLayoutConstraint.activate([
-            iconImageView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 60),
-            iconImageView.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            iconImageView.widthAnchor.constraint(equalToConstant: 80),
-            iconImageView.heightAnchor.constraint(equalToConstant: 80),
-
-            titleLabel.topAnchor.constraint(equalTo: iconImageView.bottomAnchor, constant: 24),
-            titleLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 24),
-            titleLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -24),
-
-            subtitleLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 16),
-            subtitleLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 32),
-            subtitleLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -32),
-
-            benefitsStackView.topAnchor.constraint(equalTo: subtitleLabel.bottomAnchor, constant: 40),
-            benefitsStackView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 32),
-            benefitsStackView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -32),
-
-            continueButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -40),
-            continueButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 24),
-            continueButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -24),
-            continueButton.heightAnchor.constraint(equalToConstant: 56)
-        ])
-    }
-
-    private func createBulletPoint(icon: String, color: UIColor, title: String, desc: String) -> UIView {
-        let container = UIView()
-        container.translatesAutoresizingMaskIntoConstraints = false
-
-        let imageView = UIImageView(image: UIImage(systemName: icon))
-        imageView.tintColor = color
-        imageView.contentMode = .scaleAspectFit
-        imageView.translatesAutoresizingMaskIntoConstraints = false
-
-        let titleLbl = UILabel()
-        titleLbl.text = title
-        titleLbl.font = .systemFont(ofSize: 16, weight: .semibold)
-        titleLbl.translatesAutoresizingMaskIntoConstraints = false
-
-        let descLbl = UILabel()
-        descLbl.text = desc
-        descLbl.font = .systemFont(ofSize: 14, weight: .regular)
-        descLbl.textColor = .secondaryLabel
-        descLbl.numberOfLines = 0
-        descLbl.translatesAutoresizingMaskIntoConstraints = false
-
-        container.addSubview(imageView)
-        container.addSubview(titleLbl)
-        container.addSubview(descLbl)
-
-        NSLayoutConstraint.activate([
-            imageView.leadingAnchor.constraint(equalTo: container.leadingAnchor),
-            imageView.centerYAnchor.constraint(equalTo: container.centerYAnchor),
-            imageView.widthAnchor.constraint(equalToConstant: 30),
-            imageView.heightAnchor.constraint(equalToConstant: 30),
-
-            titleLbl.topAnchor.constraint(equalTo: container.topAnchor),
-            titleLbl.leadingAnchor.constraint(equalTo: imageView.trailingAnchor, constant: 16),
-            titleLbl.trailingAnchor.constraint(equalTo: container.trailingAnchor),
-
-            descLbl.topAnchor.constraint(equalTo: titleLbl.bottomAnchor, constant: 4),
-            descLbl.leadingAnchor.constraint(equalTo: titleLbl.leadingAnchor),
-            descLbl.trailingAnchor.constraint(equalTo: container.trailingAnchor),
-            descLbl.bottomAnchor.constraint(equalTo: container.bottomAnchor)
-        ])
-
-        return container
-    }
-
-    @objc private func continueTapped() {
-        continueButton.isEnabled = false
-        
-        HealthKitService.shared.authorizeHealthKit { [weak self] result in
-            Task { @MainActor in
-                // The onboarding screen explains that health data is shared with family
-                // members. A successful connect here is the user's explicit consent to
-                // share; they can revoke it anytime from Profile → Apple Health.
-                if case .success = result {
-                    DataManager.shared.setFamilyHealthSharingConsent(true)
-                }
-                self?.onCompletion?()
-            }
-        }
     }
 }
 
@@ -810,15 +656,24 @@ final class ForgotPasswordViewController: UIViewController, UITextFieldDelegate 
         return label
     }()
 
-    private lazy var backToLoginButton: UIButton = {
-        let button = UIButton(type: .system)
-        button.setTitle("Back to Login", for: .normal)
-        button.setImage(UIImage(systemName: "chevron.left"), for: .normal)
-        button.tintColor = .systemBlue
-        button.titleLabel?.font = .systemFont(ofSize: 15, weight: .medium)
-        button.imageEdgeInsets = UIEdgeInsets(top: 0, left: -8, bottom: 0, right: 0)
+    private lazy var backButton: UIButton = {
+        var config = UIButton.Configuration.plain()
+        config.image = UIImage(systemName: "chevron.left", withConfiguration: UIImage.SymbolConfiguration(pointSize: 16, weight: .semibold))
+        config.baseForegroundColor = .label
+        config.background.visualEffect = UIBlurEffect(style: .systemThickMaterial)
+        config.background.strokeColor = .systemGray4
+        config.background.strokeWidth = 0.5
+        config.cornerStyle = .capsule
+        
+        let button = UIButton(configuration: config)
         button.translatesAutoresizingMaskIntoConstraints = false
         button.addTarget(self, action: #selector(backTapped), for: .touchUpInside)
+        
+        NSLayoutConstraint.activate([
+            button.widthAnchor.constraint(equalToConstant: 40),
+            button.heightAnchor.constraint(equalToConstant: 40)
+        ])
+        
         return button
     }()
 
@@ -851,6 +706,7 @@ final class ForgotPasswordViewController: UIViewController, UITextFieldDelegate 
 
     private func setupLayout() {
         view.addSubview(scrollView)
+        view.addSubview(backButton)
         scrollView.addSubview(contentView)
         contentView.addSubview(familyImageView)
         contentView.addSubview(cardView)
@@ -870,14 +726,13 @@ final class ForgotPasswordViewController: UIViewController, UITextFieldDelegate 
         contentStack.addArrangedSubview(statusLabel)
         contentStack.addArrangedSubview(sendButton)
         contentStack.setCustomSpacing(32, after: sendButton)
-        
-        let backStack = UIStackView(arrangedSubviews: [backToLoginButton, UIView()])
-        contentStack.addArrangedSubview(backStack)
 
         view.addSubview(spinner)
 
         NSLayoutConstraint.activate([
             scrollView.topAnchor.constraint(equalTo: view.topAnchor),
+            backButton.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 16),
+            backButton.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 24),
             scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             scrollView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
