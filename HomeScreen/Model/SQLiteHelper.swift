@@ -571,6 +571,56 @@ class SQLiteHelper {
             }
         }
     }
+
+    /// Privacy Architecture (Option D): Remove any legacy or cached hourly vitals of other family members
+    func purgeOtherFamilyHourlyData(except currentProfileId: UUID) {
+        let profileKey = currentProfileId.uuidString
+        let deletions = [
+            "DELETE FROM Health_ActivityHourly WHERE profileId != '\(profileKey)';",
+            "DELETE FROM Health_VitalsHourly WHERE profileId != '\(profileKey)';"
+        ]
+
+        sync {
+            for sql in deletions {
+                var statement: OpaquePointer?
+                if sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK {
+                    sqlite3_step(statement)
+                }
+                sqlite3_finalize(statement)
+            }
+        }
+    }
+
+    /// Privacy Architecture (Option D): Purges specific metric data when permission is revoked
+    func purgeRevokedHealthData(for profileId: UUID, metric: HealthMetricType) {
+        let pid = profileId.uuidString
+        let sql: String?
+        switch metric {
+        case .steps:
+            sql = "DELETE FROM Health_ActivityDaily WHERE profileId = '\(pid)' AND type = 'steps';"
+        case .calories:
+            sql = "DELETE FROM Health_ActivityDaily WHERE profileId = '\(pid)' AND type = 'calories';"
+        case .distance:
+            sql = "DELETE FROM Health_ActivityDaily WHERE profileId = '\(pid)' AND type = 'distance';"
+        case .heartRate:
+            sql = "DELETE FROM Health_VitalsDaily WHERE profileId = '\(pid)' AND type IN ('heartRate', 'restingHeartRate');"
+        case .hrv:
+            sql = "DELETE FROM Health_VitalsDaily WHERE profileId = '\(pid)' AND type = 'hrv';"
+        case .sleep:
+            sql = "DELETE FROM Health_SleepDaily WHERE profileId = '\(pid)';"
+        case .summary:
+            sql = nil
+        }
+
+        guard let query = sql else { return }
+        sync {
+            var statement: OpaquePointer?
+            if sqlite3_prepare_v2(db, query, -1, &statement, nil) == SQLITE_OK {
+                sqlite3_step(statement)
+            }
+            sqlite3_finalize(statement)
+        }
+    }
     
     /// Ensures existing databases get new columns without requiring a full reset.
     private func migrateIfNeeded() {

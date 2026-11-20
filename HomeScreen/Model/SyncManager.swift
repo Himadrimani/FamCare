@@ -581,15 +581,8 @@ class SyncManager {
 
             let actHourly = db.fetchActivityHourly(for: pid).filter { ($0.isSynced ?? false) == false }
             if !actHourly.isEmpty {
-                registerLocallyPushedHealthRows(actHourly.map { ($0.id, isoString($0.lastUpdatedAt)) })
-                struct ActHourlyDTO: Encodable {
-                    let id: UUID; let profileId: UUID; let type: String; let value: Double
-                    let hourStart: String; let sampleCount: Int; let createdAt: String; let lastUpdatedAt: String; let isSynced: Bool?
-                }
-                let dtos = actHourly.map { ActHourlyDTO(id: $0.id, profileId: $0.profileId, type: $0.type.rawValue, value: $0.value, hourStart: isoString($0.hourStart), sampleCount: $0.sampleCount, createdAt: isoString($0.createdAt), lastUpdatedAt: isoString($0.lastUpdatedAt), isSynced: true) }
-                do { try await client.from("Health_ActivityHourly").upsert(dtos).execute()
-                    db.markAsSyncedBatch(table: "Health_ActivityHourly", idColumn: "id", ids: actHourly.map { $0.id.uuidString })
-                } catch { print("SyncManager Error pushing ActHourly: \(error)") }
+                // Privacy Architecture (Option D): Keep raw hourly telemetry strictly on local device; do not upload to cloud
+                db.markAsSyncedBatch(table: "Health_ActivityHourly", idColumn: "id", ids: actHourly.map { $0.id.uuidString })
             }
 
             let vitDaily = db.fetchVitalsDaily(for: pid).filter { ($0.isSynced ?? false) == false }
@@ -608,16 +601,8 @@ class SyncManager {
 
             let vitHourly = db.fetchVitalsHourly(for: pid).filter { ($0.isSynced ?? false) == false }
             if !vitHourly.isEmpty {
-                registerLocallyPushedHealthRows(vitHourly.map { ($0.id, isoString($0.lastUpdatedAt)) })
-                struct VitHourlyDTO: Encodable {
-                    let id: UUID; let profileId: UUID; let type: String; let hourStart: String
-                    let minValue: Double?; let avgValue: Double?; let maxValue: Double?; let sampleCount: Int
-                    let createdAt: String; let lastUpdatedAt: String; let isSynced: Bool?
-                }
-                let dtos = vitHourly.map { VitHourlyDTO(id: $0.id, profileId: $0.profileId, type: $0.type.rawValue, hourStart: isoString($0.hourStart), minValue: $0.minValue, avgValue: $0.avgValue, maxValue: $0.maxValue, sampleCount: $0.sampleCount, createdAt: isoString($0.createdAt), lastUpdatedAt: isoString($0.lastUpdatedAt), isSynced: true) }
-                do { try await client.from("Health_VitalsHourly").upsert(dtos).execute()
-                    db.markAsSyncedBatch(table: "Health_VitalsHourly", idColumn: "id", ids: vitHourly.map { $0.id.uuidString })
-                } catch { print("SyncManager Error pushing VitHourly: \(error)") }
+                // Privacy Architecture (Option D): Keep raw hourly vitals strictly on local device; do not upload to cloud
+                db.markAsSyncedBatch(table: "Health_VitalsHourly", idColumn: "id", ids: vitHourly.map { $0.id.uuidString })
             }
 
             let sleepDaily = db.fetchSleepDaily(for: pid).filter { ($0.isSynced ?? false) == false }
@@ -692,13 +677,7 @@ class SyncManager {
             }
             
             if !actHourly.isEmpty {
-                registerLocallyPushedHealthRows(actHourly.map { ($0.id, isoString($0.lastUpdatedAt)) })
-                struct ActHourlyDTO: Encodable {
-                    let id: UUID; let profileId: UUID; let type: String; let value: Double
-                    let hourStart: String; let sampleCount: Int; let createdAt: String; let lastUpdatedAt: String; let isSynced: Bool?
-                }
-                let dtos = actHourly.map { ActHourlyDTO(id: $0.id, profileId: $0.profileId, type: $0.type.rawValue, value: $0.value, hourStart: isoString($0.hourStart), sampleCount: $0.sampleCount, createdAt: isoString($0.createdAt), lastUpdatedAt: isoString($0.lastUpdatedAt), isSynced: true) }
-                try await client.from("Health_ActivityHourly").upsert(dtos).execute()
+                // Privacy Architecture (Option D): Keep raw hourly telemetry strictly on local device; do not upload to cloud
                 db.markAsSyncedBatch(table: "Health_ActivityHourly", idColumn: "id", ids: actHourly.map { $0.id.uuidString })
             }
             
@@ -715,14 +694,7 @@ class SyncManager {
             }
             
             if !vitHourly.isEmpty {
-                registerLocallyPushedHealthRows(vitHourly.map { ($0.id, isoString($0.lastUpdatedAt)) })
-                struct VitHourlyDTO: Encodable {
-                    let id: UUID; let profileId: UUID; let type: String; let hourStart: String
-                    let minValue: Double?; let avgValue: Double?; let maxValue: Double?; let sampleCount: Int
-                    let createdAt: String; let lastUpdatedAt: String; let isSynced: Bool?
-                }
-                let dtos = vitHourly.map { VitHourlyDTO(id: $0.id, profileId: $0.profileId, type: $0.type.rawValue, hourStart: isoString($0.hourStart), minValue: $0.minValue, avgValue: $0.avgValue, maxValue: $0.maxValue, sampleCount: $0.sampleCount, createdAt: isoString($0.createdAt), lastUpdatedAt: isoString($0.lastUpdatedAt), isSynced: true) }
-                try await client.from("Health_VitalsHourly").upsert(dtos).execute()
+                // Privacy Architecture (Option D): Keep raw hourly vitals strictly on local device; do not upload to cloud
                 db.markAsSyncedBatch(table: "Health_VitalsHourly", idColumn: "id", ids: vitHourly.map { $0.id.uuidString })
             }
             
@@ -1069,24 +1041,20 @@ class SyncManager {
                 return false
             }
 
-            // Task 1: Fetch all 5 health tables concurrently across all family members using batched .in queries
+            // Privacy Architecture (Option D): Purge any legacy hourly records belonging to other members
+            if let current = DataManager.shared.currentUser {
+                db.purgeOtherFamilyHourlyData(except: current.profileId)
+            }
+
+            // Task 1: Fetch daily health summaries concurrently across authorized family members.
+            // Raw hourly data remains strictly on each user's device and is not queried over the network.
             async let adTask: [ActivityDaily] = fetchAllBatched(
                 table: "Health_ActivityDaily",
                 column: "profileId",
                 values: allFamilyProfileIds
             )
-            async let ahTask: [ActivityHourly] = fetchAllBatched(
-                table: "Health_ActivityHourly",
-                column: "profileId",
-                values: allFamilyProfileIds
-            )
             async let vdTask: [VitalsDaily] = fetchAllBatched(
                 table: "Health_VitalsDaily",
-                column: "profileId",
-                values: allFamilyProfileIds
-            )
-            async let vhTask: [VitalsHourly] = fetchAllBatched(
-                table: "Health_VitalsHourly",
                 column: "profileId",
                 values: allFamilyProfileIds
             )
@@ -1096,14 +1064,12 @@ class SyncManager {
                 values: allFamilyProfileIds
             )
 
-            let (remoteAD, remoteAH, remoteVD, remoteVH, remoteSD) = try await (adTask, ahTask, vdTask, vhTask, sdTask)
+            let (remoteAD, remoteVD, remoteSD) = try await (adTask, vdTask, sdTask)
 
             // Safe Sync: Save all downloaded health rows across all family members in a single atomic transaction
             db.withTransaction {
                 db.saveActivityDailyBatch(remoteAD.map { var row = $0; row.isSynced = true; return row })
-                db.saveActivityHourlyBatch(remoteAH.map { var row = $0; row.isSynced = true; return row })
                 db.saveVitalsDailyBatch(remoteVD.map { var row = $0; row.isSynced = true; return row })
-                db.saveVitalsHourlyBatch(remoteVH.map { var row = $0; row.isSynced = true; return row })
                 db.saveSleepDailyBatch(remoteSD.map { var row = $0; row.isSynced = true; return row })
             }
 
@@ -1319,21 +1285,6 @@ class SyncManager {
         }
         channels.append(healthActDailyChannel)
         
-        let healthActHourlyChannel = client.realtimeV2.channel("public:health_activity_hourly")
-        let token13 = healthActHourlyChannel.onPostgresChange(AnyAction.self, schema: "public", table: "Health_ActivityHourly") { [weak self] action in
-            guard let self = self else { return }
-            if let record = self.extractRecord(from: action),
-               let id = self.uuid(from: record["id"]),
-               self.isLocallyPushedHealthRow(id: id, lastUpdatedAt: record["lastUpdatedAt"]?.stringValue) {
-                #if DEBUG
-                print("SyncManager: Ignoring Health_ActivityHourly self-echo (\(id))")
-                #endif
-                return
-            }
-            self.scheduleRealtimeRefresh(userId: UUID(), familyId: familyId, reason: "Health")
-        }
-        channels.append(healthActHourlyChannel)
-        
         let healthVitalsDailyChannel = client.realtimeV2.channel("public:health_vitals_daily")
         let token14 = healthVitalsDailyChannel.onPostgresChange(AnyAction.self, schema: "public", table: "Health_VitalsDaily") { [weak self] action in
             guard let self = self else { return }
@@ -1348,21 +1299,6 @@ class SyncManager {
             self.scheduleRealtimeRefresh(userId: UUID(), familyId: familyId, reason: "Health")
         }
         channels.append(healthVitalsDailyChannel)
-        
-        let healthVitalsHourlyChannel = client.realtimeV2.channel("public:health_vitals_hourly")
-        let token15 = healthVitalsHourlyChannel.onPostgresChange(AnyAction.self, schema: "public", table: "Health_VitalsHourly") { [weak self] action in
-            guard let self = self else { return }
-            if let record = self.extractRecord(from: action),
-               let id = self.uuid(from: record["id"]),
-               self.isLocallyPushedHealthRow(id: id, lastUpdatedAt: record["lastUpdatedAt"]?.stringValue) {
-                #if DEBUG
-                print("SyncManager: Ignoring Health_VitalsHourly self-echo (\(id))")
-                #endif
-                return
-            }
-            self.scheduleRealtimeRefresh(userId: UUID(), familyId: familyId, reason: "Health")
-        }
-        channels.append(healthVitalsHourlyChannel)
         
         let healthSleepDailyChannel = client.realtimeV2.channel("public:health_sleep_daily")
         let token16 = healthSleepDailyChannel.onPostgresChange(AnyAction.self, schema: "public", table: "Health_SleepDaily") { [weak self] action in
@@ -1379,14 +1315,21 @@ class SyncManager {
         }
         channels.append(healthSleepDailyChannel)
 
+        // Privacy Architecture (Option D): Listen for real-time changes to family health permissions
+        let healthPermsChannel = client.realtimeV2.channel("public:family_health_permissions")
+        let tokenPerms = healthPermsChannel.onPostgresChange(AnyAction.self, schema: "public", table: "FamilyHealthPermissions") { [weak self] _ in
+            guard let self = self else { return }
+            self.scheduleRealtimeRefresh(userId: UUID(), familyId: familyId, reason: "HealthPermissions")
+        }
+        channels.append(healthPermsChannel)
+
         observationTokens.append(token9)
         observationTokens.append(token10)
         observationTokens.append(token11)
         observationTokens.append(token12)
-        observationTokens.append(token13)
         observationTokens.append(token14)
-        observationTokens.append(token15)
         observationTokens.append(token16)
+        observationTokens.append(tokenPerms)
 
         // Connect the Realtime client
         await client.realtimeV2.connect()
@@ -1404,10 +1347,9 @@ class SyncManager {
             try await cpChannel.subscribeWithError()
             try await chatChannel.subscribeWithError()
             try await healthActDailyChannel.subscribeWithError()
-            try await healthActHourlyChannel.subscribeWithError()
             try await healthVitalsDailyChannel.subscribeWithError()
-            try await healthVitalsHourlyChannel.subscribeWithError()
             try await healthSleepDailyChannel.subscribeWithError()
+            try await healthPermsChannel.subscribeWithError()
         } catch {
             print("SyncManager: Error subscribing to Realtime channels: \(error)")
         }
