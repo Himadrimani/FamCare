@@ -5,5 +5,6 @@ xcuserdata/
 **/xcuserdata/
 .DS_Store
 .env
+.mcp.json
 .kiro/
 supabase/.temp/
