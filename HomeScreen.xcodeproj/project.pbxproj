@@ -12,6 +12,7 @@
 		F10000062F7695D6003258CA /* CreatePollViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000052F7695D6003258CA /* CreatePollViewController.swift */; };
 		0016BB0AD14ADF2E74582FAB /* ChallengeActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A8BA900A57D4B864B9A7C19 /* ChallengeActivityAttributes.swift */; };
 		031ECA9D3836F8C656C22E18 /* WidgetSharedModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2665BE0A0FAB131AAB797538 /* WidgetSharedModels.swift */; };
+		B50DB4A7A7E24A11E9469A87 /* HealthPermissionModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE4379B02B469BF9571BAF58 /* HealthPermissionModels.swift */; };
 		0AB06E680BF6B63CB8E2C6EC /* WidgetDataProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55CB799A363161BCF7E671E9 /* WidgetDataProvider.swift */; };
 		1121DFFC21DC051EAF0E80A3 /* FamilyWellnessWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0A0A413AA766E3588207108 /* FamilyWellnessWidget.swift */; };
 		2EED34D0BF3D0A3CD71E46D6 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7D6D185C9993C7AFB2AD0145 /* WidgetKit.framework */; };
@@ -182,6 +183,7 @@
 		0AADDB6BCC064D6238B32772 /* ChallengeLiveActivityView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ChallengeLiveActivityView.swift; sourceTree = "<group>"; };
 		2665BE0A0FAB131AAB797538 /* WidgetSharedModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetSharedModels.swift; sourceTree = "<group>"; };
 		3DE57E593FDE1E19E8EA9FB2 /* FamCareWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = FamCareWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		CE4379B02B469BF9571BAF58 /* HealthPermissionModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = HealthPermissionModels.swift; sourceTree = "<group>"; };
 		55CB799A363161BCF7E671E9 /* WidgetDataProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WidgetDataProvider.swift; sourceTree = "<group>"; };
 		5A8BA900A57D4B864B9A7C19 /* ChallengeActivityAttributes.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ChallengeActivityAttributes.swift; sourceTree = "<group>"; };
 		604EE3B0720C70079242E51C /* AIAssistantModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AIAssistantModels.swift; sourceTree = "<group>"; };
@@ -647,6 +649,7 @@
 				BB8CD7CE2F3D8FDC00513144 /* Profile+Wellness.swift */,
 				D6D9D1272F7695B8003258CA /* TopicChatViewModel.swift */,
 				D6D9D1292F7695B8003258CA /* TopicsViewModel.swift */,
+				CE4379B02B469BF9571BAF58 /* HealthPermissionModels.swift */,
 				55CB799A363161BCF7E671E9 /* WidgetDataProvider.swift */,
 				B4A80AA95E27B8A85F94E269 /* ChallengeActivityAttributes.swift */,
 				8023F2DFA26C039C08A63BF5 /* ChallengeActivityManager.swift */,
@@ -1021,6 +1024,7 @@
 				B12B6C0F6F5DB8EF6906B106 /* AssistantViewController.swift in Sources */,
 				31402541B29FB8B1D3051B57 /* VoiceRecognitionService.swift in Sources */,
 				C2F3F3FB713AF33405993976 /* AssistantDataProvider.swift in Sources */,
+				B50DB4A7A7E24A11E9469A87 /* HealthPermissionModels.swift in Sources */,
 				0AB06E680BF6B63CB8E2C6EC /* WidgetDataProvider.swift in Sources */,
 				BE7D28100DE7116181B97000 /* ChallengeActivityAttributes.swift in Sources */,
 				94F7B0DCCEC51BBA96018A57 /* ChallengeActivityManager.swift in Sources */,

@@ -95,11 +95,11 @@ class AssistantDataProvider {
             context += "\n"
         }
         
-        // Active challenges
+        // Active challenges (top 3 to keep prompt token-efficient)
         let activeChallenges = dm.challenges.filter { $0.status == "active" || $0.status == "pending" }
         if !activeChallenges.isEmpty {
             context += "--- ACTIVE CHALLENGES ---\n"
-            for challenge in activeChallenges {
+            for challenge in activeChallenges.prefix(3) {
                 let daysLeft = max(0, calendar.dateComponents([.day], from: today, to: challenge.endDate).day ?? 0)
                 context += "• \(challenge.name) (\(challenge.type)/\(challenge.subType)) — \(daysLeft) days left\n"
                 

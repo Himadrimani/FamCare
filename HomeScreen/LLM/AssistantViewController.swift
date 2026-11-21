@@ -57,7 +57,7 @@ class AssistantViewController: UIViewController {
     // MARK: - UI Setup
     
     private func setupUI() {
-        title = "AI Assistant"
+        title = "CareBot"
         view.backgroundColor = .systemGroupedBackground
         
         navigationItem.rightBarButtonItem = UIBarButtonItem(
