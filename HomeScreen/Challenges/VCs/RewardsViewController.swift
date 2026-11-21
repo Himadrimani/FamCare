@@ -1,79 +1,223 @@
 import UIKit
 import LinkPresentation
 
-enum AchievementType: Codable {
-    case individual
-    case family
-}
-
-struct EarnedReward: Codable {
-    let id: String
-    let type: AchievementType
-    let challengeId: String?
-    let challengeTitle: String?
-    let challengeType: String?
-    let participantsCount: Int?
-    let dateEarned: Date
-}
-
 class RewardsManager {
     static let shared = RewardsManager()
-    private var key: String {
-        let profileId = DataManager.shared.currentUser?.profileId.uuidString ?? "default"
-        return "FamCare_EarnedRewards_v3_\(profileId)"
+    
+    private var currentProfileId: String {
+        return DataManager.shared.currentUser?.profileId.uuidString ?? "default"
+    }
+    
+    private var pendingPresentedShieldIds: Set<String> = []
+    
+    private init() {
+        migrateLegacyUserDefaultsIfNeeded()
+    }
+    
+    /// Migrates any legacy rewards from UserDefaults to SQLite once
+    private func migrateLegacyUserDefaultsIfNeeded() {
+        let legacyKey = "FamCare_EarnedRewards_v3_\(currentProfileId)"
+        guard let data = UserDefaults.standard.data(forKey: legacyKey),
+              let legacy = try? JSONDecoder().decode([EarnedReward].self, from: data) else {
+            return
+        }
+        for reward in legacy {
+            var updated = reward
+            updated.hasBeenPresented = true
+            SQLiteHelper.shared.saveEarnedReward(updated)
+        }
+        UserDefaults.standard.removeObject(forKey: legacyKey)
     }
     
     var rewards: [EarnedReward] {
-        get {
-            guard let data = UserDefaults.standard.data(forKey: key),
-                  let decoded = try? JSONDecoder().decode([EarnedReward].self, from: data) else {
-                return []
+        let profileId = currentProfileId
+        var localRewards = SQLiteHelper.shared.fetchEarnedRewards(profileId: profileId)
+        
+        // Include completed challenges from DataManager as historical rewards with hasBeenPresented = true
+        // so existing shield collections are preserved without re-awarding or re-presenting.
+        if let currentUser = DataManager.shared.currentUser {
+            let allChallenges = DataManager.shared.challenges
+            let progressRecords = DataManager.shared.challengeProgress
+            
+            for challenge in allChallenges {
+                let challengeIdStr = challenge.challengeId.uuidString
+                let records = progressRecords.filter { $0.challengeId == challenge.challengeId }
+                guard records.contains(where: { $0.memberId == currentUser.profileId }) else { continue }
+                
+                let isFamilyChallenge = records.count > 1
+                let allComplete = !records.isEmpty && records.allSatisfy { $0.goalValue > 0 && $0.currentValue >= $0.goalValue }
+                
+                if isFamilyChallenge && allComplete {
+                    let rewardId = "family_shield_\(challengeIdStr)"
+                    if !localRewards.contains(where: { $0.id == rewardId || ($0.challengeId == challengeIdStr && $0.type == .family) }) {
+                        let historicalShield = EarnedReward(
+                            id: rewardId,
+                            profileId: profileId,
+                            type: .family,
+                            challengeId: challengeIdStr,
+                            challengeTitle: challenge.name,
+                            challengeType: challenge.type,
+                            participantsCount: records.count,
+                            dateEarned: challenge.endDate,
+                            hasBeenPresented: true, // Durable: already presented in history!
+                            isSynced: true,
+                            lastUpdatedAt: challenge.lastUpdatedAt
+                        )
+                        SQLiteHelper.shared.saveEarnedReward(historicalShield)
+                        localRewards.append(historicalShield)
+                    }
+                } else if !isFamilyChallenge {
+                    if let myRecord = records.first(where: { $0.memberId == currentUser.profileId }),
+                       myRecord.goalValue > 0 && myRecord.currentValue >= myRecord.goalValue {
+                        let rewardId = "individual_trophy_\(challengeIdStr)_\(profileId)"
+                        if !localRewards.contains(where: { $0.id == rewardId || ($0.challengeId == challengeIdStr && $0.type == .individual) }) {
+                            let historicalTrophy = EarnedReward(
+                                id: rewardId,
+                                profileId: profileId,
+                                type: .individual,
+                                challengeId: challengeIdStr,
+                                challengeTitle: challenge.name,
+                                challengeType: challenge.type,
+                                participantsCount: 1,
+                                dateEarned: challenge.endDate,
+                                hasBeenPresented: true, // Durable: already presented in history!
+                                isSynced: true,
+                                lastUpdatedAt: challenge.lastUpdatedAt
+                            )
+                            SQLiteHelper.shared.saveEarnedReward(historicalTrophy)
+                            localRewards.append(historicalTrophy)
+                        }
+                    }
+                }
             }
-            return decoded
         }
-        set {
-            if let encoded = try? JSONEncoder().encode(newValue) {
-                UserDefaults.standard.set(encoded, forKey: key)
-            }
+        
+        return localRewards.sorted(by: { $0.dateEarned > $1.dateEarned })
+    }
+    
+    // MARK: - Awarding Lifecycle
+    
+    /// Awards a family shield ONLY on a genuine family-wide completion transition.
+    @discardableResult
+    func awardFamilyShield(challenge: ChallengeDetails, participantsCount: Int) -> EarnedReward? {
+        let profileId = currentProfileId
+        let challengeIdStr = challenge.challengeId.uuidString
+        let rewardId = "family_shield_\(challengeIdStr)"
+        
+        let existing = SQLiteHelper.shared.fetchEarnedRewards(profileId: profileId)
+        if let existingReward = existing.first(where: { $0.id == rewardId || ($0.challengeId == challengeIdStr && $0.type == .family) }) {
+            return existingReward
         }
+        
+        let reward = EarnedReward(
+            id: rewardId,
+            profileId: profileId,
+            type: .family,
+            challengeId: challengeIdStr,
+            challengeTitle: challenge.name,
+            challengeType: challenge.type,
+            participantsCount: participantsCount,
+            dateEarned: Date(),
+            hasBeenPresented: false, // PENDING PRESENTATION
+            isSynced: false,
+            lastUpdatedAt: Date()
+        )
+        SQLiteHelper.shared.saveEarnedReward(reward)
+        NotificationCenter.default.post(name: NSNotification.Name("FamilyChallengeDidComplete"), object: nil, userInfo: ["reward": reward])
+        return reward
+    }
+    
+    /// Awards an individual trophy.
+    @discardableResult
+    func awardIndividualTrophy(challenge: ChallengeDetails, participantsCount: Int) -> EarnedReward? {
+        let profileId = currentProfileId
+        let challengeIdStr = challenge.challengeId.uuidString
+        let rewardId = "individual_trophy_\(challengeIdStr)_\(profileId)"
+        
+        let existing = SQLiteHelper.shared.fetchEarnedRewards(profileId: profileId)
+        if let existingReward = existing.first(where: { $0.id == rewardId || ($0.challengeId == challengeIdStr && $0.type == .individual) }) {
+            return existingReward
+        }
+        
+        let reward = EarnedReward(
+            id: rewardId,
+            profileId: profileId,
+            type: .individual,
+            challengeId: challengeIdStr,
+            challengeTitle: challenge.name,
+            challengeType: challenge.type,
+            participantsCount: participantsCount,
+            dateEarned: Date(),
+            hasBeenPresented: true, // Presented directly by caller
+            isSynced: false,
+            lastUpdatedAt: Date()
+        )
+        SQLiteHelper.shared.saveEarnedReward(reward)
+        return reward
     }
     
     func addReward(type: AchievementType, challengeId: String?, challengeTitle: String?, challengeType: String?, participantsCount: Int?) {
-        var current = rewards
-        if let challengeId = challengeId {
-            if current.contains(where: { $0.challengeId == challengeId && $0.type == type }) {
-                return
-            }
+        let profileId = currentProfileId
+        let cId = challengeId ?? UUID().uuidString
+        let rewardId = type == .family ? "family_shield_\(cId)" : "individual_trophy_\(cId)_\(profileId)"
+        
+        let existing = SQLiteHelper.shared.fetchEarnedRewards(profileId: profileId)
+        if existing.contains(where: { $0.id == rewardId || ($0.challengeId == challengeId && $0.type == type) }) {
+            return
         }
-        let reward = EarnedReward(id: UUID().uuidString, type: type, challengeId: challengeId, challengeTitle: challengeTitle, challengeType: challengeType, participantsCount: participantsCount, dateEarned: Date())
-        current.insert(reward, at: 0)
-        rewards = current
+        
+        let reward = EarnedReward(
+            id: rewardId,
+            profileId: profileId,
+            type: type,
+            challengeId: challengeId,
+            challengeTitle: challengeTitle,
+            challengeType: challengeType,
+            participantsCount: participantsCount,
+            dateEarned: Date(),
+            hasBeenPresented: true,
+            isSynced: false,
+            lastUpdatedAt: Date()
+        )
+        SQLiteHelper.shared.saveEarnedReward(reward)
     }
     
-    // MARK: - Shown Family Shields Tracker
-    // Tracks which family challenge shields have already been auto-presented
-    // so the modal only appears ONCE per user per completed family challenge.
-    private var shownShieldsKey: String {
-        let profileId = DataManager.shared.currentUser?.profileId.uuidString ?? "default"
-        return "FamCare_ShownShields_\(profileId)"
+    // MARK: - Presentation Lifecycle
+    
+    /// Retrieves an awarded family shield pending presentation.
+    func getPendingFamilyShieldPresentation(profileId: String) -> EarnedReward? {
+        let rewards = SQLiteHelper.shared.fetchEarnedRewards(profileId: profileId)
+        return rewards.first(where: { $0.type == .family && !$0.hasBeenPresented && !pendingPresentedShieldIds.contains($0.id) })
     }
     
+    /// Marks a family shield as presented durably in SQLite.
+    func markFamilyShieldAsPresented(rewardId: String) {
+        pendingPresentedShieldIds.insert(rewardId)
+        SQLiteHelper.shared.markEarnedRewardPresented(id: rewardId)
+    }
+    
+    /// Check whether a family shield has been presented.
     func hasShownFamilyShield(challengeId: String) -> Bool {
-        let shown = UserDefaults.standard.stringArray(forKey: shownShieldsKey) ?? []
-        return shown.contains(challengeId)
+        let rewardId = "family_shield_\(challengeId)"
+        if pendingPresentedShieldIds.contains(rewardId) {
+            return true
+        }
+        let profileId = currentProfileId
+        let rewards = SQLiteHelper.shared.fetchEarnedRewards(profileId: profileId)
+        if let reward = rewards.first(where: { ($0.id == rewardId || $0.challengeId == challengeId) && $0.type == .family }) {
+            return reward.hasBeenPresented
+        }
+        return false
     }
     
     func markFamilyShieldAsShown(challengeId: String) {
-        var shown = UserDefaults.standard.stringArray(forKey: shownShieldsKey) ?? []
-        if !shown.contains(challengeId) {
-            shown.append(challengeId)
-        }
-        UserDefaults.standard.set(shown, forKey: shownShieldsKey)
+        let rewardId = "family_shield_\(challengeId)"
+        markFamilyShieldAsPresented(rewardId: rewardId)
     }
     
     func clearAllRewards() {
-        rewards = []
-        UserDefaults.standard.removeObject(forKey: shownShieldsKey)
+        pendingPresentedShieldIds.removeAll()
+        SQLiteHelper.shared.deleteEarnedRewards(profileId: currentProfileId)
     }
 }
 
@@ -87,6 +231,13 @@ class RewardsViewController: UIViewController {
     
     private let celebrationImageView: UIImageView = {
         let iv = UIImageView(image: UIImage(named: "celebration_sticker"))
+        iv.contentMode = .scaleAspectFit
+        iv.translatesAutoresizingMaskIntoConstraints = false
+        return iv
+    }()
+    
+    private let raysImageView: UIImageView = {
+        let iv = UIImageView(image: UIImage(named: "shine_rays_sticker") ?? UIImage(named: "shine-rays-sticker"))
         iv.contentMode = .scaleAspectFit
         iv.translatesAutoresizingMaskIntoConstraints = false
         return iv
@@ -180,6 +331,7 @@ class RewardsViewController: UIViewController {
     
     private func setupUI() {
         view.addSubview(celebrationImageView)
+        view.addSubview(raysImageView)
         view.addSubview(iconImageView)
         view.addSubview(titleLabel)
         view.addSubview(descriptionLabel)
@@ -195,6 +347,11 @@ class RewardsViewController: UIViewController {
             celebrationImageView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 16),
             celebrationImageView.widthAnchor.constraint(equalToConstant: 240),
             celebrationImageView.heightAnchor.constraint(equalToConstant: 240),
+            
+            raysImageView.centerXAnchor.constraint(equalTo: iconImageView.centerXAnchor),
+            raysImageView.centerYAnchor.constraint(equalTo: iconImageView.centerYAnchor),
+            raysImageView.widthAnchor.constraint(equalToConstant: 215),
+            raysImageView.heightAnchor.constraint(equalToConstant: 215),
             
             iconImageView.centerXAnchor.constraint(equalTo: celebrationImageView.centerXAnchor),
             iconImageView.centerYAnchor.constraint(equalTo: celebrationImageView.centerYAnchor),
@@ -305,6 +462,12 @@ class RewardsViewController: UIViewController {
         sticker.contentMode = .scaleAspectFit
         sticker.frame = CGRect(x: (cardWidth - 320)/2, y: 110, width: 320, height: 320)
         container.addSubview(sticker)
+        
+        let raysSize: CGFloat = 230
+        let rays = UIImageView(image: UIImage(named: "shine_rays_sticker") ?? UIImage(named: "shine-rays-sticker"))
+        rays.contentMode = .scaleAspectFit
+        rays.frame = CGRect(x: (cardWidth - raysSize) / 2, y: 260 - (raysSize / 2), width: raysSize, height: raysSize)
+        container.addSubview(rays)
         
         let trophy = UIImageView()
         if achievementType == .individual {

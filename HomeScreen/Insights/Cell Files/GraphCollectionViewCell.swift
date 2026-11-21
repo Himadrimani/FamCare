@@ -53,14 +53,40 @@ class GraphCollectionViewCell: UICollectionViewCell {
     private func setupCardStyle() {
         self.contentView.layer.cornerRadius = 20
         self.contentView.layer.masksToBounds = true
-        self.contentView.backgroundColor = .white
+        self.contentView.backgroundColor = .systemBackground
 
         self.layer.masksToBounds = false
-        self.layer.shadowColor = UIColor.black.cgColor
-        self.layer.shadowOpacity = 0.08
+        self.layer.shadowColor = UIColor.systemBlue.cgColor
+        self.layer.shadowOpacity = 0.10
         self.layer.shadowOffset = CGSize(width: 0, height: 4)
         self.layer.shadowRadius = 12
         self.layer.shadowPath = UIBezierPath(roundedRect: self.bounds, cornerRadius: 20).cgPath
+        
+        // Subtle gradient overlay for premium feel
+        let gradientView = UIView()
+        gradientView.translatesAutoresizingMaskIntoConstraints = false
+        gradientView.isUserInteractionEnabled = false
+        contentView.insertSubview(gradientView, at: 0)
+        
+        NSLayoutConstraint.activate([
+            gradientView.topAnchor.constraint(equalTo: contentView.topAnchor),
+            gradientView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
+            gradientView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
+            gradientView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor)
+        ])
+        
+        // Light blue tinted top accent
+        let topAccent = UIView()
+        topAccent.translatesAutoresizingMaskIntoConstraints = false
+        topAccent.backgroundColor = UIColor.systemBlue.withAlphaComponent(0.04)
+        contentView.insertSubview(topAccent, at: 0)
+        
+        NSLayoutConstraint.activate([
+            topAccent.topAnchor.constraint(equalTo: contentView.topAnchor),
+            topAccent.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
+            topAccent.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
+            topAccent.heightAnchor.constraint(equalTo: contentView.heightAnchor, multiplier: 0.35)
+        ])
         
         topHighlightView.translatesAutoresizingMaskIntoConstraints = false
         topHighlightView.backgroundColor = UIColor.systemBlue.withAlphaComponent(0.06)
@@ -158,7 +184,7 @@ class GraphCollectionViewCell: UICollectionViewCell {
         }
     }
 
-    func configureCell(score: [Int], comparison: String, isWeek: Bool, profileId: UUID) {
+    func configureCell(score: [Int], comparison: String, isWeek: Bool, profileId: UUID, animated: Bool = false) {
         self.isWeek = isWeek
         
         let currentUserId = DataManager.shared.currentUser?.profileId
@@ -167,15 +193,15 @@ class GraphCollectionViewCell: UICollectionViewCell {
         if isWeek {
             xLabel = days
         } else {
-            xLabel = (1...score.count).map { "\($0)" }
+            xLabel = score.isEmpty ? [] : (1...score.count).map { "\($0)" }
         }
         
         let todayDay = Calendar.current.component(.day, from: Date())
         let todayIndex = isWeek ? (Calendar.current.component(.weekday, from: Date()) - 1) : (todayDay - 1)
-        let safeIndex = max(0, min(todayIndex, score.count - 1))
+        let safeIndex = max(0, min(todayIndex, max(0, score.count - 1)))
         
         titleLabel.text = "Today's Performance"
-        let currentScore = score[safeIndex]
+        let currentScore = score.indices.contains(safeIndex) ? score[safeIndex] : -1
         progressLabel.text = currentScore >= 0 ? "\(currentScore)%" : "--%"
 
         // Color and Symbol based on score direction (Stock market style)
@@ -248,17 +274,27 @@ class GraphCollectionViewCell: UICollectionViewCell {
             barChartView.xAxis.axisMinimum = -0.5
             barChartView.xAxis.axisMaximum = Double(monthSlots) - 0.5
         }
-        barChartView.animate(yAxisDuration: 1.0, easingOption: .easeOutBack)
+        if animated {
+            barChartView.animate(yAxisDuration: 1.0, easingOption: .easeOutBack)
+        } else {
+            barChartView.chartAnimator.stop()
+            barChartView.chartAnimator.phaseX = 1.0
+            barChartView.chartAnimator.phaseY = 1.0
+        }
     }
 
     override func layoutSubviews() {
         super.layoutSubviews()
         barChartView.frame = graphView.bounds
+        self.layer.shadowPath = UIBezierPath(roundedRect: self.bounds, cornerRadius: 20).cgPath
     }
 
     override func prepareForReuse() {
         super.prepareForReuse()
-        barChartView.data = nil
+        barChartView.chartAnimator.stop()
+        barChartView.chartAnimator.phaseX = 1.0
+        barChartView.chartAnimator.phaseY = 1.0
+        barChartView.highlightValues(nil)
         delegate = nil
     }
 }

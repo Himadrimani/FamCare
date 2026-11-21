@@ -1,8 +1,25 @@
 import Foundation
 import UIKit
+import HealthKit
 import Supabase
 import Auth
 import UserNotifications
+
+// MARK: - Scoped Notifications
+extension Notification.Name {
+    static let HealthDataDidUpdate = Notification.Name("HealthDataDidUpdate")
+    static let ChatDataDidUpdate = Notification.Name("ChatDataDidUpdate")
+    static let ChallengeDataDidUpdate = Notification.Name("ChallengeDataDidUpdate")
+    static let DataManagerDidUpdate = Notification.Name("DataManagerDidUpdate")
+}
+
+enum NotificationPayloadKey {
+    static let profileId = "profileId"             // UUID
+    static let profileIds = "profileIds"           // Set<UUID> or [UUID]
+    static let conversationId = "conversationId"   // UUID
+    static let challengeId = "challengeId"         // String or UUID
+    static let challengeIds = "challengeIds"       // Set<UUID>
+}
 
 final class DataManager {
     static let shared = DataManager()
@@ -49,6 +66,8 @@ final class DataManager {
     private let healthSyncResetKey = "healthSyncFlagsResetDone"
     private let healthKitLinkedProfileIdKey = "HealthKitLinkedProfileId"
     private var isRefreshingCurrentUserHealth = false
+    private var lastHealthKitRefreshAt: Date?
+    private let healthKitRefreshCooldown: TimeInterval = 300 // 5 minutes cooldown for non-forced refreshes
 
     // Relative identity/naming buffer
     var personalNicknames: [UUID: String] = [:]
@@ -142,21 +161,46 @@ final class DataManager {
         return profile
     }
     func signInWithApple(idToken: String, nonce: String, fullName: String?) async throws -> (profile: Profile?, sessionUser: Supabase.User) {
-        // 1. Authenticate with Apple ID token
+        // [STAGE 9] Supabase signInWithIdToken invoked
+        print("[Auth Diagnostics][Stage 9] Invoking Supabase signInWithIdToken with Apple provider")
         let session = try await SupabaseManager.shared.client.auth.signInWithIdToken(
             credentials: .init(provider: .apple, idToken: idToken, nonce: nonce)
         )
-        let authUserId = session.user.id
         
-        // 2. Try to load the profile
-        if let profile = try await loadProfileForAuthenticatedUser(userId: authUserId, persistLocally: false) {
+        let authUserId = session.user.id
+        // [STAGE 10] Supabase authentication succeeded
+        print("[Auth Diagnostics][Stage 10] Supabase authentication succeeded. Session user UUID: \(authUserId)")
+        
+        // [STAGE 11] FamCare user profile loaded or created
+        if let existingProfile = try await loadProfileForAuthenticatedUser(userId: authUserId, persistLocally: false) {
+            print("[Auth Diagnostics][Stage 11] Returning user: Existing profile found for UUID \(authUserId)")
+            // Subsequent sign-in: Do not overwrite existing profile with nil or blank values.
             SQLiteHelper.shared.clearAllData()
-            try? await saveIdentityLocally(profile: profile)
-            setCurrentUser(profileId: profile.profileId)
-            return (profile, session.user)
+            try? await saveIdentityLocally(profile: existingProfile)
+            setCurrentUser(profileId: existingProfile.profileId)
+            return (existingProfile, session.user)
         } else {
-            // Profile doesn't exist yet, return nil profile but include the user so UI can handle signup
-            return (nil, session.user)
+            // First sign-in: Profile does not exist yet. Create it using captured name and email.
+            print("[Auth Diagnostics][Stage 11] First-time sign-in: Creating new application profile for UUID \(authUserId)")
+            let email = session.user.email ?? ""
+            let rawName = fullName?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            let finalName = !rawName.isEmpty ? rawName : (email.components(separatedBy: "@").first ?? "FamCare Member")
+            let nameParts = splitName(finalName)
+            let firstName = nameParts.firstName.isEmpty ? "FamCare" : nameParts.firstName
+            let lastName = nameParts.lastName.isEmpty ? "Member" : nameParts.lastName
+            
+            let newProfile = try await createProfileForSignedUpUser(
+                profileId: authUserId,
+                firstName: firstName,
+                lastName: lastName,
+                email: email.isEmpty ? "\(authUserId.uuidString)@appleid.apple.com" : email
+            )
+            
+            SQLiteHelper.shared.clearAllData()
+            try? await saveIdentityLocally(profile: newProfile)
+            setCurrentUser(profileId: newProfile.profileId)
+            print("[Auth Diagnostics][Stage 11] Profile successfully created and saved locally for UUID \(authUserId)")
+            return (newProfile, session.user)
         }
     }
 
@@ -400,6 +444,9 @@ final class DataManager {
         // Also drop cached health data so nothing lingers in RAM after logout /
         // account deletion (the SQLite tables are wiped separately) (#12).
         clearInMemoryHealthData()
+        if #available(iOS 16.2, *) {
+            ChallengeActivityManager.shared.endAllActivities()
+        }
     }
 
     /// Sends a password-recovery email via Supabase Auth. The email contains a secure link that
@@ -594,7 +641,7 @@ final class DataManager {
                 self.applyBootstrapSnapshot(snapshot)
                 self.migrateProfilePicturesToSupabaseIfNeeded()
                 NotificationCenter.default.post(name: NSNotification.Name("DataManagerDidUpdate"), object: nil)
-                self.refreshCurrentUserHealthDataFromHealthKit()
+                self.refreshCurrentUserHealthDataFromHealthKit(force: true)
 
                 guard triggerSync else { return }
 
@@ -614,7 +661,7 @@ final class DataManager {
     }
 
     @discardableResult
-    private func loadFromSQLite() -> Bool {
+    func loadFromSQLite() -> Bool {
         let snapshot = makeBootstrapSnapshot()
         applyBootstrapSnapshot(snapshot)
         return snapshot.hasEssentialData
@@ -874,6 +921,14 @@ final class DataManager {
         ensureTopicMessagesLoaded(for: [topicId])
     }
 
+    func reloadTopicMessages(for topicId: UUID) {
+        let fetched = SQLiteHelper.shared.fetchTopicMessages(for: topicId)
+        topicMessages.removeAll { $0.topicId == topicId }
+        topicMessages.append(contentsOf: fetched)
+        topicMessages.sort { ($0.createdAt ?? .distantPast) < ($1.createdAt ?? .distantPast) }
+        loadedTopicMessageTopicIds.insert(topicId)
+    }
+
     func ensureTopicMessagesLoaded(for topicIds: [UUID]) {
         ensureTopicsLoadedForCurrentUser(includeMessages: false)
 
@@ -900,27 +955,75 @@ final class DataManager {
     }
 
     func ensureHealthDataLoaded(for profileId: UUID) {
+        // Fast path: check if already loaded under lock
         healthBufferLock.lock()
-        defer { healthBufferLock.unlock() }
-
         if loadedHealthProfileIds.contains(profileId) {
+            healthBufferLock.unlock()
             return
         }
+        healthBufferLock.unlock()
 
+        // Fetch from SQLite OUTSIDE of healthBufferLock to prevent lock contention
+        // and lock-order inversion between healthBufferLock and SQLiteHelper.queue.
         let sqlite = SQLiteHelper.shared
+        let vitalsDaily = sqlite.fetchVitalsDaily(for: profileId)
+        let vitalsHourly = sqlite.fetchVitalsHourly(for: profileId)
+        let activityDaily = sqlite.fetchActivityDaily(for: profileId)
+        let activityHourly = sqlite.fetchActivityHourly(for: profileId)
+        let sleepDaily = sqlite.fetchSleepDaily(for: profileId)
+
+        // Swap into in-memory buffers under lock
+        healthBufferLock.lock()
+        defer { healthBufferLock.unlock() }
+        guard !loadedHealthProfileIds.contains(profileId) else { return }
+
         allVitalsDaily.removeAll { $0.profileId == profileId }
         allVitalsHourly.removeAll { $0.profileId == profileId }
         allActivityDaily.removeAll { $0.profileId == profileId }
         allActivityHourly.removeAll { $0.profileId == profileId }
         allSleepDaily.removeAll { $0.profileId == profileId }
 
-        allVitalsDaily.append(contentsOf: sqlite.fetchVitalsDaily(for: profileId))
-        allVitalsHourly.append(contentsOf: sqlite.fetchVitalsHourly(for: profileId))
-        allActivityDaily.append(contentsOf: sqlite.fetchActivityDaily(for: profileId))
-        allActivityHourly.append(contentsOf: sqlite.fetchActivityHourly(for: profileId))
-        allSleepDaily.append(contentsOf: sqlite.fetchSleepDaily(for: profileId))
+        allVitalsDaily.append(contentsOf: vitalsDaily)
+        allVitalsHourly.append(contentsOf: vitalsHourly)
+        allActivityDaily.append(contentsOf: activityDaily)
+        allActivityHourly.append(contentsOf: activityHourly)
+        allSleepDaily.append(contentsOf: sleepDaily)
 
         loadedHealthProfileIds.insert(profileId)
+    }
+
+    func reloadHealthData(for profileId: UUID) {
+        let sqlite = SQLiteHelper.shared
+        
+        let newVitalsDaily = sqlite.fetchVitalsDaily(for: profileId)
+        let newVitalsHourly = sqlite.fetchVitalsHourly(for: profileId)
+        let newActivityDaily = sqlite.fetchActivityDaily(for: profileId)
+        let newActivityHourly = sqlite.fetchActivityHourly(for: profileId)
+        let newSleepDaily = sqlite.fetchSleepDaily(for: profileId)
+        
+        healthBufferLock.lock()
+        
+        allVitalsDaily.removeAll { $0.profileId == profileId }
+        allVitalsHourly.removeAll { $0.profileId == profileId }
+        allActivityDaily.removeAll { $0.profileId == profileId }
+        allActivityHourly.removeAll { $0.profileId == profileId }
+        allSleepDaily.removeAll { $0.profileId == profileId }
+        
+        allVitalsDaily.append(contentsOf: newVitalsDaily)
+        allVitalsHourly.append(contentsOf: newVitalsHourly)
+        allActivityDaily.append(contentsOf: newActivityDaily)
+        allActivityHourly.append(contentsOf: newActivityHourly)
+        allSleepDaily.append(contentsOf: newSleepDaily)
+        
+        loadedHealthProfileIds.insert(profileId)
+        healthBufferLock.unlock()
+        
+        NotificationCenter.default.post(
+            name: .HealthDataDidUpdate,
+            object: nil,
+            userInfo: [NotificationPayloadKey.profileId: profileId]
+        )
+        NotificationCenter.default.post(name: .DataManagerDidUpdate, object: nil)
     }
 
     func reloadHealthDataAsync(for profileId: UUID) {
@@ -928,31 +1031,38 @@ final class DataManager {
             guard let self = self else { return }
             let sqlite = SQLiteHelper.shared
             
+            // 1. Execute SQLite fetch operations entirely on the background queue
             let newVitalsDaily = sqlite.fetchVitalsDaily(for: profileId)
             let newVitalsHourly = sqlite.fetchVitalsHourly(for: profileId)
             let newActivityDaily = sqlite.fetchActivityDaily(for: profileId)
             let newActivityHourly = sqlite.fetchActivityHourly(for: profileId)
             let newSleepDaily = sqlite.fetchSleepDaily(for: profileId)
             
+            // 2. Thread-safe swap into in-memory buffers under lock
+            self.healthBufferLock.lock()
+            self.allVitalsDaily.removeAll { $0.profileId == profileId }
+            self.allVitalsHourly.removeAll { $0.profileId == profileId }
+            self.allActivityDaily.removeAll { $0.profileId == profileId }
+            self.allActivityHourly.removeAll { $0.profileId == profileId }
+            self.allSleepDaily.removeAll { $0.profileId == profileId }
+            
+            self.allVitalsDaily.append(contentsOf: newVitalsDaily)
+            self.allVitalsHourly.append(contentsOf: newVitalsHourly)
+            self.allActivityDaily.append(contentsOf: newActivityDaily)
+            self.allActivityHourly.append(contentsOf: newActivityHourly)
+            self.allSleepDaily.append(contentsOf: newSleepDaily)
+            
+            self.loadedHealthProfileIds.insert(profileId)
+            self.healthBufferLock.unlock()
+            
+            // 3. Notify observers on the main thread only after database I/O is finished
             DispatchQueue.main.async {
-                self.healthBufferLock.lock()
-                
-                self.allVitalsDaily.removeAll { $0.profileId == profileId }
-                self.allVitalsHourly.removeAll { $0.profileId == profileId }
-                self.allActivityDaily.removeAll { $0.profileId == profileId }
-                self.allActivityHourly.removeAll { $0.profileId == profileId }
-                self.allSleepDaily.removeAll { $0.profileId == profileId }
-                
-                self.allVitalsDaily.append(contentsOf: newVitalsDaily)
-                self.allVitalsHourly.append(contentsOf: newVitalsHourly)
-                self.allActivityDaily.append(contentsOf: newActivityDaily)
-                self.allActivityHourly.append(contentsOf: newActivityHourly)
-                self.allSleepDaily.append(contentsOf: newSleepDaily)
-                
-                self.loadedHealthProfileIds.insert(profileId)
-                self.healthBufferLock.unlock()
-                
-                NotificationCenter.default.post(name: NSNotification.Name("DataManagerDidUpdate"), object: nil)
+                NotificationCenter.default.post(
+                    name: .HealthDataDidUpdate,
+                    object: nil,
+                    userInfo: [NotificationPayloadKey.profileId: profileId]
+                )
+                NotificationCenter.default.post(name: .DataManagerDidUpdate, object: nil)
             }
         }
     }
@@ -1072,9 +1182,13 @@ final class DataManager {
             allActivityHourly.removeAll()
             allSleepDaily.removeAll()
             
+            // Privacy Architecture (Option D): Purge any other profile's hourly readings from SQLite on disk
+            sqlite.purgeOtherFamilyHourlyData(except: profileId)
+            
             print("DataManager: Switched current user to \(newCurrent.firstName).")
+            WellnessCache.shared.invalidateAll()
             NotificationCenter.default.post(name: NSNotification.Name("DataManagerDidUpdate"), object: nil)
-            refreshCurrentUserHealthDataFromHealthKit()
+            refreshCurrentUserHealthDataFromHealthKit(force: true)
             
             // Immediately refresh remote-backed data for the newly selected user.
             // Without this, family members can remain on stale/empty local health caches.
@@ -1108,7 +1222,12 @@ final class DataManager {
             challenges.append(updatedChallenge)
         }
         
-        NotificationCenter.default.post(name: NSNotification.Name("DataManagerDidUpdate"), object: nil)
+        NotificationCenter.default.post(
+            name: .ChallengeDataDidUpdate,
+            object: nil,
+            userInfo: [NotificationPayloadKey.challengeId: updatedChallenge.challengeId]
+        )
+        NotificationCenter.default.post(name: .DataManagerDidUpdate, object: nil)
         
         Task {
             await SyncManager.shared.pushUnsyncedData()
@@ -1121,7 +1240,12 @@ final class DataManager {
         
         SQLiteHelper.shared.deleteChallengeDetails(challengeId: challenge.challengeId)
         
-        NotificationCenter.default.post(name: NSNotification.Name("DataManagerDidUpdate"), object: nil)
+        NotificationCenter.default.post(
+            name: .ChallengeDataDidUpdate,
+            object: nil,
+            userInfo: [NotificationPayloadKey.challengeId: challenge.challengeId]
+        )
+        NotificationCenter.default.post(name: .DataManagerDidUpdate, object: nil)
         
         Task {
             SyncManager.shared.deleteChallengeDetailsRemote(challengeId: challenge.challengeId)
@@ -1183,7 +1307,13 @@ final class DataManager {
     func insertDirectMessage(_ message: Message) {
         messages.append(message)
         SQLiteHelper.shared.saveMessage(message)
-        NotificationCenter.default.post(name: NSNotification.Name("DataManagerDidUpdate"), object: nil)
+        let conversationId = (message.senderId == currentUser?.profileId) ? message.receiverId : message.senderId
+        NotificationCenter.default.post(
+            name: .ChatDataDidUpdate,
+            object: nil,
+            userInfo: [NotificationPayloadKey.conversationId: conversationId]
+        )
+        NotificationCenter.default.post(name: .DataManagerDidUpdate, object: nil)
         // Immediately push to Supabase without waiting for periodic sync
         SyncManager.shared.pushNewDirectMessage(message)
     }
@@ -1192,7 +1322,13 @@ final class DataManager {
         if let index = messages.firstIndex(where: { $0.messageId == message.messageId }) {
             messages[index] = message
             SQLiteHelper.shared.saveMessage(message)
-            NotificationCenter.default.post(name: NSNotification.Name("DataManagerDidUpdate"), object: nil)
+            let conversationId = (message.senderId == currentUser?.profileId) ? message.receiverId : message.senderId
+            NotificationCenter.default.post(
+                name: .ChatDataDidUpdate,
+                object: nil,
+                userInfo: [NotificationPayloadKey.conversationId: conversationId]
+            )
+            NotificationCenter.default.post(name: .DataManagerDidUpdate, object: nil)
             SyncManager.shared.pushNewDirectMessage(message)
         }
     }
@@ -1200,7 +1336,13 @@ final class DataManager {
     func deleteMessage(_ message: Message) {
         messages.removeAll(where: { $0.messageId == message.messageId })
         SQLiteHelper.shared.deleteMessage(id: message.messageId)
-        NotificationCenter.default.post(name: NSNotification.Name("DataManagerDidUpdate"), object: nil)
+        let conversationId = (message.senderId == currentUser?.profileId) ? message.receiverId : message.senderId
+        NotificationCenter.default.post(
+            name: .ChatDataDidUpdate,
+            object: nil,
+            userInfo: [NotificationPayloadKey.conversationId: conversationId]
+        )
+        NotificationCenter.default.post(name: .DataManagerDidUpdate, object: nil)
         SyncManager.shared.deleteMessageRemote(id: message.messageId)
     }
     
@@ -1219,7 +1361,12 @@ final class DataManager {
             newMembers.append(member)
         }
         
-        NotificationCenter.default.post(name: NSNotification.Name("DataManagerDidUpdate"), object: nil)
+        NotificationCenter.default.post(
+            name: .ChatDataDidUpdate,
+            object: nil,
+            userInfo: [NotificationPayloadKey.conversationId: newTopic.id]
+        )
+        NotificationCenter.default.post(name: .DataManagerDidUpdate, object: nil)
         // Immediately push to Supabase
         SyncManager.shared.pushNewTopic(newTopic, members: newMembers)
         return newTopic
@@ -1229,7 +1376,12 @@ final class DataManager {
         topicMessages.append(message)
         loadedTopicMessageTopicIds.insert(message.topicId)
         SQLiteHelper.shared.saveTopicMessage(message)
-        NotificationCenter.default.post(name: NSNotification.Name("DataManagerDidUpdate"), object: nil)
+        NotificationCenter.default.post(
+            name: .ChatDataDidUpdate,
+            object: nil,
+            userInfo: [NotificationPayloadKey.conversationId: message.topicId]
+        )
+        NotificationCenter.default.post(name: .DataManagerDidUpdate, object: nil)
         // Immediately push to Supabase
         SyncManager.shared.pushNewTopicMessage(message)
     }
@@ -1237,7 +1389,12 @@ final class DataManager {
     func deleteTopicMessage(_ message: TopicMessage) {
         topicMessages.removeAll(where: { $0.id == message.id })
         SQLiteHelper.shared.deleteTopicMessage(id: message.id)
-        NotificationCenter.default.post(name: NSNotification.Name("DataManagerDidUpdate"), object: nil)
+        NotificationCenter.default.post(
+            name: .ChatDataDidUpdate,
+            object: nil,
+            userInfo: [NotificationPayloadKey.conversationId: message.topicId]
+        )
+        NotificationCenter.default.post(name: .DataManagerDidUpdate, object: nil)
         SyncManager.shared.deleteTopicMessageRemote(id: message.id)
     }
     
@@ -1245,7 +1402,12 @@ final class DataManager {
         if let member = topicMembers.first(where: { $0.topicId == topicId && $0.userId == memberId }) {
             topicMembers.removeAll(where: { $0.id == member.id })
             SQLiteHelper.shared.deleteTopicMember(id: member.id)
-            NotificationCenter.default.post(name: NSNotification.Name("DataManagerDidUpdate"), object: nil)
+            NotificationCenter.default.post(
+                name: .ChatDataDidUpdate,
+                object: nil,
+                userInfo: [NotificationPayloadKey.conversationId: topicId]
+            )
+            NotificationCenter.default.post(name: .DataManagerDidUpdate, object: nil)
             SyncManager.shared.leaveTopicRemote(memberId: member.id)
         }
     }
@@ -1253,7 +1415,12 @@ final class DataManager {
     func deleteTopic(_ topic: Topic) {
         topics.removeAll(where: { $0.id == topic.id })
         SQLiteHelper.shared.deleteTopic(id: topic.id)
-        NotificationCenter.default.post(name: NSNotification.Name("DataManagerDidUpdate"), object: nil)
+        NotificationCenter.default.post(
+            name: .ChatDataDidUpdate,
+            object: nil,
+            userInfo: [NotificationPayloadKey.conversationId: topic.id]
+        )
+        NotificationCenter.default.post(name: .DataManagerDidUpdate, object: nil)
         SyncManager.shared.deleteTopicRemote(id: topic.id)
     }
 
@@ -1549,6 +1716,13 @@ extension DataManager {
         } else {
             Task { await SyncManager.shared.deleteCurrentUserRemoteHealthData() }
         }
+        if let pid = currentUser?.profileId {
+            NotificationCenter.default.post(
+                name: .HealthDataDidUpdate,
+                object: nil,
+                userInfo: [NotificationPayloadKey.profileId: pid]
+            )
+        }
         NotificationCenter.default.post(name: NSNotification.Name("DataManagerDidUpdate"), object: nil)
     }
 
@@ -1563,18 +1737,17 @@ extension DataManager {
     
     /// True when currently logged-in user is the device profile that should sync HealthKit.
     func isCurrentUserHealthKitLinked() -> Bool {
-        #if targetEnvironment(simulator)
-        return false
-        #else
-        guard let currentUser, let linked = linkedHealthKitProfileId() else { return false }
+        guard let currentUser, let linked = linkedHealthKitProfileId() else {
+            if let currentUser {
+                return resolveOrCreateHealthKitLink(for: currentUser)
+            }
+            return false
+        }
         return currentUser.profileId == linked
-        #endif
     }
     
-    private func resolveOrCreateHealthKitLink(for profile: Profile) -> Bool {
-        #if targetEnvironment(simulator)
-        return false
-        #else
+    @discardableResult
+    func resolveOrCreateHealthKitLink(for profile: Profile) -> Bool {
         if let linked = linkedHealthKitProfileId() {
             let knownProfiles = [currentUser].compactMap { $0 } + allProfiles
             let linkedStillExists = knownProfiles.contains(where: { $0.profileId == linked })
@@ -1618,22 +1791,25 @@ extension DataManager {
             }
         }
         
-        // No reliable owner resolution: skip HealthKit sync instead of risking wrong-profile overwrite.
-        return false
-        #endif
+        setLinkedHealthKitProfileId(profile.profileId)
+        return true
     }
     
-    func refreshCurrentUserHealthDataFromHealthKit() {
-        #if targetEnvironment(simulator)
-        print("DataManager: Running on Simulator. Skipping HealthKit, fetching from Supabase.")
-        return
-        #else
-        
+    func refreshCurrentUserHealthDataFromHealthKit(force: Bool = false) {
+        guard HKHealthStore.isHealthDataAvailable() else { return }
         guard !isRefreshingCurrentUserHealth else { return }
         guard let currentUser else { return }
         guard resolveOrCreateHealthKitLink(for: currentUser) else {
             #if DEBUG
             print("HealthKit sync skipped: current profile is not linked to this device HealthKit owner.")
+            #endif
+            return
+        }
+
+        // Check cooldown unless caller explicitly forces the refresh (e.g. manual user pull or initial load)
+        if !force, let last = lastHealthKitRefreshAt, Date().timeIntervalSince(last) < healthKitRefreshCooldown {
+            #if DEBUG
+            print("HealthKit sync skipped: refreshed \(Int(Date().timeIntervalSince(last)))s ago (cooldown \(Int(healthKitRefreshCooldown))s).")
             #endif
             return
         }
@@ -1646,6 +1822,9 @@ extension DataManager {
             defer {
                 DispatchQueue.main.async {
                     self.isRefreshingCurrentUserHealth = false
+                    if case .success = result {
+                        self.lastHealthKitRefreshAt = Date()
+                    }
                 }
             }
 
@@ -1666,7 +1845,8 @@ extension DataManager {
                     sleepDaily: payload.sleepDaily
                 )
 
-                self.reloadHealthDataAsync(for: currentUser.profileId)
+                self.reloadHealthData(for: currentUser.profileId)
+                WidgetDataProvider.shared.pushToWidget()
                 
                 // Immediately publish current user's HealthKit data to Supabase
                 // so other family logins can see real data without waiting for periodic sync.
@@ -1675,7 +1855,62 @@ extension DataManager {
                 }
             }
         }
-        #endif
+    }
+
+    // MARK: - Health Permissions Management
+    func fetchMyHealthPermissions() async throws -> [FamilyHealthPermission] {
+        guard let currentUser = currentUser else { return [] }
+        return try await SupabaseManager.shared.client
+            .from("FamilyHealthPermissions")
+            .select()
+            .eq("ownerProfileId", value: currentUser.profileId.uuidString)
+            .execute()
+            .value
+    }
+
+    func fetchPermissionsGrantedToMe() async throws -> [FamilyHealthPermission] {
+        guard let currentUser = currentUser else { return [] }
+        return try await SupabaseManager.shared.client
+            .from("FamilyHealthPermissions")
+            .select()
+            .eq("viewerProfileId", value: currentUser.profileId.uuidString)
+            .execute()
+            .value
+    }
+
+    func setHealthPermission(
+        viewerProfileId: UUID,
+        metricType: HealthMetricType,
+        isAllowed: Bool,
+        permissionLevel: HealthPermissionLevel = .summaryOnly
+    ) async throws {
+        guard let currentUser = currentUser,
+              let familyId = family?.familyId else { return }
+
+        struct UpsertPermissionDTO: Encodable {
+            let familyId: String
+            let ownerProfileId: String
+            let viewerProfileId: String
+            let metricType: String
+            let permissionLevel: String
+            let isAllowed: Bool
+            let updatedAt: String
+        }
+
+        let dto = UpsertPermissionDTO(
+            familyId: familyId.uuidString,
+            ownerProfileId: currentUser.profileId.uuidString,
+            viewerProfileId: viewerProfileId.uuidString,
+            metricType: metricType.rawValue,
+            permissionLevel: permissionLevel.rawValue,
+            isAllowed: isAllowed,
+            updatedAt: Date().ISO8601Format()
+        )
+
+        try await SupabaseManager.shared.client
+            .from("FamilyHealthPermissions")
+            .upsert(dto, onConflict: "ownerProfileId,viewerProfileId,metricType")
+            .execute()
     }
 }
 

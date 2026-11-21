@@ -72,7 +72,7 @@ class MessageViewController: UIViewController {
         collectionView.register(UINib(nibName: "MessageCollectionViewCell", bundle: nil), forCellWithReuseIdentifier: "message_cell")
         
         // UI Updates: Rename title and segments
-        titleLabel.text = "Connect"
+        titleLabel.text = "Care Connect"
         segmentedControl.setTitle("Members", forSegmentAt: 0)
         segmentedControl.setTitle("Groups", forSegmentAt: 1)
         

@@ -1,0 +1,758 @@
+Command line invocation:
+    /Applications/Xcode.app/Contents/Developer/usr/bin/xcodebuild -project HomeScreen.xcodeproj -scheme HomeScreen -sdk iphonesimulator -destination "generic/platform=iOS Simulator" build
+
+Build settings from command line:
+    SDKROOT = iphonesimulator27.0
+
+Resolve Package Graph
+
+
+Resolved source packages:
+  swift-clocks: https://github.com/pointfreeco/swift-clocks @ 1.0.6
+  swift-asn1: https://github.com/apple/swift-asn1.git @ 1.6.0
+  Supabase: https://github.com/supabase/supabase-swift.git @ 2.43.0
+  DGCharts: https://github.com/ChartsOrg/Charts.git @ 5.1.0
+  swift-concurrency-extras: https://github.com/pointfreeco/swift-concurrency-extras @ 1.3.2
+  swift-crypto: https://github.com/apple/swift-crypto.git @ 4.3.0
+  swift-http-types: https://github.com/apple/swift-http-types.git @ 1.5.1
+  xctest-dynamic-overlay: https://github.com/pointfreeco/xctest-dynamic-overlay @ 1.9.0
+
+ComputePackagePrebuildTargetDependencyGraph
+
+Prepare packages
+
+CreateBuildRequest
+
+SendProjectDescription
+
+CreateBuildOperation
+
+ComputeTargetDependencyGraph
+note: Building targets in dependency order
+note: Target dependency graph (27 targets)
+    Target 'HomeScreen' in project 'HomeScreen'
+        ➜ Explicit dependency on target 'FamCareWidgetExtension' in project 'HomeScreen'
+        ➜ Explicit dependency on target 'Supabase-product' in project 'Supabase'
+        ➜ Explicit dependency on target 'DGCharts-product' in project 'DGCharts'
+    Target 'DGCharts-product' in project 'DGCharts'
+        ➜ Explicit dependency on target 'DGCharts' in project 'DGCharts'
+        ➜ Explicit dependency on target 'DGCharts_DGCharts' in project 'DGCharts'
+    Target 'DGCharts' in project 'DGCharts'
+        ➜ Explicit dependency on target 'DGCharts_DGCharts' in project 'DGCharts'
+    Target 'DGCharts_DGCharts' in project 'DGCharts' (no dependencies)
+    Target 'Supabase-product' in project 'Supabase'
+        ➜ Explicit dependency on target 'Supabase' in project 'Supabase'
+        ➜ Explicit dependency on target 'Functions' in project 'Supabase'
+        ➜ Explicit dependency on target 'PostgREST' in project 'Supabase'
+        ➜ Explicit dependency on target 'Auth' in project 'Supabase'
+        ➜ Explicit dependency on target 'Realtime' in project 'Supabase'
+        ➜ Explicit dependency on target 'Storage' in project 'Supabase'
+        ➜ Explicit dependency on target 'Helpers' in project 'Supabase'
+        ➜ Explicit dependency on target 'ConcurrencyExtras-product' in project 'swift-concurrency-extras'
+        ➜ Explicit dependency on target 'HTTPTypes-product' in project 'swift-http-types'
+        ➜ Explicit dependency on target 'Clocks-product' in project 'swift-clocks'
+        ➜ Explicit dependency on target 'XCTestDynamicOverlay-product' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'Crypto-product' in project 'swift-crypto'
+        ➜ Explicit dependency on target 'IssueReporting-product' in project 'xctest-dynamic-overlay'
+    Target 'Supabase' in project 'Supabase'
+        ➜ Explicit dependency on target 'Helpers' in project 'Supabase'
+        ➜ Explicit dependency on target 'Auth' in project 'Supabase'
+        ➜ Explicit dependency on target 'Functions' in project 'Supabase'
+        ➜ Explicit dependency on target 'PostgREST' in project 'Supabase'
+        ➜ Explicit dependency on target 'Realtime' in project 'Supabase'
+        ➜ Explicit dependency on target 'Storage' in project 'Supabase'
+        ➜ Explicit dependency on target 'ConcurrencyExtras-product' in project 'swift-concurrency-extras'
+        ➜ Explicit dependency on target 'HTTPTypes-product' in project 'swift-http-types'
+        ➜ Explicit dependency on target 'Clocks-product' in project 'swift-clocks'
+        ➜ Explicit dependency on target 'XCTestDynamicOverlay-product' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'Crypto-product' in project 'swift-crypto'
+        ➜ Explicit dependency on target 'IssueReporting-product' in project 'xctest-dynamic-overlay'
+    Target 'Storage' in project 'Supabase'
+        ➜ Explicit dependency on target 'Helpers' in project 'Supabase'
+        ➜ Explicit dependency on target 'ConcurrencyExtras-product' in project 'swift-concurrency-extras'
+        ➜ Explicit dependency on target 'HTTPTypes-product' in project 'swift-http-types'
+        ➜ Explicit dependency on target 'Clocks-product' in project 'swift-clocks'
+        ➜ Explicit dependency on target 'XCTestDynamicOverlay-product' in project 'xctest-dynamic-overlay'
+    Target 'Realtime' in project 'Supabase'
+        ➜ Explicit dependency on target 'Helpers' in project 'Supabase'
+        ➜ Explicit dependency on target 'ConcurrencyExtras-product' in project 'swift-concurrency-extras'
+        ➜ Explicit dependency on target 'HTTPTypes-product' in project 'swift-http-types'
+        ➜ Explicit dependency on target 'Clocks-product' in project 'swift-clocks'
+        ➜ Explicit dependency on target 'XCTestDynamicOverlay-product' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'IssueReporting-product' in project 'xctest-dynamic-overlay'
+    Target 'PostgREST' in project 'Supabase'
+        ➜ Explicit dependency on target 'Helpers' in project 'Supabase'
+        ➜ Explicit dependency on target 'ConcurrencyExtras-product' in project 'swift-concurrency-extras'
+        ➜ Explicit dependency on target 'HTTPTypes-product' in project 'swift-http-types'
+        ➜ Explicit dependency on target 'Clocks-product' in project 'swift-clocks'
+        ➜ Explicit dependency on target 'XCTestDynamicOverlay-product' in project 'xctest-dynamic-overlay'
+    Target 'Functions' in project 'Supabase'
+        ➜ Explicit dependency on target 'Helpers' in project 'Supabase'
+        ➜ Explicit dependency on target 'ConcurrencyExtras-product' in project 'swift-concurrency-extras'
+        ➜ Explicit dependency on target 'HTTPTypes-product' in project 'swift-http-types'
+        ➜ Explicit dependency on target 'Clocks-product' in project 'swift-clocks'
+        ➜ Explicit dependency on target 'XCTestDynamicOverlay-product' in project 'xctest-dynamic-overlay'
+    Target 'Auth' in project 'Supabase'
+        ➜ Explicit dependency on target 'Helpers' in project 'Supabase'
+        ➜ Explicit dependency on target 'ConcurrencyExtras-product' in project 'swift-concurrency-extras'
+        ➜ Explicit dependency on target 'HTTPTypes-product' in project 'swift-http-types'
+        ➜ Explicit dependency on target 'Clocks-product' in project 'swift-clocks'
+        ➜ Explicit dependency on target 'XCTestDynamicOverlay-product' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'Crypto-product' in project 'swift-crypto'
+    Target 'Crypto-product' in project 'swift-crypto'
+        ➜ Explicit dependency on target 'Crypto' in project 'swift-crypto'
+        ➜ Explicit dependency on target 'swift-crypto_Crypto' in project 'swift-crypto'
+    Target 'Crypto' in project 'swift-crypto'
+        ➜ Explicit dependency on target 'swift-crypto_Crypto' in project 'swift-crypto'
+    Target 'swift-crypto_Crypto' in project 'swift-crypto' (no dependencies)
+    Target 'Helpers' in project 'Supabase'
+        ➜ Explicit dependency on target 'ConcurrencyExtras-product' in project 'swift-concurrency-extras'
+        ➜ Explicit dependency on target 'HTTPTypes-product' in project 'swift-http-types'
+        ➜ Explicit dependency on target 'Clocks-product' in project 'swift-clocks'
+        ➜ Explicit dependency on target 'XCTestDynamicOverlay-product' in project 'xctest-dynamic-overlay'
+    Target 'XCTestDynamicOverlay-product' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'XCTestDynamicOverlay' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'IssueReportingPackageSupport' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'IssueReporting' in project 'xctest-dynamic-overlay'
+    Target 'XCTestDynamicOverlay' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'IssueReportingPackageSupport' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'IssueReporting' in project 'xctest-dynamic-overlay'
+    Target 'Clocks-product' in project 'swift-clocks'
+        ➜ Explicit dependency on target 'Clocks' in project 'swift-clocks'
+        ➜ Explicit dependency on target 'ConcurrencyExtras-product' in project 'swift-concurrency-extras'
+        ➜ Explicit dependency on target 'IssueReporting-product' in project 'xctest-dynamic-overlay'
+    Target 'Clocks' in project 'swift-clocks'
+        ➜ Explicit dependency on target 'ConcurrencyExtras-product' in project 'swift-concurrency-extras'
+        ➜ Explicit dependency on target 'IssueReporting-product' in project 'xctest-dynamic-overlay'
+    Target 'IssueReporting-product' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'IssueReporting' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'IssueReportingPackageSupport' in project 'xctest-dynamic-overlay'
+    Target 'IssueReporting' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'IssueReportingPackageSupport' in project 'xctest-dynamic-overlay'
+    Target 'IssueReportingPackageSupport' in project 'xctest-dynamic-overlay' (no dependencies)
+    Target 'HTTPTypes-product' in project 'swift-http-types'
+        ➜ Explicit dependency on target 'HTTPTypes' in project 'swift-http-types'
+    Target 'HTTPTypes' in project 'swift-http-types' (no dependencies)
+    Target 'ConcurrencyExtras-product' in project 'swift-concurrency-extras'
+        ➜ Explicit dependency on target 'ConcurrencyExtras' in project 'swift-concurrency-extras'
+    Target 'ConcurrencyExtras' in project 'swift-concurrency-extras' (no dependencies)
+    Target 'FamCareWidgetExtension' in project 'HomeScreen' (no dependencies)
+
+GatherProvisioningInputs
+
+CreateBuildDescription
+
+ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/usr/bin/actool --version --output-format xml1
+
+ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc --version
+
+ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -v -E -dM -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk -x c -c /dev/null
+
+ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/usr/bin/ibtool --version --output-format xml1
+
+ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/usr/bin/actool --print-asset-tag-combinations --output-format xml1 /Users/namanmittal/Downloads/ProjectiOS 2/HomeScreen/Assets.xcassets
+
+ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/ld -version_details
+
+ReadFileContents /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/share/docc/features.json
+
+Build description signature: 19e50ba451447adcc5606adfd871c801
+Build description path: /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/XCBuildData/19e50ba451447adcc5606adfd871c801.xcbuilddata
+ClangStatCache /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang-stat-cache /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk /Users/namanmittal/Library/Developer/Xcode/DerivedData/SDKStatCaches.noindex/iphonesimulator27.0-24A430-8dc58220667be655e1bcc261a7455254.sdkstatcache
+    cd /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen.xcodeproj
+    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang-stat-cache /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk -o /Users/namanmittal/Library/Developer/Xcode/DerivedData/SDKStatCaches.noindex/iphonesimulator27.0-24A430-8dc58220667be655e1bcc261a7455254.sdkstatcache
+
+ProcessInfoPlistFile /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Products/Debug-iphonesimulator/swift-crypto_Crypto.bundle/Info.plist /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/swift-crypto.build/Debug-iphonesimulator/swift-crypto_Crypto-b.build/empty-swift-crypto_Crypto.plist (in target 'swift-crypto_Crypto' from project 'swift-crypto')
+    cd /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/SourcePackages/checkouts/swift-crypto
+    builtin-infoPlistUtility /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/swift-crypto.build/Debug-iphonesimulator/swift-crypto_Crypto-b.build/empty-swift-crypto_Crypto.plist -producttype com.apple.product-type.bundle -expandbuildsettings -format binary -platform iphonesimulator -o /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Products/Debug-iphonesimulator/swift-crypto_Crypto.bundle/Info.plist
+
+ProcessInfoPlistFile /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Products/Debug-iphonesimulator/DGCharts_DGCharts.bundle/Info.plist /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/DGCharts.build/Debug-iphonesimulator/DGCharts_DGCharts-b.build/empty-DGCharts_DGCharts.plist (in target 'DGCharts_DGCharts' from project 'DGCharts')
+    cd /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/SourcePackages/checkouts/Charts
+    builtin-infoPlistUtility /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/DGCharts.build/Debug-iphonesimulator/DGCharts_DGCharts-b.build/empty-DGCharts_DGCharts.plist -producttype com.apple.product-type.bundle -expandbuildsettings -format binary -platform iphonesimulator -o /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Products/Debug-iphonesimulator/DGCharts_DGCharts.bundle/Info.plist
+
+ProcessInfoPlistFile /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Products/Debug-iphonesimulator/FamCareWidgetExtension.appex/Info.plist /Users/namanmittal/Downloads/ProjectiOS\ 2/FamCareWidget/Info.plist (in target 'FamCareWidgetExtension' from project 'HomeScreen')
+    cd /Users/namanmittal/Downloads/ProjectiOS\ 2
+    builtin-infoPlistUtility /Users/namanmittal/Downloads/ProjectiOS\ 2/FamCareWidget/Info.plist -producttype com.apple.product-type.app-extension -expandbuildsettings -format binary -platform iphonesimulator -additionalcontentfile /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/HomeScreen.build/Debug-iphonesimulator/FamCareWidgetExtension.build/assetcatalog_generated_info.plist -o /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Products/Debug-iphonesimulator/FamCareWidgetExtension.appex/Info.plist
+
+SwiftDriver HomeScreen normal arm64 com.apple.xcode.tools.swift.compiler (in target 'HomeScreen' from project 'HomeScreen')
+    cd /Users/namanmittal/Downloads/ProjectiOS\ 2
+    builtin-SwiftDriver -- /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc -module-name HomeScreen -Onone @/Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/HomeScreen.build/Debug-iphonesimulator/HomeScreen.build/Objects-normal/arm64/HomeScreen.SwiftFileList -DDEBUG -default-isolation\=MainActor -enable-bare-slash-regex -enable-upcoming-feature DisableOutwardActorInference -enable-upcoming-feature InferSendableFromCaptures -enable-upcoming-feature GlobalActorIsolatedTypesUsability -enable-upcoming-feature MemberImportVisibility -enable-upcoming-feature InferIsolatedConformances -enable-upcoming-feature NonisolatedNonsendingByDefault -enable-experimental-feature DebugDescriptionMacro -sdk /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk -target arm64-apple-ios26.0-simulator -g -module-cache-path /Users/namanmittal/Library/Developer/Xcode/DerivedData/ModuleCache.noindex -Xfrontend -serialize-debugging-options -enable-testing -index-store-path /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Index.noindex/DataStore -Xcc -D_LIBCPP_HARDENING_MODE\=_LIBCPP_HARDENING_MODE_DEBUG -swift-version 5 -I /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Products/Debug-iphonesimulator -F /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Products/Debug-iphonesimulator/PackageFrameworks -F /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Products/Debug-iphonesimulator -emit-localized-strings -emit-localized-strings-path /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/HomeScreen.build/Debug-iphonesimulator/HomeScreen.build/Objects-normal/arm64 -c -j10 -enable-batch-mode -incremental -Xcc -ivfsstatcache -Xcc /Users/namanmittal/Library/Developer/Xcode/DerivedData/SDKStatCaches.noindex/iphonesimulator27.0-24A430-8dc58220667be655e1bcc261a7455254.sdkstatcache -output-file-map /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/HomeScreen.build/Debug-iphonesimulator/HomeScreen.build/Objects-normal/arm64/HomeScreen-OutputFileMap.json -save-temps -no-color-diagnostics -explicit-module-build -module-cache-path /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules -clang-scanner-module-cache-path /Users/namanmittal/Library/Developer/Xcode/DerivedData/ModuleCache.noindex -sdk-module-cache-path /Users/namanmittal/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules -emit-dependencies -emit-module -emit-module-path /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/HomeScreen.build/Debug-iphonesimulator/HomeScreen.build/Objects-normal/arm64/HomeScreen.swiftmodule -serialize-diagnostics -dependency-scan-serialize-diagnostics-path /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/HomeScreen.build/Debug-iphonesimulator/HomeScreen.build/Objects-normal/arm64/HomeScreen-dependency-scan.dia -validate-clang-modules-once -clang-build-session-file /Users/namanmittal/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/Session.modulevalidation -Xcc -fmodules-prune-interval\=86400 -Xcc -fmodules-prune-after\=345600 -emit-const-values -const-gather-protocols-list /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/HomeScreen.build/Debug-iphonesimulator/HomeScreen.build/Objects-normal/arm64/HomeScreen_const_extract_protocols.json -Xcc -iquote -Xcc /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/HomeScreen.build/Debug-iphonesimulator/HomeScreen.build/HomeScreen-generated-files.hmap -Xcc -I/Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/HomeScreen.build/Debug-iphonesimulator/HomeScreen.build/HomeScreen-own-target-headers.hmap -Xcc -I/Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/HomeScreen.build/Debug-iphonesimulator/HomeScreen.build/HomeScreen-all-non-framework-target-headers.hmap -Xcc -ivfsoverlay -Xcc /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/HomeScreen.build/Debug-iphonesimulator/HomeScreen-d20ce10c2f88b7962ddb16c8eeb675c4-VFS-iphonesimulator/all-product-headers.yaml -Xcc -iquote -Xcc /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/HomeScreen.build/Debug-iphonesimulator/HomeScreen.build/HomeScreen-project-headers.hmap -Xcc -I/Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Products/Debug-iphonesimulator/include -Xcc -I/Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/HomeScreen.build/Debug-iphonesimulator/HomeScreen.build/DerivedSources-normal/arm64 -Xcc -I/Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/HomeScreen.build/Debug-iphonesimulator/HomeScreen.build/DerivedSources/arm64 -Xcc -I/Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/HomeScreen.build/Debug-iphonesimulator/HomeScreen.build/DerivedSources -Xcc -DDEBUG\=1 -emit-objc-header -emit-objc-header-path /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/HomeScreen.build/Debug-iphonesimulator/HomeScreen.build/Objects-normal/arm64/HomeScreen-Swift.h -working-directory /Users/namanmittal/Downloads/ProjectiOS\ 2 -experimental-emit-module-separately -disable-cmo
+
+SwiftDriver HomeScreen normal x86_64 com.apple.xcode.tools.swift.compiler (in target 'HomeScreen' from project 'HomeScreen')
+    cd /Users/namanmittal/Downloads/ProjectiOS\ 2
+    builtin-SwiftDriver -- /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc -module-name HomeScreen -Onone @/Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/HomeScreen.build/Debug-iphonesimulator/HomeScreen.build/Objects-normal/x86_64/HomeScreen.SwiftFileList -DDEBUG -default-isolation\=MainActor -enable-bare-slash-regex -enable-upcoming-feature DisableOutwardActorInference -enable-upcoming-feature InferSendableFromCaptures -enable-upcoming-feature GlobalActorIsolatedTypesUsability -enable-upcoming-feature MemberImportVisibility -enable-upcoming-feature InferIsolatedConformances -enable-upcoming-feature NonisolatedNonsendingByDefault -enable-experimental-feature DebugDescriptionMacro -sdk /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk -target x86_64-apple-ios26.0-simulator -g -module-cache-path /Users/namanmittal/Library/Developer/Xcode/DerivedData/ModuleCache.noindex -Xfrontend -serialize-debugging-options -enable-testing -index-store-path /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Index.noindex/DataStore -Xcc -D_LIBCPP_HARDENING_MODE\=_LIBCPP_HARDENING_MODE_DEBUG -swift-version 5 -I /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Products/Debug-iphonesimulator -F /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Products/Debug-iphonesimulator/PackageFrameworks -F /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Products/Debug-iphonesimulator -emit-localized-strings -emit-localized-strings-path /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/HomeScreen.build/Debug-iphonesimulator/HomeScreen.build/Objects-normal/x86_64 -c -j10 -enable-batch-mode -incremental -Xcc -ivfsstatcache -Xcc /Users/namanmittal/Library/Developer/Xcode/DerivedData/SDKStatCaches.noindex/iphonesimulator27.0-24A430-8dc58220667be655e1bcc261a7455254.sdkstatcache -output-file-map /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/HomeScreen.build/Debug-iphonesimulator/HomeScreen.build/Objects-normal/x86_64/HomeScreen-OutputFileMap.json -save-temps -no-color-diagnostics -explicit-module-build -module-cache-path /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules -clang-scanner-module-cache-path /Users/namanmittal/Library/Developer/Xcode/DerivedData/ModuleCache.noindex -sdk-module-cache-path /Users/namanmittal/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules -emit-dependencies -emit-module -emit-module-path /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/HomeScreen.build/Debug-iphonesimulator/HomeScreen.build/Objects-normal/x86_64/HomeScreen.swiftmodule -serialize-diagnostics -dependency-scan-serialize-diagnostics-path /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/HomeScreen.build/Debug-iphonesimulator/HomeScreen.build/Objects-normal/x86_64/HomeScreen-dependency-scan.dia -validate-clang-modules-once -clang-build-session-file /Users/namanmittal/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/Session.modulevalidation -Xcc -fmodules-prune-interval\=86400 -Xcc -fmodules-prune-after\=345600 -emit-const-values -const-gather-protocols-list /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/HomeScreen.build/Debug-iphonesimulator/HomeScreen.build/Objects-normal/x86_64/HomeScreen_const_extract_protocols.json -Xcc -iquote -Xcc /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/HomeScreen.build/Debug-iphonesimulator/HomeScreen.build/HomeScreen-generated-files.hmap -Xcc -I/Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/HomeScreen.build/Debug-iphonesimulator/HomeScreen.build/HomeScreen-own-target-headers.hmap -Xcc -I/Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/HomeScreen.build/Debug-iphonesimulator/HomeScreen.build/HomeScreen-all-non-framework-target-headers.hmap -Xcc -ivfsoverlay -Xcc /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/HomeScreen.build/Debug-iphonesimulator/HomeScreen-d20ce10c2f88b7962ddb16c8eeb675c4-VFS-iphonesimulator/all-product-headers.yaml -Xcc -iquote -Xcc /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/HomeScreen.build/Debug-iphonesimulator/HomeScreen.build/HomeScreen-project-headers.hmap -Xcc -I/Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Products/Debug-iphonesimulator/include -Xcc -I/Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/HomeScreen.build/Debug-iphonesimulator/HomeScreen.build/DerivedSources-normal/x86_64 -Xcc -I/Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/HomeScreen.build/Debug-iphonesimulator/HomeScreen.build/DerivedSources/x86_64 -Xcc -I/Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/HomeScreen.build/Debug-iphonesimulator/HomeScreen.build/DerivedSources -Xcc -DDEBUG\=1 -emit-objc-header -emit-objc-header-path /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/HomeScreen.build/Debug-iphonesimulator/HomeScreen.build/Objects-normal/x86_64/HomeScreen-Swift.h -working-directory /Users/namanmittal/Downloads/ProjectiOS\ 2 -experimental-emit-module-separately -disable-cmo
+
+SwiftDriver Auth normal x86_64 com.apple.xcode.tools.swift.compiler (in target 'Auth' from project 'Supabase')
+    cd /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen.xcodeproj
+    builtin-SwiftDriver -- /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc -parse-as-library -module-name Auth -Onone @/Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Auth-t.build/Objects-normal/x86_64/Auth.SwiftFileList -DSWIFT_PACKAGE -DDEBUG -DSWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE -DXcode -enable-upcoming-feature ExistentialAny -enable-experimental-feature StrictConcurrency -plugin-path /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing -enable-experimental-feature DebugDescriptionMacro -sdk /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk -target x86_64-apple-ios15.0-simulator -g -module-cache-path /Users/namanmittal/Library/Developer/Xcode/DerivedData/ModuleCache.noindex -Xfrontend -serialize-debugging-options -enable-testing -suppress-warnings -index-store-path /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Index.noindex/DataStore -Xcc -D_LIBCPP_HARDENING_MODE\=_LIBCPP_HARDENING_MODE_DEBUG -swift-version 5 -I /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Products/Debug-iphonesimulator -Isystem /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/usr/lib -F /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Products/Debug-iphonesimulator/PackageFrameworks -F /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Products/Debug-iphonesimulator -F /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/Library/Frameworks -F /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk/Developer/Library/Frameworks -c -j10 -enable-batch-mode -incremental -Xcc -ivfsstatcache -Xcc /Users/namanmittal/Library/Developer/Xcode/DerivedData/SDKStatCaches.noindex/iphonesimulator27.0-24A430-8dc58220667be655e1bcc261a7455254.sdkstatcache -output-file-map /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Auth-t.build/Objects-normal/x86_64/Auth-OutputFileMap.json -save-temps -no-color-diagnostics -explicit-module-build -module-cache-path /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules -clang-scanner-module-cache-path /Users/namanmittal/Library/Developer/Xcode/DerivedData/ModuleCache.noindex -sdk-module-cache-path /Users/namanmittal/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules -emit-dependencies -emit-module -emit-module-path /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Auth-t.build/Objects-normal/x86_64/Auth.swiftmodule -serialize-diagnostics -dependency-scan-serialize-diagnostics-path /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Auth-t.build/Objects-normal/x86_64/Auth-dependency-scan.dia -validate-clang-modules-once -clang-build-session-file /Users/namanmittal/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/Session.modulevalidation -Xcc -fmodules-prune-interval\=86400 -Xcc -fmodules-prune-after\=345600 -package-name supabase_swift -emit-const-values -const-gather-protocols-list /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Auth-t.build/Objects-normal/x86_64/Auth_const_extract_protocols.json -Xcc -I/Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Products/Debug-iphonesimulator/include -Xcc -I/Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Auth-t.build/DerivedSources-normal/x86_64 -Xcc -I/Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Auth-t.build/DerivedSources/x86_64 -Xcc -I/Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Auth-t.build/DerivedSources -Xcc -DSWIFT_PACKAGE -Xcc -DDEBUG\=1 -emit-objc-header -emit-objc-header-path /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Auth-t.build/Objects-normal/x86_64/Auth-Swift.h -working-directory /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen.xcodeproj -experimental-emit-module-separately -disable-cmo
+
+SwiftDriver Auth normal arm64 com.apple.xcode.tools.swift.compiler (in target 'Auth' from project 'Supabase')
+    cd /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen.xcodeproj
+    builtin-SwiftDriver -- /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc -parse-as-library -module-name Auth -Onone @/Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Auth-t.build/Objects-normal/arm64/Auth.SwiftFileList -DSWIFT_PACKAGE -DDEBUG -DSWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE -DXcode -enable-upcoming-feature ExistentialAny -enable-experimental-feature StrictConcurrency -plugin-path /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing -enable-experimental-feature DebugDescriptionMacro -sdk /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk -target arm64-apple-ios15.0-simulator -g -module-cache-path /Users/namanmittal/Library/Developer/Xcode/DerivedData/ModuleCache.noindex -Xfrontend -serialize-debugging-options -enable-testing -suppress-warnings -index-store-path /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Index.noindex/DataStore -Xcc -D_LIBCPP_HARDENING_MODE\=_LIBCPP_HARDENING_MODE_DEBUG -swift-version 5 -I /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Products/Debug-iphonesimulator -Isystem /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/usr/lib -F /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Products/Debug-iphonesimulator/PackageFrameworks -F /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Products/Debug-iphonesimulator -F /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/Library/Frameworks -F /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk/Developer/Library/Frameworks -c -j10 -enable-batch-mode -incremental -Xcc -ivfsstatcache -Xcc /Users/namanmittal/Library/Developer/Xcode/DerivedData/SDKStatCaches.noindex/iphonesimulator27.0-24A430-8dc58220667be655e1bcc261a7455254.sdkstatcache -output-file-map /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Auth-t.build/Objects-normal/arm64/Auth-OutputFileMap.json -save-temps -no-color-diagnostics -explicit-module-build -module-cache-path /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules -clang-scanner-module-cache-path /Users/namanmittal/Library/Developer/Xcode/DerivedData/ModuleCache.noindex -sdk-module-cache-path /Users/namanmittal/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules -emit-dependencies -emit-module -emit-module-path /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Auth-t.build/Objects-normal/arm64/Auth.swiftmodule -serialize-diagnostics -dependency-scan-serialize-diagnostics-path /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Auth-t.build/Objects-normal/arm64/Auth-dependency-scan.dia -validate-clang-modules-once -clang-build-session-file /Users/namanmittal/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/Session.modulevalidation -Xcc -fmodules-prune-interval\=86400 -Xcc -fmodules-prune-after\=345600 -package-name supabase_swift -emit-const-values -const-gather-protocols-list /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Auth-t.build/Objects-normal/arm64/Auth_const_extract_protocols.json -Xcc -I/Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Products/Debug-iphonesimulator/include -Xcc -I/Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Auth-t.build/DerivedSources-normal/arm64 -Xcc -I/Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Auth-t.build/DerivedSources/arm64 -Xcc -I/Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Auth-t.build/DerivedSources -Xcc -DSWIFT_PACKAGE -Xcc -DDEBUG\=1 -emit-objc-header -emit-objc-header-path /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Auth-t.build/Objects-normal/arm64/Auth-Swift.h -working-directory /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen.xcodeproj -experimental-emit-module-separately -disable-cmo
+
+LinkAssetCatalog /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Assets.xcassets (in target 'HomeScreen' from project 'HomeScreen')
+    cd /Users/namanmittal/Downloads/ProjectiOS\ 2
+    builtin-linkAssetCatalog --thinned /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/HomeScreen.build/Debug-iphonesimulator/HomeScreen.build/assetcatalog_output/thinned --thinned-dependencies /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/HomeScreen.build/Debug-iphonesimulator/HomeScreen.build/assetcatalog_dependencies_thinned --thinned-info-plist-content /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/HomeScreen.build/Debug-iphonesimulator/HomeScreen.build/assetcatalog_generated_info.plist_thinned --unthinned /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/HomeScreen.build/Debug-iphonesimulator/HomeScreen.build/assetcatalog_output/unthinned --unthinned-dependencies /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/HomeScreen.build/Debug-iphonesimulator/HomeScreen.build/assetcatalog_dependencies_unthinned --unthinned-info-plist-content /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/HomeScreen.build/Debug-iphonesimulator/HomeScreen.build/assetcatalog_generated_info.plist_unthinned --output /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Products/Debug-iphonesimulator/HomeScreen.app --plist-output /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/HomeScreen.build/Debug-iphonesimulator/HomeScreen.build/assetcatalog_generated_info.plist
+note: Emplaced /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Products/Debug-iphonesimulator/HomeScreen.app/Assets.car (in target 'HomeScreen' from project 'HomeScreen')
+note: Emplaced /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Products/Debug-iphonesimulator/HomeScreen.app/AppIcon60x60@2x.png (in target 'HomeScreen' from project 'HomeScreen')
+note: Emplaced /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Products/Debug-iphonesimulator/HomeScreen.app/AppIcon76x76@2x~ipad.png (in target 'HomeScreen' from project 'HomeScreen')
+
+SwiftDriver\ Compilation Auth normal x86_64 com.apple.xcode.tools.swift.compiler (in target 'Auth' from project 'Supabase')
+    cd /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen.xcodeproj
+    builtin-Swift-Compilation -- /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc -parse-as-library -module-name Auth -Onone @/Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Auth-t.build/Objects-normal/x86_64/Auth.SwiftFileList -DSWIFT_PACKAGE -DDEBUG -DSWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE -DXcode -enable-upcoming-feature ExistentialAny -enable-experimental-feature StrictConcurrency -plugin-path /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing -enable-experimental-feature DebugDescriptionMacro -sdk /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk -target x86_64-apple-ios15.0-simulator -g -module-cache-path /Users/namanmittal/Library/Developer/Xcode/DerivedData/ModuleCache.noindex -Xfrontend -serialize-debugging-options -enable-testing -suppress-warnings -index-store-path /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Index.noindex/DataStore -Xcc -D_LIBCPP_HARDENING_MODE\=_LIBCPP_HARDENING_MODE_DEBUG -swift-version 5 -I /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Products/Debug-iphonesimulator -Isystem /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/usr/lib -F /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Products/Debug-iphonesimulator/PackageFrameworks -F /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Products/Debug-iphonesimulator -F /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/Library/Frameworks -F /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk/Developer/Library/Frameworks -c -j10 -enable-batch-mode -incremental -Xcc -ivfsstatcache -Xcc /Users/namanmittal/Library/Developer/Xcode/DerivedData/SDKStatCaches.noindex/iphonesimulator27.0-24A430-8dc58220667be655e1bcc261a7455254.sdkstatcache -output-file-map /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Auth-t.build/Objects-normal/x86_64/Auth-OutputFileMap.json -save-temps -no-color-diagnostics -explicit-module-build -module-cache-path /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules -clang-scanner-module-cache-path /Users/namanmittal/Library/Developer/Xcode/DerivedData/ModuleCache.noindex -sdk-module-cache-path /Users/namanmittal/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules -emit-dependencies -emit-module -emit-module-path /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Auth-t.build/Objects-normal/x86_64/Auth.swiftmodule -serialize-diagnostics -dependency-scan-serialize-diagnostics-path /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Auth-t.build/Objects-normal/x86_64/Auth-dependency-scan.dia -validate-clang-modules-once -clang-build-session-file /Users/namanmittal/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/Session.modulevalidation -Xcc -fmodules-prune-interval\=86400 -Xcc -fmodules-prune-after\=345600 -package-name supabase_swift -emit-const-values -const-gather-protocols-list /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Auth-t.build/Objects-normal/x86_64/Auth_const_extract_protocols.json -Xcc -I/Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Products/Debug-iphonesimulator/include -Xcc -I/Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Auth-t.build/DerivedSources-normal/x86_64 -Xcc -I/Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Auth-t.build/DerivedSources/x86_64 -Xcc -I/Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Auth-t.build/DerivedSources -Xcc -DSWIFT_PACKAGE -Xcc -DDEBUG\=1 -emit-objc-header -emit-objc-header-path /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Auth-t.build/Objects-normal/x86_64/Auth-Swift.h -working-directory /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen.xcodeproj -experimental-emit-module-separately -disable-cmo
+
+SwiftDriver\ Compilation Auth normal arm64 com.apple.xcode.tools.swift.compiler (in target 'Auth' from project 'Supabase')
+    cd /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen.xcodeproj
+    builtin-Swift-Compilation -- /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc -parse-as-library -module-name Auth -Onone @/Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Auth-t.build/Objects-normal/arm64/Auth.SwiftFileList -DSWIFT_PACKAGE -DDEBUG -DSWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE -DXcode -enable-upcoming-feature ExistentialAny -enable-experimental-feature StrictConcurrency -plugin-path /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing -enable-experimental-feature DebugDescriptionMacro -sdk /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk -target arm64-apple-ios15.0-simulator -g -module-cache-path /Users/namanmittal/Library/Developer/Xcode/DerivedData/ModuleCache.noindex -Xfrontend -serialize-debugging-options -enable-testing -suppress-warnings -index-store-path /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Index.noindex/DataStore -Xcc -D_LIBCPP_HARDENING_MODE\=_LIBCPP_HARDENING_MODE_DEBUG -swift-version 5 -I /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Products/Debug-iphonesimulator -Isystem /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/usr/lib -F /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Products/Debug-iphonesimulator/PackageFrameworks -F /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Products/Debug-iphonesimulator -F /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/Library/Frameworks -F /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk/Developer/Library/Frameworks -c -j10 -enable-batch-mode -incremental -Xcc -ivfsstatcache -Xcc /Users/namanmittal/Library/Developer/Xcode/DerivedData/SDKStatCaches.noindex/iphonesimulator27.0-24A430-8dc58220667be655e1bcc261a7455254.sdkstatcache -output-file-map /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Auth-t.build/Objects-normal/arm64/Auth-OutputFileMap.json -save-temps -no-color-diagnostics -explicit-module-build -module-cache-path /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules -clang-scanner-module-cache-path /Users/namanmittal/Library/Developer/Xcode/DerivedData/ModuleCache.noindex -sdk-module-cache-path /Users/namanmittal/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules -emit-dependencies -emit-module -emit-module-path /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Auth-t.build/Objects-normal/arm64/Auth.swiftmodule -serialize-diagnostics -dependency-scan-serialize-diagnostics-path /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Auth-t.build/Objects-normal/arm64/Auth-dependency-scan.dia -validate-clang-modules-once -clang-build-session-file /Users/namanmittal/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/Session.modulevalidation -Xcc -fmodules-prune-interval\=86400 -Xcc -fmodules-prune-after\=345600 -package-name supabase_swift -emit-const-values -const-gather-protocols-list /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Auth-t.build/Objects-normal/arm64/Auth_const_extract_protocols.json -Xcc -I/Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Products/Debug-iphonesimulator/include -Xcc -I/Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Auth-t.build/DerivedSources-normal/arm64 -Xcc -I/Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Auth-t.build/DerivedSources/arm64 -Xcc -I/Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Auth-t.build/DerivedSources -Xcc -DSWIFT_PACKAGE -Xcc -DDEBUG\=1 -emit-objc-header -emit-objc-header-path /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Auth-t.build/Objects-normal/arm64/Auth-Swift.h -working-directory /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen.xcodeproj -experimental-emit-module-separately -disable-cmo
+
+Ld /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Auth-t.build/Objects-normal/x86_64/Binary/Auth.o normal x86_64 (in target 'Auth' from project 'Supabase')
+    cd /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/SourcePackages/checkouts/supabase-swift
+    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -Xlinker -reproducible -target x86_64-apple-ios15.0-simulator -r -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk -O0 -w -Xlinker -no_warn_duplicate_libraries -F/Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/EagerLinkingTBDs/Debug-iphonesimulator -F/Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Products/Debug-iphonesimulator/PackageFrameworks -F/Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Products/Debug-iphonesimulator -iframework /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/Library/Frameworks -iframework /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk/Developer/Library/Frameworks -filelist /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Auth-t.build/Objects-normal/x86_64/Auth.LinkFileList -nostdlib -Xlinker -object_path_lto -Xlinker /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Auth-t.build/Objects-normal/x86_64/Auth_lto.o -Xlinker -no_deduplicate -Xlinker -objc_abi_version -Xlinker 2 -Xlinker -dependency_info -Xlinker /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Auth-t.build/Objects-normal/x86_64/Auth_dependency_info.dat -fobjc-link-runtime -L/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/iphonesimulator -L/usr/lib/swift -Xlinker -add_ast_path -Xlinker /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Auth-t.build/Objects-normal/x86_64/Auth.swiftmodule -o /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Auth-t.build/Objects-normal/x86_64/Binary/Auth.o
+
+Ld /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Auth-t.build/Objects-normal/arm64/Binary/Auth.o normal arm64 (in target 'Auth' from project 'Supabase')
+    cd /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/SourcePackages/checkouts/supabase-swift
+    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -Xlinker -reproducible -target arm64-apple-ios15.0-simulator -r -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk -O0 -w -Xlinker -no_warn_duplicate_libraries -F/Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/EagerLinkingTBDs/Debug-iphonesimulator -F/Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Products/Debug-iphonesimulator/PackageFrameworks -F/Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Products/Debug-iphonesimulator -iframework /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/Library/Frameworks -iframework /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk/Developer/Library/Frameworks -filelist /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Auth-t.build/Objects-normal/arm64/Auth.LinkFileList -nostdlib -Xlinker -object_path_lto -Xlinker /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Auth-t.build/Objects-normal/arm64/Auth_lto.o -Xlinker -no_deduplicate -Xlinker -objc_abi_version -Xlinker 2 -Xlinker -dependency_info -Xlinker /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Auth-t.build/Objects-normal/arm64/Auth_dependency_info.dat -fobjc-link-runtime -L/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/iphonesimulator -L/usr/lib/swift -Xlinker -add_ast_path -Xlinker /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Auth-t.build/Objects-normal/arm64/Auth.swiftmodule -o /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Auth-t.build/Objects-normal/arm64/Binary/Auth.o
+
+CreateUniversalBinary /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Products/Debug-iphonesimulator/Auth.o normal arm64\ x86_64 (in target 'Auth' from project 'Supabase')
+    cd /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/SourcePackages/checkouts/supabase-swift
+    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/lipo -create /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Auth-t.build/Objects-normal/arm64/Binary/Auth.o /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Auth-t.build/Objects-normal/x86_64/Binary/Auth.o -output /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Products/Debug-iphonesimulator/Auth.o
+
+ExtractAppIntentsMetadata (in target 'Auth' from project 'Supabase')
+    cd /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/SourcePackages/checkouts/supabase-swift
+    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/appintentsmetadataprocessor --toolchain-dir /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain --module-name Auth --sdk-root /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk --xcode-version 27A266a --platform-family iOS --deployment-target 15.0 --bundle-identifier supabase-swift.Auth --output /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Products/Debug-iphonesimulator/Auth.appintents --target-triple arm64-apple-ios15.0-simulator --target-triple x86_64-apple-ios15.0-simulator --binary-file /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Products/Debug-iphonesimulator/Auth.o --dependency-file /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Auth-t.build/Objects-normal/arm64/Auth_dependency_info.dat --dependency-file /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Auth-t.build/Objects-normal/x86_64/Auth_dependency_info.dat --stringsdata-file /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Auth-t.build/Objects-normal/arm64/ExtractedAppShortcutsMetadata.stringsdata --stringsdata-file /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Auth-t.build/Objects-normal/x86_64/ExtractedAppShortcutsMetadata.stringsdata --source-file-list /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Auth-t.build/Objects-normal/arm64/Auth.SwiftFileList --source-file-list /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Auth-t.build/Objects-normal/x86_64/Auth.SwiftFileList --metadata-file-list /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Auth-t.build/Auth.DependencyMetadataFileList --static-metadata-file-list /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Auth-t.build/Auth.DependencyStaticMetadataFileList --swift-const-vals-list /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Auth-t.build/Objects-normal/arm64/Auth.SwiftConstValuesFileList --swift-const-vals-list /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/Supabase.build/Debug-iphonesimulator/Auth-t.build/Objects-normal/x86_64/Auth.SwiftConstValuesFileList --force --compile-time-extraction --deployment-aware-processing --no-app-shortcuts-localization
+2026-10-07 14:08:48.393 appintentsmetadataprocessor[6305:106981] Starting appintentsmetadataprocessor export
+2026-10-07 14:08:48.467 appintentsmetadataprocessor[6305:106981] Extracted no relevant App Intents symbols, skipping writing output
+
+SwiftCompile normal x86_64 Compiling\ EditWellnessViewController.swift,\ WellnessViewController.swift,\ QuickSelectChallengeCollectionViewCell.swift,\ HealthKitService.swift,\ ChallengeFirstViewController.swift,\ InsightFirstViewController.swift,\ GraphCollectionViewCell.swift,\ TopicSentMessageCollectionViewCell.swift,\ TopicReceivedMessageCollectionViewCell.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Insights/Cell\ Files/EditWellnessViewController.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Insights/VCs/WellnessViewController.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Challenges/Cell\ Files/QuickSelectChallengeCollectionViewCell.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Model/HealthKitService.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Challenges/VCs/ChallengeFirstViewController.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Insights/VCs/InsightFirstViewController.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Insights/Cell\ Files/GraphCollectionViewCell.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Messages/Cell\ Files/TopicSentMessageCollectionViewCell.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Messages/Cell\ Files/TopicReceivedMessageCollectionViewCell.swift (in target 'HomeScreen' from project 'HomeScreen')
+
+SwiftCompile normal x86_64 /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Insights/Cell\ Files/EditWellnessViewController.swift (in target 'HomeScreen' from project 'HomeScreen')
+    cd /Users/namanmittal/Downloads/ProjectiOS\ 2
+    builtin-SwiftPerFileCompile EditWellnessViewController.swift
+
+SwiftCompile normal x86_64 /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Insights/VCs/WellnessViewController.swift (in target 'HomeScreen' from project 'HomeScreen')
+    cd /Users/namanmittal/Downloads/ProjectiOS\ 2
+    builtin-SwiftPerFileCompile WellnessViewController.swift
+
+SwiftCompile normal x86_64 /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Challenges/Cell\ Files/QuickSelectChallengeCollectionViewCell.swift (in target 'HomeScreen' from project 'HomeScreen')
+    cd /Users/namanmittal/Downloads/ProjectiOS\ 2
+    builtin-SwiftPerFileCompile QuickSelectChallengeCollectionViewCell.swift
+
+SwiftCompile normal x86_64 /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Model/HealthKitService.swift (in target 'HomeScreen' from project 'HomeScreen')
+    cd /Users/namanmittal/Downloads/ProjectiOS\ 2
+    builtin-SwiftPerFileCompile HealthKitService.swift
+
+SwiftCompile normal x86_64 /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Challenges/VCs/ChallengeFirstViewController.swift (in target 'HomeScreen' from project 'HomeScreen')
+    cd /Users/namanmittal/Downloads/ProjectiOS\ 2
+    builtin-SwiftPerFileCompile ChallengeFirstViewController.swift
+
+SwiftCompile normal x86_64 /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Insights/VCs/InsightFirstViewController.swift (in target 'HomeScreen' from project 'HomeScreen')
+    cd /Users/namanmittal/Downloads/ProjectiOS\ 2
+    builtin-SwiftPerFileCompile InsightFirstViewController.swift
+
+SwiftCompile normal x86_64 /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Insights/Cell\ Files/GraphCollectionViewCell.swift (in target 'HomeScreen' from project 'HomeScreen')
+    cd /Users/namanmittal/Downloads/ProjectiOS\ 2
+    builtin-SwiftPerFileCompile GraphCollectionViewCell.swift
+
+SwiftCompile normal x86_64 /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Messages/Cell\ Files/TopicSentMessageCollectionViewCell.swift (in target 'HomeScreen' from project 'HomeScreen')
+    cd /Users/namanmittal/Downloads/ProjectiOS\ 2
+    builtin-SwiftPerFileCompile TopicSentMessageCollectionViewCell.swift
+
+SwiftCompile normal x86_64 /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Messages/Cell\ Files/TopicReceivedMessageCollectionViewCell.swift (in target 'HomeScreen' from project 'HomeScreen')
+    cd /Users/namanmittal/Downloads/ProjectiOS\ 2
+    builtin-SwiftPerFileCompile TopicReceivedMessageCollectionViewCell.swift
+
+/Users/namanmittal/Downloads/ProjectiOS 2/HomeScreen/Challenges/VCs/ChallengeFirstViewController.swift:234:46: warning: 'weak' ownership of capture 'self' differs from implicitly-captured strong reference in outer scope [#ImplicitStrongCapture]
+230 |         impact.impactOccurred()
+231 |         
+232 |         Task {
+    |              |- note: 'self' implicitly strongly captured here
+    |              `- note: add 'self' as a capture list item to silence
+233 |             await SyncManager.shared.syncAll(force: true)
+234 |             DispatchQueue.main.async { [weak self] in
+    |                                              |- warning: 'weak' ownership of capture 'self' differs from implicitly-captured strong reference in outer scope [#ImplicitStrongCapture]
+    |                                              `- note: explicitly assign the capture list item to silence
+235 |                 self?.refreshFromDataManager(resetSegment: false)
+236 |                 self?.challengeCV.refreshControl?.endRefreshing()
+
+SwiftCompile normal x86_64 Compiling\ InsightDetailViewController.swift,\ CircularRingView.swift,\ AppDelegate.swift,\ InferredChallengeOutput.swift,\ CalendarCollectionViewCell.swift,\ TaskDetailFamilyMemberCollectionViewCell.swift,\ ChallengesCollectionViewCell.swift,\ \ InsightType.swift,\ ChatViewController.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Insights/Cell\ Files/InsightDetailViewController.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Insights/Views/CircularRingView.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/AppDelegate.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Model/InferredChallengeOutput.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Home\ /Cell\ Swift\ Files/CalendarCollectionViewCell.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Challenges/Cell\ Files/TaskDetailFamilyMemberCollectionViewCell.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Home\ /Cell\ Swift\ Files/ChallengesCollectionViewCell.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Insights/Models/\ InsightType.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Messages/VCs/ChatViewController.swift (in target 'HomeScreen' from project 'HomeScreen')
+/Users/namanmittal/Downloads/ProjectiOS 2/HomeScreen/AppDelegate.swift:221:51: warning: forming 'UnsafeRawPointer' to an inout variable of type String exposes the internal representation rather than the string contents.
+219 |     private var skeletonLayer: CAGradientLayer? {
+220 |         get {
+221 |             return objc_getAssociatedObject(self, &AssociatedKeys.skeletonLayer) as? CAGradientLayer
+    |                                                   `- warning: forming 'UnsafeRawPointer' to an inout variable of type String exposes the internal representation rather than the string contents.
+222 |         }
+223 |         set {
+
+
+SwiftCompile normal x86_64 /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Insights/Cell\ Files/InsightDetailViewController.swift (in target 'HomeScreen' from project 'HomeScreen')
+    cd /Users/namanmittal/Downloads/ProjectiOS\ 2
+    builtin-SwiftPerFileCompile InsightDetailViewController.swift
+
+SwiftCompile normal x86_64 /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Insights/Views/CircularRingView.swift (in target 'HomeScreen' from project 'HomeScreen')
+    cd /Users/namanmittal/Downloads/ProjectiOS\ 2
+    builtin-SwiftPerFileCompile CircularRingView.swift
+
+SwiftCompile normal x86_64 /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/AppDelegate.swift (in target 'HomeScreen' from project 'HomeScreen')
+    cd /Users/namanmittal/Downloads/ProjectiOS\ 2
+    builtin-SwiftPerFileCompile AppDelegate.swift
+
+SwiftCompile normal x86_64 /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Model/InferredChallengeOutput.swift (in target 'HomeScreen' from project 'HomeScreen')
+    cd /Users/namanmittal/Downloads/ProjectiOS\ 2
+    builtin-SwiftPerFileCompile InferredChallengeOutput.swift
+
+SwiftCompile normal x86_64 /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Home\ /Cell\ Swift\ Files/CalendarCollectionViewCell.swift (in target 'HomeScreen' from project 'HomeScreen')
+    cd /Users/namanmittal/Downloads/ProjectiOS\ 2
+    builtin-SwiftPerFileCompile CalendarCollectionViewCell.swift
+
+SwiftCompile normal x86_64 /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Challenges/Cell\ Files/TaskDetailFamilyMemberCollectionViewCell.swift (in target 'HomeScreen' from project 'HomeScreen')
+    cd /Users/namanmittal/Downloads/ProjectiOS\ 2
+    builtin-SwiftPerFileCompile TaskDetailFamilyMemberCollectionViewCell.swift
+
+SwiftCompile normal x86_64 /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Home\ /Cell\ Swift\ Files/ChallengesCollectionViewCell.swift (in target 'HomeScreen' from project 'HomeScreen')
+    cd /Users/namanmittal/Downloads/ProjectiOS\ 2
+    builtin-SwiftPerFileCompile ChallengesCollectionViewCell.swift
+
+SwiftCompile normal x86_64 /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Insights/Models/\ InsightType.swift (in target 'HomeScreen' from project 'HomeScreen')
+    cd /Users/namanmittal/Downloads/ProjectiOS\ 2
+    builtin-SwiftPerFileCompile \ InsightType.swift
+
+SwiftCompile normal x86_64 /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Messages/VCs/ChatViewController.swift (in target 'HomeScreen' from project 'HomeScreen')
+    cd /Users/namanmittal/Downloads/ProjectiOS\ 2
+    builtin-SwiftPerFileCompile ChatViewController.swift
+
+SwiftCompile normal x86_64 Compiling\ design02.swift,\ DayPickerCell.swift,\ DateHeaderCollectionViewCell.swift,\ InsightModels.swift,\ InsightEngine.swift,\ WellnessHeaderCell.swift,\ FamilyActivityScoreCollectionViewCell.swift,\ HomeViewController.swift,\ MemberWellnessViewController.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Challenges/Cell\ Files/design02.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Insights/Cell\ Files/DayPickerCell.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Messages/Cell\ Files/DateHeaderCollectionViewCell.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/LLM/InsightModels.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/LLM/InsightEngine.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Insights/Cell\ Files/WellnessHeaderCell.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Home\ /Cell\ Swift\ Files/FamilyActivityScoreCollectionViewCell.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Home\ /VCs/HomeViewController.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Home\ /VCs/MemberWellnessViewController.swift (in target 'HomeScreen' from project 'HomeScreen')
+
+SwiftCompile normal x86_64 /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Challenges/Cell\ Files/design02.swift (in target 'HomeScreen' from project 'HomeScreen')
+    cd /Users/namanmittal/Downloads/ProjectiOS\ 2
+    builtin-SwiftPerFileCompile design02.swift
+
+SwiftCompile normal x86_64 /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Insights/Cell\ Files/DayPickerCell.swift (in target 'HomeScreen' from project 'HomeScreen')
+    cd /Users/namanmittal/Downloads/ProjectiOS\ 2
+    builtin-SwiftPerFileCompile DayPickerCell.swift
+
+SwiftCompile normal x86_64 /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Messages/Cell\ Files/DateHeaderCollectionViewCell.swift (in target 'HomeScreen' from project 'HomeScreen')
+    cd /Users/namanmittal/Downloads/ProjectiOS\ 2
+    builtin-SwiftPerFileCompile DateHeaderCollectionViewCell.swift
+
+SwiftCompile normal x86_64 /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/LLM/InsightModels.swift (in target 'HomeScreen' from project 'HomeScreen')
+    cd /Users/namanmittal/Downloads/ProjectiOS\ 2
+    builtin-SwiftPerFileCompile InsightModels.swift
+
+SwiftCompile normal x86_64 /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/LLM/InsightEngine.swift (in target 'HomeScreen' from project 'HomeScreen')
+    cd /Users/namanmittal/Downloads/ProjectiOS\ 2
+    builtin-SwiftPerFileCompile InsightEngine.swift
+
+SwiftCompile normal x86_64 /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Insights/Cell\ Files/WellnessHeaderCell.swift (in target 'HomeScreen' from project 'HomeScreen')
+    cd /Users/namanmittal/Downloads/ProjectiOS\ 2
+    builtin-SwiftPerFileCompile WellnessHeaderCell.swift
+
+SwiftCompile normal x86_64 /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Home\ /Cell\ Swift\ Files/FamilyActivityScoreCollectionViewCell.swift (in target 'HomeScreen' from project 'HomeScreen')
+    cd /Users/namanmittal/Downloads/ProjectiOS\ 2
+    builtin-SwiftPerFileCompile FamilyActivityScoreCollectionViewCell.swift
+
+SwiftCompile normal x86_64 /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Home\ /VCs/HomeViewController.swift (in target 'HomeScreen' from project 'HomeScreen')
+    cd /Users/namanmittal/Downloads/ProjectiOS\ 2
+    builtin-SwiftPerFileCompile HomeViewController.swift
+
+SwiftCompile normal x86_64 /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Home\ /VCs/MemberWellnessViewController.swift (in target 'HomeScreen' from project 'HomeScreen')
+    cd /Users/namanmittal/Downloads/ProjectiOS\ 2
+    builtin-SwiftPerFileCompile MemberWellnessViewController.swift
+
+SwiftCompile normal x86_64 Compiling\ DetailInsightContentCell.swift,\ MessageViewController.swift,\ ReceivedMessageCollectionViewCell.swift,\ TopicsViewController.swift,\ TopicChatViewController.swift,\ CreateTopicViewController.swift,\ SceneDelegate.swift,\ SQLiteHelper.swift,\ SyncManager.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Insights/Cell\ Files/DetailInsightContentCell.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Messages/VCs/MessageViewController.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Messages/Cell\ Files/ReceivedMessageCollectionViewCell.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Messages/VCs/TopicsViewController.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Messages/VCs/TopicChatViewController.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Messages/VCs/CreateTopicViewController.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/SceneDelegate.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Model/SQLiteHelper.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Model/SyncManager.swift (in target 'HomeScreen' from project 'HomeScreen')
+/Users/namanmittal/Downloads/ProjectiOS 2/HomeScreen/Messages/VCs/TopicsViewController.swift:54:46: warning: 'weak' ownership of capture 'self' differs from implicitly-captured strong reference in outer scope [#ImplicitStrongCapture]
+ 50 |         impact.impactOccurred()
+ 51 |         
+ 52 |         Task {
+    |              |- note: 'self' implicitly strongly captured here
+    |              `- note: add 'self' as a capture list item to silence
+ 53 |             await SyncManager.shared.syncAll(force: true)
+ 54 |             DispatchQueue.main.async { [weak self] in
+    |                                              |- warning: 'weak' ownership of capture 'self' differs from implicitly-captured strong reference in outer scope [#ImplicitStrongCapture]
+    |                                              `- note: explicitly assign the capture list item to silence
+ 55 |                 self?.viewModel.onAppear() // Re-fetch
+ 56 |                 self?.collectionView.refreshControl?.endRefreshing()
+
+/Users/namanmittal/Downloads/ProjectiOS 2/HomeScreen/Messages/VCs/TopicsViewController.swift:120:135: warning: 'weak' ownership of capture 'self' differs from implicitly-captured strong reference in outer scope [#ImplicitStrongCapture]
+117 |         let topic = viewModel.topics[indexPath.item]
+118 |         
+119 |         return UIContextMenuConfiguration(identifier: nil, previewProvider: nil) { _ in
+    |                                                                                  |- note: 'self' implicitly strongly captured here
+    |                                                                                  `- note: add 'self' as a capture list item to silence
+120 |             let deleteAction = UIAction(title: "Delete Group", image: UIImage(systemName: "trash"), attributes: .destructive) { [weak self] _ in
+    |                                                                                                                                       |- warning: 'weak' ownership of capture 'self' differs from implicitly-captured strong reference in outer scope [#ImplicitStrongCapture]
+    |                                                                                                                                       `- note: explicitly assign the capture list item to silence
+121 |                 // Alert confirmation
+122 |                 let alert = UIAlertController(title: "Delete Group", message: "Are you sure you want to permanently delete this group chat for everyone?", preferredStyle: .alert)
+
+/Users/namanmittal/Downloads/ProjectiOS 2/HomeScreen/Messages/VCs/TopicChatViewController.swift:350:17: warning: initialization of immutable value 'isCurrentUser' was never used; consider replacing with assignment to '_' or removing it [#NoUsage]
+348 |         case .message(let msg):
+349 |             let currentUserId = DataManager.shared.currentUser?.profileId
+350 |             let isCurrentUser = (msg.senderId == currentUserId)
+    |                 `- warning: initialization of immutable value 'isCurrentUser' was never used; consider replacing with assignment to '_' or removing it [#NoUsage]
+351 |             
+352 |             if msg.content.hasPrefix("[SHARE_CARD:") {
+
+
+SwiftCompile normal x86_64 /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Insights/Cell\ Files/DetailInsightContentCell.swift (in target 'HomeScreen' from project 'HomeScreen')
+    cd /Users/namanmittal/Downloads/ProjectiOS\ 2
+    builtin-SwiftPerFileCompile DetailInsightContentCell.swift
+
+SwiftCompile normal x86_64 /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Messages/VCs/MessageViewController.swift (in target 'HomeScreen' from project 'HomeScreen')
+    cd /Users/namanmittal/Downloads/ProjectiOS\ 2
+    builtin-SwiftPerFileCompile MessageViewController.swift
+
+SwiftCompile normal x86_64 /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Messages/Cell\ Files/ReceivedMessageCollectionViewCell.swift (in target 'HomeScreen' from project 'HomeScreen')
+    cd /Users/namanmittal/Downloads/ProjectiOS\ 2
+    builtin-SwiftPerFileCompile ReceivedMessageCollectionViewCell.swift
+
+SwiftCompile normal x86_64 /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Messages/VCs/TopicsViewController.swift (in target 'HomeScreen' from project 'HomeScreen')
+    cd /Users/namanmittal/Downloads/ProjectiOS\ 2
+    builtin-SwiftPerFileCompile TopicsViewController.swift
+
+SwiftCompile normal x86_64 /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Messages/VCs/TopicChatViewController.swift (in target 'HomeScreen' from project 'HomeScreen')
+    cd /Users/namanmittal/Downloads/ProjectiOS\ 2
+    builtin-SwiftPerFileCompile TopicChatViewController.swift
+
+SwiftCompile normal x86_64 /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Messages/VCs/CreateTopicViewController.swift (in target 'HomeScreen' from project 'HomeScreen')
+    cd /Users/namanmittal/Downloads/ProjectiOS\ 2
+    builtin-SwiftPerFileCompile CreateTopicViewController.swift
+
+SwiftCompile normal x86_64 /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/SceneDelegate.swift (in target 'HomeScreen' from project 'HomeScreen')
+    cd /Users/namanmittal/Downloads/ProjectiOS\ 2
+    builtin-SwiftPerFileCompile SceneDelegate.swift
+
+SwiftCompile normal x86_64 /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Model/SQLiteHelper.swift (in target 'HomeScreen' from project 'HomeScreen')
+    cd /Users/namanmittal/Downloads/ProjectiOS\ 2
+    builtin-SwiftPerFileCompile SQLiteHelper.swift
+
+SwiftCompile normal x86_64 /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Model/SyncManager.swift (in target 'HomeScreen' from project 'HomeScreen')
+    cd /Users/namanmittal/Downloads/ProjectiOS\ 2
+    builtin-SwiftPerFileCompile SyncManager.swift
+
+SwiftCompile normal x86_64 Compiling\ DisplayModels.swift,\ Profile+Wellness.swift,\ MainRingCell.swift,\ DataManager.swift,\ StartRowCell.swift,\ HealthKitManager.swift,\ DataModel.swift,\ MessageCollectionViewCell.swift,\ DetailInsightHeaderCell.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Model/DisplayModels.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Model/Profile+Wellness.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Insights/Cell\ Files/MainRingCell.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Model/DataManager.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Insights/Cell\ Files/StartRowCell.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Model/HealthKitManager.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Model/DataModel.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Messages/Cell\ Files/MessageCollectionViewCell.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Insights/Cell\ Files/DetailInsightHeaderCell.swift (in target 'HomeScreen' from project 'HomeScreen')
+
+SwiftCompile normal x86_64 /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Model/DisplayModels.swift (in target 'HomeScreen' from project 'HomeScreen')
+    cd /Users/namanmittal/Downloads/ProjectiOS\ 2
+    builtin-SwiftPerFileCompile DisplayModels.swift
+
+SwiftCompile normal x86_64 /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Model/Profile+Wellness.swift (in target 'HomeScreen' from project 'HomeScreen')
+    cd /Users/namanmittal/Downloads/ProjectiOS\ 2
+    builtin-SwiftPerFileCompile Profile+Wellness.swift
+
+SwiftCompile normal x86_64 /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Insights/Cell\ Files/MainRingCell.swift (in target 'HomeScreen' from project 'HomeScreen')
+    cd /Users/namanmittal/Downloads/ProjectiOS\ 2
+    builtin-SwiftPerFileCompile MainRingCell.swift
+
+SwiftCompile normal x86_64 /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Model/DataManager.swift (in target 'HomeScreen' from project 'HomeScreen')
+    cd /Users/namanmittal/Downloads/ProjectiOS\ 2
+    builtin-SwiftPerFileCompile DataManager.swift
+
+SwiftCompile normal x86_64 /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Insights/Cell\ Files/StartRowCell.swift (in target 'HomeScreen' from project 'HomeScreen')
+    cd /Users/namanmittal/Downloads/ProjectiOS\ 2
+    builtin-SwiftPerFileCompile StartRowCell.swift
+
+SwiftCompile normal x86_64 /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Model/HealthKitManager.swift (in target 'HomeScreen' from project 'HomeScreen')
+    cd /Users/namanmittal/Downloads/ProjectiOS\ 2
+    builtin-SwiftPerFileCompile HealthKitManager.swift
+
+SwiftCompile normal x86_64 /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Model/DataModel.swift (in target 'HomeScreen' from project 'HomeScreen')
+    cd /Users/namanmittal/Downloads/ProjectiOS\ 2
+    builtin-SwiftPerFileCompile DataModel.swift
+
+SwiftCompile normal x86_64 /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Messages/Cell\ Files/MessageCollectionViewCell.swift (in target 'HomeScreen' from project 'HomeScreen')
+    cd /Users/namanmittal/Downloads/ProjectiOS\ 2
+    builtin-SwiftPerFileCompile MessageCollectionViewCell.swift
+
+SwiftCompile normal x86_64 /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Insights/Cell\ Files/DetailInsightHeaderCell.swift (in target 'HomeScreen' from project 'HomeScreen')
+    cd /Users/namanmittal/Downloads/ProjectiOS\ 2
+    builtin-SwiftPerFileCompile DetailInsightHeaderCell.swift
+
+SwiftCompile normal x86_64 Compiling\ TopicModels.swift,\ TopicsViewModel.swift,\ SentMessageCollectionViewCell.swift,\ EditWeightViewController.swift,\ EditHeightViewController.swift,\ FamilyMembersViewContoller.swift,\ TaskDetailViewController\ 2.swift,\ EditProfileTableViewController.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Model/TopicModels.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Model/TopicsViewModel.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Messages/Cell\ Files/SentMessageCollectionViewCell.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Home\ /Profile/EditProfileVCs/EditWeightViewController.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Home\ /Profile/EditProfileVCs/EditHeightViewController.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Home\ /Profile/FamilyMember\ Section/VCs/FamilyMembersViewContoller.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Challenges/VCs/TaskDetailViewController\ 2.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Home\ /Profile/EditProfileVCs/EditProfileTableViewController.swift (in target 'HomeScreen' from project 'HomeScreen')
+
+SwiftCompile normal x86_64 /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Model/TopicModels.swift (in target 'HomeScreen' from project 'HomeScreen')
+    cd /Users/namanmittal/Downloads/ProjectiOS\ 2
+    builtin-SwiftPerFileCompile TopicModels.swift
+
+SwiftCompile normal x86_64 /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Model/TopicsViewModel.swift (in target 'HomeScreen' from project 'HomeScreen')
+    cd /Users/namanmittal/Downloads/ProjectiOS\ 2
+    builtin-SwiftPerFileCompile TopicsViewModel.swift
+
+SwiftCompile normal x86_64 /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Messages/Cell\ Files/SentMessageCollectionViewCell.swift (in target 'HomeScreen' from project 'HomeScreen')
+    cd /Users/namanmittal/Downloads/ProjectiOS\ 2
+    builtin-SwiftPerFileCompile SentMessageCollectionViewCell.swift
+
+SwiftCompile normal x86_64 /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Home\ /Profile/EditProfileVCs/EditWeightViewController.swift (in target 'HomeScreen' from project 'HomeScreen')
+    cd /Users/namanmittal/Downloads/ProjectiOS\ 2
+    builtin-SwiftPerFileCompile EditWeightViewController.swift
+
+SwiftCompile normal x86_64 /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Home\ /Profile/EditProfileVCs/EditHeightViewController.swift (in target 'HomeScreen' from project 'HomeScreen')
+    cd /Users/namanmittal/Downloads/ProjectiOS\ 2
+    builtin-SwiftPerFileCompile EditHeightViewController.swift
+
+SwiftCompile normal x86_64 /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Home\ /Profile/FamilyMember\ Section/VCs/FamilyMembersViewContoller.swift (in target 'HomeScreen' from project 'HomeScreen')
+    cd /Users/namanmittal/Downloads/ProjectiOS\ 2
+    builtin-SwiftPerFileCompile FamilyMembersViewContoller.swift
+
+SwiftCompile normal x86_64 /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Challenges/VCs/TaskDetailViewController\ 2.swift (in target 'HomeScreen' from project 'HomeScreen')
+    cd /Users/namanmittal/Downloads/ProjectiOS\ 2
+    builtin-SwiftPerFileCompile TaskDetailViewController\ 2.swift
+
+SwiftCompile normal x86_64 /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Home\ /Profile/EditProfileVCs/EditProfileTableViewController.swift (in target 'HomeScreen' from project 'HomeScreen')
+    cd /Users/namanmittal/Downloads/ProjectiOS\ 2
+    builtin-SwiftPerFileCompile EditProfileTableViewController.swift
+
+SwiftCompile normal x86_64 Compiling\ TopicListCollectionViewCell.swift,\ ViewChallengeViewController.swift,\ NewChallengeCollectionViewCell.swift,\ PreviewChallengeViewController.swift,\ ChallengeCollectionViewCell.swift,\ SectionHeaderView.swift,\ TopicChatViewModel.swift,\ AddChallengeFirstViewController.swift,\ SupabaseManager.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Messages/Cell\ Files/TopicListCollectionViewCell.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Challenges/VCs/ViewChallengeViewController.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Challenges/Cell\ Files/NewChallengeCollectionViewCell.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Challenges/VCs/PreviewChallengeViewController.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Challenges/Cell\ Files/ChallengeCollectionViewCell.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Home\ /Views/SectionHeaderView.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Model/TopicChatViewModel.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Challenges/VCs/AddChallengeFirstViewController.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Model/SupabaseManager.swift (in target 'HomeScreen' from project 'HomeScreen')
+
+SwiftCompile normal x86_64 /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Messages/Cell\ Files/TopicListCollectionViewCell.swift (in target 'HomeScreen' from project 'HomeScreen')
+    cd /Users/namanmittal/Downloads/ProjectiOS\ 2
+    builtin-SwiftPerFileCompile TopicListCollectionViewCell.swift
+
+SwiftCompile normal x86_64 /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Challenges/VCs/ViewChallengeViewController.swift (in target 'HomeScreen' from project 'HomeScreen')
+    cd /Users/namanmittal/Downloads/ProjectiOS\ 2
+    builtin-SwiftPerFileCompile ViewChallengeViewController.swift
+
+SwiftCompile normal x86_64 /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Challenges/Cell\ Files/NewChallengeCollectionViewCell.swift (in target 'HomeScreen' from project 'HomeScreen')
+    cd /Users/namanmittal/Downloads/ProjectiOS\ 2
+    builtin-SwiftPerFileCompile NewChallengeCollectionViewCell.swift
+
+SwiftCompile normal x86_64 /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Challenges/VCs/PreviewChallengeViewController.swift (in target 'HomeScreen' from project 'HomeScreen')
+    cd /Users/namanmittal/Downloads/ProjectiOS\ 2
+    builtin-SwiftPerFileCompile PreviewChallengeViewController.swift
+
+SwiftCompile normal x86_64 /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Challenges/Cell\ Files/ChallengeCollectionViewCell.swift (in target 'HomeScreen' from project 'HomeScreen')
+    cd /Users/namanmittal/Downloads/ProjectiOS\ 2
+    builtin-SwiftPerFileCompile ChallengeCollectionViewCell.swift
+
+SwiftCompile normal x86_64 /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Home\ /Views/SectionHeaderView.swift (in target 'HomeScreen' from project 'HomeScreen')
+    cd /Users/namanmittal/Downloads/ProjectiOS\ 2
+    builtin-SwiftPerFileCompile SectionHeaderView.swift
+
+SwiftCompile normal x86_64 /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Model/TopicChatViewModel.swift (in target 'HomeScreen' from project 'HomeScreen')
+    cd /Users/namanmittal/Downloads/ProjectiOS\ 2
+    builtin-SwiftPerFileCompile TopicChatViewModel.swift
+
+SwiftCompile normal x86_64 /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Challenges/VCs/AddChallengeFirstViewController.swift (in target 'HomeScreen' from project 'HomeScreen')
+    cd /Users/namanmittal/Downloads/ProjectiOS\ 2
+    builtin-SwiftPerFileCompile AddChallengeFirstViewController.swift
+
+SwiftCompile normal x86_64 /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Model/SupabaseManager.swift (in target 'HomeScreen' from project 'HomeScreen')
+    cd /Users/namanmittal/Downloads/ProjectiOS\ 2
+    builtin-SwiftPerFileCompile SupabaseManager.swift
+
+SwiftCompile normal x86_64 Compiling\ AssistantDataProvider.swift,\ WidgetDataProvider.swift,\ ChallengeActivityAttributes.swift,\ ChallengeActivityManager.swift,\ SharedCardView.swift,\ AppleAssistantService.swift,\ RewardsViewController.swift,\ GeneratedAssetSymbols.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/LLM/AssistantDataProvider.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Model/WidgetDataProvider.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Model/ChallengeActivityAttributes.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Model/ChallengeActivityManager.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Messages/Views/SharedCardView.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/LLM/AppleAssistantService.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Challenges/VCs/RewardsViewController.swift /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/HomeScreen.build/Debug-iphonesimulator/HomeScreen.build/DerivedSources/GeneratedAssetSymbols.swift (in target 'HomeScreen' from project 'HomeScreen')
+/Users/namanmittal/Downloads/ProjectiOS 2/HomeScreen/LLM/AssistantDataProvider.swift:34:14: warning: immutable value 'index' was never used; consider replacing with '_' or removing it [#NoUsage]
+ 32 |         context += "Family Members: \(allMembers.count)\n\n"
+ 33 |         
+ 34 |         for (index, member) in allMembers.enumerated() {
+    |              `- warning: immutable value 'index' was never used; consider replacing with '_' or removing it [#NoUsage]
+ 35 |             let isMe = member.profileId == currentUser.profileId
+ 36 |             let label = isMe ? "\(member.displayName) (YOU)" : member.displayName
+
+/Users/namanmittal/Downloads/ProjectiOS 2/HomeScreen/Model/ChallengeActivityManager.swift:119:32: warning: main actor-isolated conformance of 'ChallengeActivityAttributes' to 'ActivityAttributes' cannot be used in @concurrent context; this is an error in the Swift 6 language mode [#IsolatedConformances]
+117 |             
+118 |             Task {
+119 |                 await activity.update(content)
+    |                                `- warning: main actor-isolated conformance of 'ChallengeActivityAttributes' to 'ActivityAttributes' cannot be used in @concurrent context; this is an error in the Swift 6 language mode [#IsolatedConformances]
+120 |             }
+121 |         }
+
+/Users/namanmittal/Downloads/ProjectiOS 2/HomeScreen/Model/ChallengeActivityManager.swift:130:36: warning: main actor-isolated conformance of 'ChallengeActivityAttributes' to 'ActivityAttributes' cannot be used in @concurrent context; this is an error in the Swift 6 language mode [#IsolatedConformances]
+128 |             if activity.attributes.challengeId == challengeId.uuidString {
+129 |                 Task {
+130 |                     await activity.end(nil, dismissalPolicy: .immediate)
+    |                                    `- warning: main actor-isolated conformance of 'ChallengeActivityAttributes' to 'ActivityAttributes' cannot be used in @concurrent context; this is an error in the Swift 6 language mode [#IsolatedConformances]
+131 |                     print("ChallengeActivityManager: Ended Live Activity for challenge \(challengeId)")
+132 |                 }
+
+/Users/namanmittal/Downloads/ProjectiOS 2/HomeScreen/Messages/Views/SharedCardView.swift:391:17: warning: variable 'category' was written to, but never read
+389 |             challengeAvatarStack.arrangedSubviews.forEach { $0.removeFromSuperview() }
+390 |             
+391 |             var category = "Step challenge"
+    |                 `- warning: variable 'category' was written to, but never read
+392 |             var iconName = "figure.walk"
+393 |             var totalDesc = "steps"
+
+/Users/namanmittal/Downloads/ProjectiOS 2/HomeScreen/Messages/Views/SharedCardView.swift:392:17: warning: variable 'iconName' was written to, but never read
+390 |             
+391 |             var category = "Step challenge"
+392 |             var iconName = "figure.walk"
+    |                 `- warning: variable 'iconName' was written to, but never read
+393 |             var totalDesc = "steps"
+394 |             
+
+/Users/namanmittal/Downloads/ProjectiOS 2/HomeScreen/LLM/AppleAssistantService.swift:55:24: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+ 53 |         do {
+ 54 |             // FoundationModels LanguageModelSession init
+ 55 |             return try await LanguageModelSession(
+    |                        `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+ 56 |                 tools: tools,
+ 57 |                 instructions: systemPrompt
+
+/Users/namanmittal/Downloads/ProjectiOS 2/HomeScreen/LLM/AppleAssistantService.swift:55:20: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 53 |         do {
+ 54 |             // FoundationModels LanguageModelSession init
+ 55 |             return try await LanguageModelSession(
+    |                    `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 56 |                 tools: tools,
+ 57 |                 instructions: systemPrompt
+
+/Users/namanmittal/Downloads/ProjectiOS 2/HomeScreen/LLM/AppleAssistantService.swift:59:11: warning: 'catch' block is unreachable because no errors are thrown in 'do' block
+ 57 |                 instructions: systemPrompt
+ 58 |             )
+ 59 |         } catch {
+    |           `- warning: 'catch' block is unreachable because no errors are thrown in 'do' block
+ 60 |             print("Failed to initialize LanguageModelSession: \(error)")
+ 61 |             return nil
+
+
+SwiftCompile normal x86_64 /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/LLM/AssistantDataProvider.swift (in target 'HomeScreen' from project 'HomeScreen')
+    cd /Users/namanmittal/Downloads/ProjectiOS\ 2
+    builtin-SwiftPerFileCompile AssistantDataProvider.swift
+
+SwiftCompile normal x86_64 /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Model/WidgetDataProvider.swift (in target 'HomeScreen' from project 'HomeScreen')
+    cd /Users/namanmittal/Downloads/ProjectiOS\ 2
+    builtin-SwiftPerFileCompile WidgetDataProvider.swift
+
+SwiftCompile normal x86_64 /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Model/ChallengeActivityAttributes.swift (in target 'HomeScreen' from project 'HomeScreen')
+    cd /Users/namanmittal/Downloads/ProjectiOS\ 2
+    builtin-SwiftPerFileCompile ChallengeActivityAttributes.swift
+
+SwiftCompile normal x86_64 /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Model/ChallengeActivityManager.swift (in target 'HomeScreen' from project 'HomeScreen')
+    cd /Users/namanmittal/Downloads/ProjectiOS\ 2
+    builtin-SwiftPerFileCompile ChallengeActivityManager.swift
+
+SwiftCompile normal x86_64 /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Messages/Views/SharedCardView.swift (in target 'HomeScreen' from project 'HomeScreen')
+    cd /Users/namanmittal/Downloads/ProjectiOS\ 2
+    builtin-SwiftPerFileCompile SharedCardView.swift
+
+SwiftCompile normal x86_64 /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/LLM/AppleAssistantService.swift (in target 'HomeScreen' from project 'HomeScreen')
+    cd /Users/namanmittal/Downloads/ProjectiOS\ 2
+    builtin-SwiftPerFileCompile AppleAssistantService.swift
+
+SwiftCompile normal x86_64 /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Challenges/VCs/RewardsViewController.swift (in target 'HomeScreen' from project 'HomeScreen')
+    cd /Users/namanmittal/Downloads/ProjectiOS\ 2
+    builtin-SwiftPerFileCompile RewardsViewController.swift
+
+SwiftCompile normal x86_64 /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/HomeScreen.build/Debug-iphonesimulator/HomeScreen.build/DerivedSources/GeneratedAssetSymbols.swift (in target 'HomeScreen' from project 'HomeScreen')
+    cd /Users/namanmittal/Downloads/ProjectiOS\ 2
+    builtin-SwiftPerFileCompile GeneratedAssetSymbols.swift
+
+SwiftEmitModule normal x86_64 Emitting\ module\ for\ HomeScreen (in target 'HomeScreen' from project 'HomeScreen')
+/Users/namanmittal/Downloads/ProjectiOS 2/HomeScreen/Auth/LoginSignupViewController.swift:813:45: error: cannot call value of non-function type 'UIButton'
+ 811 |     }()
+ 812 | 
+ 813 |     private lazy var backButton: UIButton = {
+     |                                             `- error: cannot call value of non-function type 'UIButton'
+ 814 |         let button = UIButton(type: .system)
+ 815 |         let config = UIImage.SymbolConfiguration(pointSize: 22, weight: .medium)
+
+/Users/namanmittal/Downloads/ProjectiOS 2/HomeScreen/Auth/SignupFamilyViewController.swift:33:45: error: cannot call value of non-function type 'UIButton'
+  31 |     }()
+  32 | 
+  33 |     private lazy var backButton: UIButton = {
+     |                                             `- error: cannot call value of non-function type 'UIButton'
+  34 |         let button = UIButton(type: .system)
+  35 |         let config = UIImage.SymbolConfiguration(pointSize: 22, weight: .medium)
+
+/Users/namanmittal/Downloads/ProjectiOS 2/HomeScreen/Auth/SignupFamilyViewController.swift:267:45: error: cannot call value of non-function type 'UIButton'
+ 265 | // MARK: - JoinFamilyViewController
+ 266 | final class JoinFamilyViewController: UIViewController, UITextFieldDelegate, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
+ 267 |     private lazy var backButton: UIButton = {
+     |                                             `- error: cannot call value of non-function type 'UIButton'
+ 268 |         let button = UIButton(type: .system)
+ 269 |         let config = UIImage.SymbolConfiguration(pointSize: 22, weight: .medium)
+
+/Users/namanmittal/Downloads/ProjectiOS 2/HomeScreen/Auth/SignupFamilyViewController.swift:1011:45: error: cannot call value of non-function type 'UIButton'
+1009 | // MARK: - CreateFamilyViewController
+1010 | final class CreateFamilyViewController: UIViewController, UITextFieldDelegate, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
+1011 |     private lazy var backButton: UIButton = {
+     |                                             `- error: cannot call value of non-function type 'UIButton'
+1012 |         let button = UIButton(type: .system)
+1013 |         let config = UIImage.SymbolConfiguration(pointSize: 22, weight: .medium)
+
+/Users/namanmittal/Downloads/ProjectiOS 2/HomeScreen/Challenges/VCs/RewardsViewController.swift:133:16: warning: 'imageEdgeInsets' was deprecated in iOS 15.0: This property is ignored when using UIButtonConfiguration [#DeprecatedDeclaration]
+131 |         button.layer.borderColor = UIColor.systemGray5.cgColor
+132 |         
+133 |         button.imageEdgeInsets = UIEdgeInsets(top: 0, left: -8, bottom: 0, right: 0)
+    |                `- warning: 'imageEdgeInsets' was deprecated in iOS 15.0: This property is ignored when using UIButtonConfiguration [#DeprecatedDeclaration]
+134 |         button.translatesAutoresizingMaskIntoConstraints = false
+135 |         return button
+
+[#DeprecatedDeclaration]: <https://docs.swift.org/compiler/documentation/diagnostics/deprecated-declaration>
+Failed frontend command:
+/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swift-frontend -frontend -emit-module -experimental-skip-non-inlinable-function-bodies-without-types /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Insights/Cell\ Files/InsightDetailViewController.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Insights/Views/CircularRingView.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/AppDelegate.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Model/InferredChallengeOutput.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Home\ /Cell\ Swift\ Files/CalendarCollectionViewCell.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Challenges/Cell\ Files/TaskDetailFamilyMemberCollectionViewCell.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Home\ /Cell\ Swift\ Files/ChallengesCollectionViewCell.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Insights/Models/\ InsightType.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Messages/VCs/ChatViewController.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Challenges/Cell\ Files/design02.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Insights/Cell\ Files/DayPickerCell.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Messages/Cell\ Files/DateHeaderCollectionViewCell.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/LLM/InsightModels.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/LLM/InsightEngine.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Insights/Cell\ Files/WellnessHeaderCell.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Home\ /Cell\ Swift\ Files/FamilyActivityScoreCollectionViewCell.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Home\ /VCs/HomeViewController.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Home\ /VCs/MemberWellnessViewController.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Model/DisplayModels.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Model/Profile+Wellness.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Insights/Cell\ Files/MainRingCell.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Model/DataManager.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Insights/Cell\ Files/StartRowCell.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Model/HealthKitManager.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Model/DataModel.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Messages/Cell\ Files/MessageCollectionViewCell.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Insights/Cell\ Files/DetailInsightHeaderCell.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Insights/Cell\ Files/DetailInsightContentCell.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Messages/VCs/MessageViewController.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Messages/Cell\ Files/ReceivedMessageCollectionViewCell.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Messages/VCs/TopicsViewController.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Messages/VCs/TopicChatViewController.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Messages/VCs/CreateTopicViewController.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/SceneDelegate.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Model/SQLiteHelper.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Model/SyncManager.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Insights/Cell\ Files/EditWellnessViewController.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Insights/VCs/WellnessViewController.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Challenges/Cell\ Files/QuickSelectChallengeCollectionViewCell.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Model/HealthKitService.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Challenges/VCs/ChallengeFirstViewController.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Insights/VCs/InsightFirstViewController.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Insights/Cell\ Files/GraphCollectionViewCell.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Messages/Cell\ Files/TopicSentMessageCollectionViewCell.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Messages/Cell\ Files/TopicReceivedMessageCollectionViewCell.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Messages/Cell\ Files/TopicListCollectionViewCell.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Challenges/VCs/ViewChallengeViewController.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Challenges/Cell\ Files/NewChallengeCollectionViewCell.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Challenges/VCs/PreviewChallengeViewController.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Challenges/Cell\ Files/ChallengeCollectionViewCell.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Home\ /Views/SectionHeaderView.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Model/TopicChatViewModel.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Challenges/VCs/AddChallengeFirstViewController.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Model/SupabaseManager.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Model/TopicModels.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Model/TopicsViewModel.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Messages/Cell\ Files/SentMessageCollectionViewCell.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Home\ /Profile/EditProfileVCs/EditWeightViewController.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Home\ /Profile/EditProfileVCs/EditHeightViewController.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Home\ /Profile/FamilyMember\ Section/VCs/FamilyMembersViewContoller.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Challenges/VCs/TaskDetailViewController\ 2.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Home\ /Profile/EditProfileVCs/EditProfileTableViewController.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Home\ /Profile/EditProfileVCs/EditDOBViewController.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Messages/Cell\ Files/ChallengeSentMessageCollectionViewCell.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Messages/Cell\ Files/ChallengeReceivedMessageCollectionViewCell.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Home\ /Profile/FamilyMember\ Section/VCs/ProfileMainTableViewController.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Home\ /Profile/FamilyMember\ Section/VCs/ViewMemberTableViewController.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Home\ /Profile/AppleHealthVC/AppleHealthTableViewController.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Home\ /Profile/FamilyMember\ Section/Cell\ Files/FamilyMembersCollectionViewCell.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Home\ /Profile/FamilyMember\ Section/VCs/AddFamilyMemberViewController.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Home\ /Cell\ Swift\ Files/WellnessCardCell.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Auth/LoginSignupViewController.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Auth/SignupFamilyViewController.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Auth/UIViewController+HealthPrompt.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Auth/AppleAuthManager.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/LLM/AIAssistantModels.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/LLM/AssistantViewController.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/LLM/VoiceRecognitionService.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/LLM/AssistantDataProvider.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Model/WidgetDataProvider.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Model/ChallengeActivityAttributes.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Model/ChallengeActivityManager.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Messages/Views/SharedCardView.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/LLM/AppleAssistantService.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Challenges/VCs/RewardsViewController.swift /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/HomeScreen.build/Debug-iphonesimulator/HomeScreen.build/DerivedSources/GeneratedAssetSymbols.swift -target x86_64-apple-ios26.0-simulator -module-can-import-version DeveloperToolsSupport 24.0.24 24.0.24 -module-can-import-version SwiftUI 8.0.84.1 8.0.84 -module-can-import-version UIKit 9127.0.84.1 9127.0.84 -disable-cross-import-overlay-search -swift-module-cross-import AuthenticationServices /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator.sdk/System/Cryptexes/OS/System/Library/Frameworks/AuthenticationServices.framework/Modules/AuthenticationServices.swiftcrossimport/SwiftUI.swiftoverlay -swift-module-cross-import AuthenticationServices /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk/System/Library/Frameworks/AuthenticationServices.framework/Modules/AuthenticationServices.swiftcrossimport/SwiftUI.swiftoverlay -swift-module-cross-import FoundationModels /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk/System/Library/Frameworks/FoundationModels.framework/Modules/FoundationModels.swiftcrossimport/SwiftUI.swiftoverlay -swift-module-cross-import FoundationModels /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk/System/Library/Frameworks/FoundationModels.framework/Modules/FoundationModels.swiftcrossimport/UIKit.swiftoverlay -swift-module-cross-import LinkPresentation /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator.sdk/System/Library/Frameworks/LinkPresentation.framework/Modules/LinkPresentation.swiftcrossimport/AppIntents.swiftoverlay -swift-module-cross-import LinkPresentation /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk/System/Library/Frameworks/LinkPresentation.framework/Modules/LinkPresentation.swiftcrossimport/AppIntents.swiftoverlay -swift-module-cross-import PhotosUI /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator.sdk/System/Library/Frameworks/PhotosUI.framework/Modules/PhotosUI.swiftcrossimport/SwiftUI.swiftoverlay -swift-module-cross-import PhotosUI /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator.sdk/System/Library/Frameworks/PhotosUI.framework/Modules/PhotosUI.swiftcrossimport/WidgetKit.swiftoverlay -swift-module-cross-import PhotosUI /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk/System/Library/Frameworks/PhotosUI.framework/Modules/PhotosUI.swiftcrossimport/SwiftUI.swiftoverlay -swift-module-cross-import PhotosUI /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk/System/Library/Frameworks/PhotosUI.framework/Modules/PhotosUI.swiftcrossimport/WidgetKit.swiftoverlay -swift-module-cross-import SpriteKit /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator.sdk/System/Library/Frameworks/SpriteKit.framework/Modules/SpriteKit.swiftcrossimport/SwiftUI.swiftoverlay -swift-module-cross-import UserNotifications /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator.sdk/System/Library/Frameworks/UserNotifications.framework/Modules/UserNotifications.swiftcrossimport/AppIntents.swiftoverlay -load-resolved-plugin /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/lib/swift/host/plugins/libAppIntentsMacros.dylib\#/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin/swift-plugin-server\#AppIntentsMacros -load-resolved-plugin /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/lib/swift/host/plugins/libFoundationMacros.dylib\#/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin/swift-plugin-server\#FoundationMacros -load-resolved-plugin /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/lib/swift/host/plugins/libFoundationModelsMacros.dylib\#/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin/swift-plugin-server\#FoundationModelsMacros -load-resolved-plugin /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/lib/swift/host/plugins/libObservationMacros.dylib\#/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin/swift-plugin-server\#ObservationMacros -load-resolved-plugin /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/lib/swift/host/plugins/libPreviewsMacros.dylib\#/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin/swift-plugin-server\#PreviewsMacros -load-resolved-plugin /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/lib/swift/host/plugins/libSwiftMacros.dylib\#/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin/swift-plugin-server\#SwiftMacros -load-resolved-plugin /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/lib/swift/host/plugins/libSwiftUIMacros.dylib\#/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin/swift-plugin-server\#SwiftUIMacros -disable-implicit-swift-modules -Xcc -fno-implicit-modules -Xcc -fno-implicit-module-maps -explicit-swift-module-map-file /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/HomeScreen.build/Debug-iphonesimulator/HomeScreen.build/Objects-normal/x86_64/HomeScreen-dependencies-2.json -enable-objc-interop -sdk /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk -I /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Products/Debug-iphonesimulator -F /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Products/Debug-iphonesimulator/PackageFrameworks -F /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Products/Debug-iphonesimulator -module-cache-path /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules -no-color-diagnostics -Xcc -fno-color-diagnostics -enable-testing -g -debug-info-format\=dwarf -dwarf-version\=5 -swift-version 5 -Onone -D DEBUG -serialize-debugging-options -enable-upcoming-feature DisableOutwardActorInference -enable-upcoming-feature InferSendableFromCaptures -enable-upcoming-feature GlobalActorIsolatedTypesUsability -enable-upcoming-feature MemberImportVisibility -enable-upcoming-feature InferIsolatedConformances -enable-upcoming-feature NonisolatedNonsendingByDefault -enable-experimental-feature DebugDescriptionMacro -enable-bare-slash-regex -default-isolation\=MainActor -empty-abi-descriptor -validate-clang-modules-once -clang-build-session-file /Users/namanmittal/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/Session.modulevalidation -Xcc -working-directory -Xcc /Users/namanmittal/Downloads/ProjectiOS\ 2 -enable-anonymous-context-mangled-names -file-compilation-dir /Users/namanmittal/Downloads/ProjectiOS\ 2 -Xcc -D_LIBCPP_HARDENING_MODE\=_LIBCPP_HARDENING_MODE_DEBUG -Xcc -ivfsstatcache -Xcc /Users/namanmittal/Library/Developer/Xcode/DerivedData/SDKStatCaches.noindex/iphonesimulator27.0-24A430-8dc58220667be655e1bcc261a7455254.sdkstatcache -Xcc -fmodules-prune-interval\=86400 -Xcc -fmodules-prune-after\=345600 -Xcc -iquote -Xcc /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/HomeScreen.build/Debug-iphonesimulator/HomeScreen.build/HomeScreen-generated-files.hmap -Xcc -I/Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/HomeScreen.build/Debug-iphonesimulator/HomeScreen.build/HomeScreen-own-target-headers.hmap -Xcc -I/Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/HomeScreen.build/Debug-iphonesimulator/HomeScreen.build/HomeScreen-all-non-framework-target-headers.hmap -Xcc -ivfsoverlay -Xcc /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/HomeScreen.build/Debug-iphonesimulator/HomeScreen-d20ce10c2f88b7962ddb16c8eeb675c4-VFS-iphonesimulator/all-product-headers.yaml -Xcc -iquote -Xcc /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/HomeScreen.build/Debug-iphonesimulator/HomeScreen.build/HomeScreen-project-headers.hmap -Xcc -I/Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Products/Debug-iphonesimulator/include -Xcc -I/Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/HomeScreen.build/Debug-iphonesimulator/HomeScreen.build/DerivedSources-normal/x86_64 -Xcc -I/Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/HomeScreen.build/Debug-iphonesimulator/HomeScreen.build/DerivedSources/x86_64 -Xcc -I/Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/HomeScreen.build/Debug-iphonesimulator/HomeScreen.build/DerivedSources -Xcc -DDEBUG\=1 -no-auto-bridging-header-chaining -module-name HomeScreen -const-gather-protocols-file /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/HomeScreen.build/Debug-iphonesimulator/HomeScreen.build/Objects-normal/x86_64/HomeScreen_const_extract_protocols.json -disable-clang-spi -clang-target x86_64-apple-ios27.0-simulator -target-sdk-version 27.0 -target-sdk-name iphonesimulator27.0 -in-process-plugin-server-path /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/libSwiftInProcPluginServer.dylib -emit-module-doc-path /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/HomeScreen.build/Debug-iphonesimulator/HomeScreen.build/Objects-normal/x86_64/HomeScreen.swiftdoc -emit-module-source-info-path /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/HomeScreen.build/Debug-iphonesimulator/HomeScreen.build/Objects-normal/x86_64/HomeScreen.swiftsourceinfo -emit-objc-header-path /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/HomeScreen.build/Debug-iphonesimulator/HomeScreen.build/Objects-normal/x86_64/HomeScreen-Swift.h -serialize-diagnostics-path /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/HomeScreen.build/Debug-iphonesimulator/HomeScreen.build/Objects-normal/x86_64/HomeScreen-primary-emit-module.dia -emit-dependencies-path /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/HomeScreen.build/Debug-iphonesimulator/HomeScreen.build/Objects-normal/x86_64/HomeScreen-primary-emit-module.d -o /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/HomeScreen.build/Debug-iphonesimulator/HomeScreen.build/Objects-normal/x86_64/HomeScreen.swiftmodule -emit-abi-descriptor-path /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/HomeScreen.build/Debug-iphonesimulator/HomeScreen.build/Objects-normal/x86_64/HomeScreen.abi.json
+
+SwiftCompile normal x86_64 (in target 'HomeScreen' from project 'HomeScreen')
+    cd /Users/namanmittal/Downloads/ProjectiOS\ 2
+    
+
+SwiftEmitModule normal arm64 Emitting\ module\ for\ HomeScreen (in target 'HomeScreen' from project 'HomeScreen')
+/Users/namanmittal/Downloads/ProjectiOS 2/HomeScreen/Auth/LoginSignupViewController.swift:813:45: error: cannot call value of non-function type 'UIButton'
+ 811 |     }()
+ 812 | 
+ 813 |     private lazy var backButton: UIButton = {
+     |                                             `- error: cannot call value of non-function type 'UIButton'
+ 814 |         let button = UIButton(type: .system)
+ 815 |         let config = UIImage.SymbolConfiguration(pointSize: 22, weight: .medium)
+
+/Users/namanmittal/Downloads/ProjectiOS 2/HomeScreen/Auth/SignupFamilyViewController.swift:33:45: error: cannot call value of non-function type 'UIButton'
+  31 |     }()
+  32 | 
+  33 |     private lazy var backButton: UIButton = {
+     |                                             `- error: cannot call value of non-function type 'UIButton'
+  34 |         let button = UIButton(type: .system)
+  35 |         let config = UIImage.SymbolConfiguration(pointSize: 22, weight: .medium)
+
+/Users/namanmittal/Downloads/ProjectiOS 2/HomeScreen/Auth/SignupFamilyViewController.swift:267:45: error: cannot call value of non-function type 'UIButton'
+ 265 | // MARK: - JoinFamilyViewController
+ 266 | final class JoinFamilyViewController: UIViewController, UITextFieldDelegate, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
+ 267 |     private lazy var backButton: UIButton = {
+     |                                             `- error: cannot call value of non-function type 'UIButton'
+ 268 |         let button = UIButton(type: .system)
+ 269 |         let config = UIImage.SymbolConfiguration(pointSize: 22, weight: .medium)
+
+
+SwiftCompile normal arm64 (in target 'HomeScreen' from project 'HomeScreen')
+    cd /Users/namanmittal/Downloads/ProjectiOS\ 2
+    
+
+SwiftCompile normal arm64 Compiling\ EditDOBViewController.swift,\ ChallengeSentMessageCollectionViewCell.swift,\ ChallengeReceivedMessageCollectionViewCell.swift,\ ProfileMainTableViewController.swift,\ ViewMemberTableViewController.swift,\ AppleHealthTableViewController.swift,\ FamilyMembersCollectionViewCell.swift,\ AddFamilyMemberViewController.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Home\ /Profile/EditProfileVCs/EditDOBViewController.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Messages/Cell\ Files/ChallengeSentMessageCollectionViewCell.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Messages/Cell\ Files/ChallengeReceivedMessageCollectionViewCell.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Home\ /Profile/FamilyMember\ Section/VCs/ProfileMainTableViewController.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Home\ /Profile/FamilyMember\ Section/VCs/ViewMemberTableViewController.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Home\ /Profile/AppleHealthVC/AppleHealthTableViewController.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Home\ /Profile/FamilyMember\ Section/Cell\ Files/FamilyMembersCollectionViewCell.swift /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Home\ /Profile/FamilyMember\ Section/VCs/AddFamilyMemberViewController.swift (in target 'HomeScreen' from project 'HomeScreen')
+
+SwiftCompile normal arm64 /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Home\ /Profile/EditProfileVCs/EditDOBViewController.swift (in target 'HomeScreen' from project 'HomeScreen')
+    cd /Users/namanmittal/Downloads/ProjectiOS\ 2
+    builtin-SwiftPerFileCompile EditDOBViewController.swift
+
+SwiftCompile normal arm64 /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Messages/Cell\ Files/ChallengeSentMessageCollectionViewCell.swift (in target 'HomeScreen' from project 'HomeScreen')
+    cd /Users/namanmittal/Downloads/ProjectiOS\ 2
+    builtin-SwiftPerFileCompile ChallengeSentMessageCollectionViewCell.swift
+
+SwiftCompile normal arm64 /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Messages/Cell\ Files/ChallengeReceivedMessageCollectionViewCell.swift (in target 'HomeScreen' from project 'HomeScreen')
+    cd /Users/namanmittal/Downloads/ProjectiOS\ 2
+    builtin-SwiftPerFileCompile ChallengeReceivedMessageCollectionViewCell.swift
+
+SwiftCompile normal arm64 /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Home\ /Profile/FamilyMember\ Section/VCs/ProfileMainTableViewController.swift (in target 'HomeScreen' from project 'HomeScreen')
+    cd /Users/namanmittal/Downloads/ProjectiOS\ 2
+    builtin-SwiftPerFileCompile ProfileMainTableViewController.swift
+
+SwiftCompile normal arm64 /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Home\ /Profile/FamilyMember\ Section/VCs/ViewMemberTableViewController.swift (in target 'HomeScreen' from project 'HomeScreen')
+    cd /Users/namanmittal/Downloads/ProjectiOS\ 2
+    builtin-SwiftPerFileCompile ViewMemberTableViewController.swift
+
+SwiftCompile normal arm64 /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Home\ /Profile/AppleHealthVC/AppleHealthTableViewController.swift (in target 'HomeScreen' from project 'HomeScreen')
+    cd /Users/namanmittal/Downloads/ProjectiOS\ 2
+    builtin-SwiftPerFileCompile AppleHealthTableViewController.swift
+
+SwiftCompile normal arm64 /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Home\ /Profile/FamilyMember\ Section/Cell\ Files/FamilyMembersCollectionViewCell.swift (in target 'HomeScreen' from project 'HomeScreen')
+    cd /Users/namanmittal/Downloads/ProjectiOS\ 2
+    builtin-SwiftPerFileCompile FamilyMembersCollectionViewCell.swift
+
+SwiftCompile normal arm64 /Users/namanmittal/Downloads/ProjectiOS\ 2/HomeScreen/Home\ /Profile/FamilyMember\ Section/VCs/AddFamilyMemberViewController.swift (in target 'HomeScreen' from project 'HomeScreen')
+    cd /Users/namanmittal/Downloads/ProjectiOS\ 2
+    builtin-SwiftPerFileCompile AddFamilyMemberViewController.swift
+
+PruneExplicitPrecompiledModules /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules
+
+PruneExplicitPrecompiledModules /Users/namanmittal/Library/Developer/Xcode/DerivedData/HomeScreen-agjdtmuoxvgufycypctflkbjvjtt/Build/Intermediates.noindex/ExplicitPrecompiledModules
+
+PruneExplicitPrecompiledModules /Users/namanmittal/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules
+

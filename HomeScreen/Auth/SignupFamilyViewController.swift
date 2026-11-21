@@ -30,15 +30,24 @@ final class SignupFamilyViewController: UIViewController {
         return iv
     }()
 
-    private lazy var backToLoginButton: UIButton = {
-        let button = UIButton(type: .system)
-        button.setTitle("Back to Login", for: .normal)
-        button.setImage(UIImage(systemName: "chevron.left"), for: .normal)
-        button.tintColor = .systemBlue
-        button.titleLabel?.font = .systemFont(ofSize: 15, weight: .medium)
-        button.imageEdgeInsets = UIEdgeInsets(top: 0, left: -8, bottom: 0, right: 0)
+    private lazy var backButton: UIButton = {
+        var config = UIButton.Configuration.plain()
+        config.image = UIImage(systemName: "chevron.left", withConfiguration: UIImage.SymbolConfiguration(pointSize: 16, weight: .semibold))
+        config.baseForegroundColor = .label
+        config.background.visualEffect = UIBlurEffect(style: .systemThickMaterial)
+        config.background.strokeColor = .systemGray4
+        config.background.strokeWidth = 0.5
+        config.cornerStyle = .capsule
+        
+        let button = UIButton(configuration: config)
         button.translatesAutoresizingMaskIntoConstraints = false
         button.addTarget(self, action: #selector(backTapped), for: .touchUpInside)
+        
+        NSLayoutConstraint.activate([
+            button.widthAnchor.constraint(equalToConstant: 40),
+            button.heightAnchor.constraint(equalToConstant: 40)
+        ])
+        
         return button
     }()
 
@@ -112,6 +121,8 @@ final class SignupFamilyViewController: UIViewController {
         title = ""
 
         view.addSubview(scrollView)
+        view.addSubview(backButton)
+        view.addSubview(backButton)
         scrollView.addSubview(contentView)
         contentView.addSubview(familyImageView)
         contentView.addSubview(cardView)
@@ -122,11 +133,12 @@ final class SignupFamilyViewController: UIViewController {
 
         cardView.addSubview(joinCard)
         cardView.addSubview(createCard)
-        cardView.addSubview(backToLoginButton)
 
         let pad: CGFloat = 24
         NSLayoutConstraint.activate([
             scrollView.topAnchor.constraint(equalTo: view.topAnchor),
+            backButton.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 16),
+            backButton.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 18),
             scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             scrollView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
@@ -159,16 +171,14 @@ final class SignupFamilyViewController: UIViewController {
             createCard.leadingAnchor.constraint(equalTo: cardView.leadingAnchor, constant: pad),
             createCard.trailingAnchor.constraint(equalTo: cardView.trailingAnchor, constant: -pad),
             
-            backToLoginButton.topAnchor.constraint(equalTo: createCard.bottomAnchor, constant: 32),
-            backToLoginButton.leadingAnchor.constraint(equalTo: cardView.leadingAnchor, constant: pad),
-            backToLoginButton.bottomAnchor.constraint(equalTo: cardView.bottomAnchor, constant: -32)
+            createCard.bottomAnchor.constraint(equalTo: cardView.bottomAnchor, constant: -32)
         ])
     }
 
     // MARK: - Actions
     @objc private func backTapped() {
         if let nav = navigationController {
-            nav.popViewController(animated: true)
+            nav.popToRootViewController(animated: true)
         } else {
             dismiss(animated: true)
         }
@@ -265,6 +275,15 @@ final class SignupFamilyViewController: UIViewController {
 
 // MARK: - JoinFamilyViewController
 final class JoinFamilyViewController: UIViewController, UITextFieldDelegate, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
+    private let loginButton: UIButton = {
+        let button = UIButton(type: .system)
+        button.setTitle("Already a Member? Log in", for: .normal)
+        button.titleLabel?.font = .systemFont(ofSize: 15, weight: .medium)
+        button.tintColor = .systemBlue
+        button.translatesAutoresizingMaskIntoConstraints = false
+        return button
+    }()
+
 
     var onSignupComplete: (() -> Void)?
     private var isProcessing = false
@@ -422,7 +441,7 @@ final class JoinFamilyViewController: UIViewController, UITextFieldDelegate, UII
         title = "Join Family"
 
         view.addSubview(scrollView)
-        scrollView.addSubview(contentView)
+                scrollView.addSubview(contentView)
         contentView.addSubview(cardView)
 
         cardView.addSubview(titleLabel)
@@ -442,6 +461,8 @@ final class JoinFamilyViewController: UIViewController, UITextFieldDelegate, UII
         cardView.addSubview(genderSegment)
 
         signupButton.addTarget(self, action: #selector(signupTapped), for: .touchUpInside)
+        loginButton.addTarget(self, action: #selector(loginTapped), for: .touchUpInside)
+        cardView.addSubview(loginButton)
         cardView.addSubview(signupButton)
         signupButton.addSubview(spinner)
         cardView.addSubview(statusLabel)
@@ -536,7 +557,9 @@ final class JoinFamilyViewController: UIViewController, UITextFieldDelegate, UII
             statusLabel.topAnchor.constraint(equalTo: signupButton.bottomAnchor, constant: 12),
             statusLabel.leadingAnchor.constraint(equalTo: cardView.leadingAnchor, constant: pad),
             statusLabel.trailingAnchor.constraint(equalTo: cardView.trailingAnchor, constant: -pad),
-            statusLabel.bottomAnchor.constraint(equalTo: cardView.bottomAnchor, constant: -24)
+            loginButton.topAnchor.constraint(equalTo: statusLabel.bottomAnchor, constant: 12),
+            loginButton.centerXAnchor.constraint(equalTo: cardView.centerXAnchor),
+            loginButton.bottomAnchor.constraint(equalTo: cardView.bottomAnchor, constant: -20)
         ])
     }
 
@@ -891,11 +914,8 @@ final class JoinFamilyViewController: UIViewController, UITextFieldDelegate, UII
     }
 
     private func requestHealthKitPermissionAndComplete() {
-        self.showStatus("Requesting HealthKit permission...", isError: false)
-        self.promptAppleHealthPermission { [weak self] in
-            DispatchQueue.main.async {
-                self?.onSignupComplete?()
-            }
+        DispatchQueue.main.async { [weak self] in
+            self?.onSignupComplete?()
         }
     }
 
@@ -983,10 +1003,28 @@ final class JoinFamilyViewController: UIViewController, UITextFieldDelegate, UII
         }
         return true
     }
+
+    @objc private func loginTapped() {
+        if let nav = navigationController {
+            nav.popToRootViewController(animated: true)
+        } else {
+            dismiss(animated: true)
+        }
+    }
 }
+
 
 // MARK: - CreateFamilyViewController
 final class CreateFamilyViewController: UIViewController, UITextFieldDelegate, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
+    private let loginButton: UIButton = {
+        let button = UIButton(type: .system)
+        button.setTitle("Already a Member? Log in", for: .normal)
+        button.titleLabel?.font = .systemFont(ofSize: 15, weight: .medium)
+        button.tintColor = .systemBlue
+        button.translatesAutoresizingMaskIntoConstraints = false
+        return button
+    }()
+
 
     var onSignupComplete: (() -> Void)?
     private var isProcessing = false
@@ -1231,7 +1269,7 @@ final class CreateFamilyViewController: UIViewController, UITextFieldDelegate, U
         title = "Create Family"
 
         view.addSubview(scrollView)
-        scrollView.addSubview(contentView)
+                scrollView.addSubview(contentView)
         contentView.addSubview(cardView)
 
         // Add Form Container
@@ -1253,6 +1291,8 @@ final class CreateFamilyViewController: UIViewController, UITextFieldDelegate, U
         formContainer.addSubview(genderSegment)
 
         signupButton.addTarget(self, action: #selector(signupTapped), for: .touchUpInside)
+        loginButton.addTarget(self, action: #selector(loginTapped), for: .touchUpInside)
+        formContainer.addSubview(loginButton)
         formContainer.addSubview(signupButton)
         signupButton.addSubview(spinner)
         formContainer.addSubview(statusLabel)
@@ -1366,7 +1406,9 @@ final class CreateFamilyViewController: UIViewController, UITextFieldDelegate, U
             statusLabel.topAnchor.constraint(equalTo: signupButton.bottomAnchor, constant: 12),
             statusLabel.leadingAnchor.constraint(equalTo: formContainer.leadingAnchor, constant: pad),
             statusLabel.trailingAnchor.constraint(equalTo: formContainer.trailingAnchor, constant: -pad),
-            statusLabel.bottomAnchor.constraint(equalTo: formContainer.bottomAnchor, constant: -24),
+            loginButton.topAnchor.constraint(equalTo: statusLabel.bottomAnchor, constant: 12),
+            loginButton.centerXAnchor.constraint(equalTo: formContainer.centerXAnchor),
+            loginButton.bottomAnchor.constraint(equalTo: formContainer.bottomAnchor, constant: -20),
 
             // Success View constraints
             successContainer.topAnchor.constraint(equalTo: cardView.topAnchor, constant: 40),
@@ -1749,11 +1791,8 @@ final class CreateFamilyViewController: UIViewController, UITextFieldDelegate, U
     }
 
     @objc private func getStartedTapped() {
-        self.showStatus("Requesting HealthKit permission...", isError: false)
-        self.promptAppleHealthPermission { [weak self] in
-            DispatchQueue.main.async {
-                self?.onSignupComplete?()
-            }
+        DispatchQueue.main.async { [weak self] in
+            self?.onSignupComplete?()
         }
     }
 
@@ -1889,4 +1928,13 @@ final class CreateFamilyViewController: UIViewController, UITextFieldDelegate, U
         }
         return true
     }
-}
+
+    @objc private func loginTapped() {
+        if let nav = navigationController {
+            nav.popToRootViewController(animated: true)
+        } else {
+            dismiss(animated: true)
+        }
+    }
+
+    }

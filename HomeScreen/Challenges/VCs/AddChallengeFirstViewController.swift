@@ -134,7 +134,7 @@ class AddChallengeFirstViewController: UIViewController {
         )
         recreationalCard = createChallengeCard(
             imageName: "task_image",
-            title: "Recreational Challenge",
+            title: "Recreational Activity",
             isFitness: false
         )
         
@@ -150,7 +150,7 @@ class AddChallengeFirstViewController: UIViewController {
         
         // --- Create Challenge Button ---
         createChallengeButton = UIButton(type: .system)
-        createChallengeButton.setTitle("Create Challenge", for: .normal)
+        createChallengeButton.setTitle("Create", for: .normal)
         createChallengeButton.titleLabel?.font = .systemFont(ofSize: 17, weight: .semibold)
         createChallengeButton.backgroundColor = selectedColor
         createChallengeButton.setTitleColor(.white, for: .normal)
@@ -527,7 +527,7 @@ class AddChallengeFirstViewController: UIViewController {
 
     @objc private func createManualChallenge() {
         view.endEditing(true)
-        let title = (selectedCard == .fitness) ? "Fitness Challenge" : "Recreational Challenge"
+        let title = (selectedCard == .fitness) ? "Fitness Challenge" : "Recreational Activity"
         lastTappedSource = (selectedCard == .fitness) ? "Fitness" : "Recreational"
         
         let text = title.lowercased()

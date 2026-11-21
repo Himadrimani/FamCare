@@ -342,12 +342,33 @@ final class HealthConnectionDetailsViewController: UITableViewController {
             handleManageAction()
         } else if snapshot.isLinkedToCurrentProfile {
             // Connected to this profile: a manual refresh is the useful action.
-            DataManager.shared.refreshCurrentUserHealthDataFromHealthKit()
+            DataManager.shared.refreshCurrentUserHealthDataFromHealthKit(force: true)
         } else {
-            // Connection required. We cannot (and must not) fake read authorization,
-            // and iOS won't let the app re-present the permission sheet once it's been
-            // handled, so we guide the user to the supported Settings / Health locations.
-            presentConnectionRequiredGuidance()
+            HealthKitService.shared.readAccessState { [weak self] state in
+                DispatchQueue.main.async {
+                    guard let self else { return }
+                    if state == .notRequested {
+                        HealthKitService.shared.authorizeHealthKit { [weak self] result in
+                            Task { @MainActor in
+                                guard let self else { return }
+                                switch result {
+                                case .success:
+                                    DataManager.shared.setFamilyHealthSharingConsent(true)
+                                    if let user = DataManager.shared.currentUser {
+                                        _ = DataManager.shared.resolveOrCreateHealthKitLink(for: user)
+                                    }
+                                    DataManager.shared.refreshCurrentUserHealthDataFromHealthKit(force: true)
+                                case .failure:
+                                    break
+                                }
+                                self.reloadSnapshot()
+                            }
+                        }
+                    } else {
+                        self.presentConnectionRequiredGuidance()
+                    }
+                }
+            }
         }
     }
 
@@ -469,7 +490,7 @@ final class HealthConnectionDetailsViewController: UITableViewController {
                 preferredStyle: .alert
             )
             alert.addAction(UIAlertAction(title: "Refresh data", style: .default) { _ in
-                DataManager.shared.refreshCurrentUserHealthDataFromHealthKit()
+                DataManager.shared.refreshCurrentUserHealthDataFromHealthKit(force: true)
             })
             alert.addAction(UIAlertAction(title: "OK", style: .cancel))
             present(alert, animated: true)

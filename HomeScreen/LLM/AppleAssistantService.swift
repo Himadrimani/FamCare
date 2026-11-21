@@ -5,13 +5,7 @@ import FoundationModels
 class AppleAssistantService {
     static let shared = AppleAssistantService()
     
-    private var sessionTask: Task<LanguageModelSession?, Never>?
-    
-    private init() {
-        sessionTask = Task {
-            await setupSession()
-        }
-    }
+    private init() {}
     
     private let systemPrompt = """
     You are the FamCare AI Assistant, a helpful and empathetic family health companion.
@@ -42,48 +36,55 @@ class AppleAssistantService {
     8. Be warm, supportive, and use simple, natural language. Use emojis sparingly (1-2 per message max). Avoid long paragraphs or unnecessary explanations.
     """
     
-    private func setupSession() async -> LanguageModelSession? {
+    func sendMessage(userMessages: [AIAssistantMessage]) async throws -> AIAssistantMessage {
         guard SystemLanguageModel.default.availability == .available else {
-            print("SystemLanguageModel is not available on this device.")
-            return nil
+            throw AppleAssistantError.notAvailable
         }
         
         let tools: [any Tool] = [CreateChallengeTool(), CreateMessageGroupTool()]
         
-        do {
-            // FoundationModels LanguageModelSession init
-            return try await LanguageModelSession(
-                tools: tools,
-                instructions: systemPrompt
-            )
-        } catch {
-            print("Failed to initialize LanguageModelSession: \(error)")
-            return nil
-        }
-    }
-    
-    func sendMessage(userMessages: [AIAssistantMessage]) async throws -> AIAssistantMessage {
-        guard let session = await sessionTask?.value else {
-            throw AppleAssistantError.notAvailable
-        }
-        
-        // 1. Build the health data context
+        // 1. Build compact, real-time health data context
         let healthContext = AssistantDataProvider.buildContext()
         
-        var fullPrompt = "[SYSTEM CONTEXT — This is the user's real health data. Use it to answer questions. Do NOT repeat this raw data back to the user. Summarize naturally and conversationally.]\n\n\(healthContext)\n\n"
+        let fullInstructions = """
+        \(systemPrompt)
         
-        for msg in userMessages {
+        CURRENT FAMILY HEALTH DATA SNAPSHOT:
+        \(healthContext)
+        """
+        
+        let session: LanguageModelSession
+        do {
+            // Fresh session per interaction ensures internal session memory is bounded and never leaks past turns
+            session = try await LanguageModelSession(
+                tools: tools,
+                instructions: fullInstructions
+            )
+        } catch {
+            throw AppleAssistantError.serverError("Unable to initialize AI session: \(error.localizedDescription)")
+        }
+        
+        // 2. Sliding window: bounded to the last 4 messages (e.g., prior Q&A + latest question)
+        // to maintain conversational flow and follow-ups while strictly keeping tokens under ~1,500 (ceiling is 8,192).
+        let recentMessages = userMessages.suffix(4)
+        
+        var promptText = ""
+        for msg in recentMessages {
             let role = msg.role == "user" ? "User" : "Assistant"
-            if let content = msg.content {
-                fullPrompt += "\(role): \(content)\n"
+            if let content = msg.content, !content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                promptText += "\(role): \(content)\n"
             }
+        }
+        
+        let promptToSend = promptText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !promptToSend.isEmpty else {
+            return AIAssistantMessage(role: "assistant", content: "How can I help you today?")
         }
         
         var responseContent = ""
         do {
-            let result = try await session.respond(to: fullPrompt)
+            let result = try await session.respond(to: promptToSend)
             responseContent = result.content
-
         } catch {
             throw AppleAssistantError.serverError(error.localizedDescription)
         }

@@ -106,12 +106,21 @@ class HomeViewController: UIViewController {
         let oldWellnessCards = wellnessCards
         loadWellnessData(for: selectedDate)
         
+        let oldDatesCount = dates.count
+        generateDates()
+        
         let oldChallengesCount = ongoingChallenges.count
-        self.ongoingChallenges = DataManager.shared.challenges.filter { $0.status == "ongoing" }
+        updateChallengesForSelectedDate()
         
         setupProfileButton()
         
         var sectionsToReload = IndexSet()
+        
+        if dates.count != oldDatesCount {
+            sectionsToReload.insert(0)
+        } else {
+            sectionsToReload.insert(0)
+        }
         
         if oldWellnessCards != wellnessCards {
             if oldWellnessCards.count == wellnessCards.count {
@@ -136,6 +145,8 @@ class HomeViewController: UIViewController {
                 let indexPath = IndexPath(item: 0, section: 1)
                 if let cell = homeCollectionView.cellForItem(at: indexPath) as? FamilyActivityScoreCollectionViewCell {
                     cell.configure(members: familyMembers, for: selectedDate)
+                } else {
+                    sectionsToReload.insert(1)
                 }
             }
         }
@@ -155,13 +166,27 @@ class HomeViewController: UIViewController {
     }
     
     @objc func refreshChallenges() {
-        self.ongoingChallenges = DataManager.shared.challenges.filter { $0.status == "ongoing" }
+        generateDates()
+        updateChallengesForSelectedDate()
         DispatchQueue.main.async { [weak self] in
-            if self?.homeCollectionView.numberOfSections ?? 0 > 2 {
+            guard let self = self else { return }
+            if self.homeCollectionView.numberOfSections > 2 {
                 UIView.performWithoutAnimation {
-                    self?.homeCollectionView.reloadSections(IndexSet(integer: 2))
+                    self.homeCollectionView.reloadSections(IndexSet([0, 2]))
                 }
             }
+        }
+    }
+
+    private func updateChallengesForSelectedDate() {
+        let allOngoing = DataManager.shared.challenges.filter { $0.status == "ongoing" }
+        self.ongoingChallenges = allOngoing.sorted { a, b in
+            let aMatch = a.isRecreational && calendar.isDate(a.endDate, inSameDayAs: selectedDate)
+            let bMatch = b.isRecreational && calendar.isDate(b.endDate, inSameDayAs: selectedDate)
+            if aMatch != bMatch {
+                return aMatch && !bMatch
+            }
+            return a.endDate < b.endDate
         }
     }
 
@@ -402,7 +427,7 @@ class HomeViewController: UIViewController {
         )
     }
 
-    //Calendar Dates - function creates a list of dates from 30 days ago up to the end of the current week. It then stores all those dates in the dates array to show in the calendar UI.
+    //Calendar Dates - function creates a list of dates from 30 days ago up to the end of the current week (or beyond if future recreational activities are scheduled). It then stores all those dates in the dates array to show in the calendar UI.
  
     private func generateDates() {
         let today = Date()
@@ -419,8 +444,18 @@ class HomeViewController: UIViewController {
         // End = Saturday of current week to ensure the calendar ends on Saturday
         let weekday = calendar.component(.weekday, from: today)
         let daysToSaturday = 7 - weekday
-        guard let endDate = calendar.date(byAdding: .day, value: daysToSaturday, to: today)
-        else { return }
+        var maxTargetDate = calendar.date(byAdding: .day, value: daysToSaturday, to: today) ?? today
+
+        // Dynamic Calendar integration: If any scheduled recreational activity is in the future past this week, extend calendar to encompass it!
+        let recreationalActivities = DataManager.shared.challenges.filter { $0.status == "ongoing" && $0.isRecreational }
+        if let maxActivityDate = recreationalActivities.map({ $0.endDate }).max(), maxActivityDate > maxTargetDate {
+            let actWeekday = calendar.component(.weekday, from: maxActivityDate)
+            let actDaysToSaturday = 7 - actWeekday
+            if let extendedSaturday = calendar.date(byAdding: .day, value: actDaysToSaturday, to: maxActivityDate) {
+                maxTargetDate = extendedSaturday
+            }
+        }
+        let endDate = maxTargetDate
 
         var tempDates: [Date] = []
         var current = startDate
@@ -502,7 +537,10 @@ extension HomeViewController: UICollectionViewDataSource {
         case 0:
             let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "calendar_cell", for: indexPath) as! CalendarCollectionViewCell
             let date = dates[indexPath.item]
-            cell.configure(with: date, isSelected: calendar.isDate(date, inSameDayAs: selectedDate), isToday: calendar.isDateInToday(date))
+            let hasActivity = DataManager.shared.challenges.contains { ch in
+                ch.status == "ongoing" && ch.isRecreational && self.calendar.isDate(ch.endDate, inSameDayAs: date)
+            }
+            cell.configure(with: date, isSelected: calendar.isDate(date, inSameDayAs: selectedDate), isToday: calendar.isDateInToday(date), hasActivity: hasActivity)
             return cell
 
         case 1:
@@ -560,9 +598,14 @@ extension HomeViewController: UICollectionViewDelegate {
         if indexPath.section == 0 {
             let tappedDate = dates[indexPath.item]
             let todayStart = calendar.startOfDay(for: Date())
+            let hasActivityOnTappedDate = DataManager.shared.challenges.contains { ch in
+                ch.status == "ongoing" && ch.isRecreational && self.calendar.isDate(ch.endDate, inSameDayAs: tappedDate)
+            }
 
-            // Do not allow selecting future dates beyond today
-            guard calendar.startOfDay(for: tappedDate) <= todayStart else { return }
+            // Do not allow selecting future dates beyond today unless it has a scheduled activity
+            if calendar.startOfDay(for: tappedDate) > todayStart && !hasActivityOnTappedDate {
+                return
+            }
 
             let previousDate = selectedDate
             selectedDate = tappedDate
@@ -573,8 +616,9 @@ extension HomeViewController: UICollectionViewDelegate {
             }
             collectionView.reloadItems(at: reload)
             loadWellnessData(for: selectedDate)
+            updateChallengesForSelectedDate()
 
-            collectionView.reloadSections(IndexSet([1, 3]))// reload wellness rings and wellness cards for selected date
+            collectionView.reloadSections(IndexSet([1, 2, 3]))// reload wellness rings, challenge cards, and wellness cards for selected date
 
         } else if indexPath.section == 2 {
             // Challenge section (Section 2)
@@ -634,6 +678,27 @@ extension HomeViewController: EditWellnessViewControllerDelegate {
         currentUser?.visibleMetricIds = visibleMetricIds
         loadWellnessData(for: selectedDate)
         homeCollectionView.reloadSections(IndexSet(integer: 3))
+
+        // Privacy Architecture (Option D): Sync updated sharing preferences directly to PostgreSQL RLS
+        Task {
+            guard let current = DataManager.shared.currentUser else { return }
+            let allFamily = DataManager.shared.allProfiles
+            let selectedSet = Set(visibleMetricIds)
+            let allMetrics: [HealthMetricType] = [.steps, .calories, .distance, .heartRate, .hrv, .sleep]
+
+            for member in allFamily {
+                for metric in allMetrics {
+                    let isAllowed = selectedSet.contains(metric.rawValue)
+                    let level: HealthPermissionLevel = isAllowed ? .summaryOnly : .none
+                    try? await DataManager.shared.setHealthPermission(
+                        viewerProfileId: member.profileId,
+                        metricType: metric,
+                        isAllowed: isAllowed,
+                        permissionLevel: level
+                    )
+                }
+            }
+        }
     }
 }
 

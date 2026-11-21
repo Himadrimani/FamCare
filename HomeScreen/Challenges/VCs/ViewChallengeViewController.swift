@@ -491,6 +491,7 @@ extension ViewChallengeViewController: Design02Delegate {
         // Find existing progress record
         if let index = DataManager.shared.challengeProgress.firstIndex(where: { $0.challengeId == challenge.challengeId && $0.memberId == member.profileId }) {
             let progress = DataManager.shared.challengeProgress[index]
+            let wasMemberAlreadyComplete = progress.goalValue > 0 && progress.currentValue >= progress.goalValue
             
             let updatedProgress = ChallengeProgress(
                 challengeId: progress.challengeId,
@@ -505,12 +506,27 @@ extension ViewChallengeViewController: Design02Delegate {
             DataManager.shared.challengeProgress[index] = updatedProgress
             SQLiteHelper.shared.saveChallengeProgress(updatedProgress)
             
+            if isChecked && !wasMemberAlreadyComplete {
+                let allProgress = DataManager.shared.challengeProgress.filter { $0.challengeId == challenge.challengeId }
+                let isFamilyChallenge = allProgress.count > 1
+                let isFamilyNowComplete = isFamilyChallenge && allProgress.allSatisfy { $0.goalValue > 0 && $0.currentValue >= $0.goalValue }
+                
+                if isFamilyNowComplete {
+                    RewardsManager.shared.awardFamilyShield(challenge: challenge, participantsCount: allProgress.count)
+                }
+            }
+            
             // Trigger Sync
             Task {
                 await SyncManager.shared.pushUnsyncedData()
             }
             
             // Refresh to update UI and apply 'completed' rules globally
+            NotificationCenter.default.post(
+                name: .ChallengeDataDidUpdate,
+                object: nil,
+                userInfo: [NotificationPayloadKey.challengeId: progress.challengeId.uuidString]
+            )
             NotificationCenter.default.post(name: NSNotification.Name("DataManagerDidUpdate"), object: nil)
         }
     }

@@ -66,7 +66,7 @@ class WellnessViewController: UIViewController {
         collectionView.dataSource = self
         collectionView.register(UINib(nibName: "DayPickerCell",  bundle: nil), forCellWithReuseIdentifier: "DayPickerCell")
         collectionView.register(UINib(nibName: "MainRingCell",   bundle: nil), forCellWithReuseIdentifier: "MainRingCell")
-        collectionView.register(UICollectionViewCell.self, forCellWithReuseIdentifier: "InsightCell")
+        collectionView.register(InsightCardCollectionViewCell.self, forCellWithReuseIdentifier: "InsightCell")
         collectionView.register(UINib(nibName: "StartRowCell",   bundle: nil), forCellWithReuseIdentifier: "StartRowCell")
         collectionView.collectionViewLayout = createLayout()
     }
@@ -153,7 +153,7 @@ extension WellnessViewController: UICollectionViewDataSource, UICollectionViewDe
             cell.configure(with: day)
             return cell
         case 2:
-            let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "InsightCell", for: indexPath)
+            let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "InsightCell", for: indexPath) as! InsightCardCollectionViewCell
             configureInsightCell(cell, for: day)
             return cell
         case 3:
@@ -165,105 +165,13 @@ extension WellnessViewController: UICollectionViewDataSource, UICollectionViewDe
         }
     }
 
-    private func configureInsightCell(_ cell: UICollectionViewCell, for day: DayData) {
-        cell.contentView.subviews.forEach { $0.removeFromSuperview() }
-        cell.backgroundColor = .clear
-        
+    private func configureInsightCell(_ cell: InsightCardCollectionViewCell, for day: DayData) {
         guard let user = currentUser else { return }
         let isSelf = user.profileId == DataManager.shared.currentUser?.profileId
         let insight = InsightEngine.shared.generateInsight(for: user, isSelf: isSelf)
-        
-        let container = UIView()
-        container.translatesAutoresizingMaskIntoConstraints = false
-        container.backgroundColor = UIColor.systemBlue.withAlphaComponent(0.05)
-        container.layer.cornerRadius = 20
-        container.layer.borderWidth = 1
-        container.layer.borderColor = UIColor.systemBlue.withAlphaComponent(0.15).cgColor
-        cell.contentView.addSubview(container)
-        
-        let titleLabel = UILabel()
-        titleLabel.translatesAutoresizingMaskIntoConstraints = false
-        titleLabel.text = insight.title
-        titleLabel.font = .systemFont(ofSize: 16, weight: .bold)
-        titleLabel.textColor = .label
-        container.addSubview(titleLabel)
-        
-        let messageLabel = UILabel()
-        messageLabel.translatesAutoresizingMaskIntoConstraints = false
-        messageLabel.text = insight.message
-        messageLabel.font = .systemFont(ofSize: 14, weight: .medium)
-        messageLabel.textColor = .secondaryLabel
-        messageLabel.numberOfLines = 0
-        container.addSubview(messageLabel)
-        
-        let suggestionLabel = UILabel()
-        suggestionLabel.translatesAutoresizingMaskIntoConstraints = false
-        suggestionLabel.text = insight.suggestion
-        suggestionLabel.font = .systemFont(ofSize: 13, weight: .regular)
-        suggestionLabel.textColor = .secondaryLabel
-        suggestionLabel.numberOfLines = 0
-        container.addSubview(suggestionLabel)
-        
-        var config = UIButton.Configuration.filled()
-        config.title = "Start Challenge"
-        config.baseBackgroundColor = .systemBlue
-        config.baseForegroundColor = .white
-        config.cornerStyle = .fixed
-        config.background.cornerRadius = 10
-        config.contentInsets = NSDirectionalEdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16)
-        config.attributedTitle = AttributedString("Start Challenge", attributes: AttributeContainer([.font: UIFont.systemFont(ofSize: 14, weight: .bold)]))
-
-        let button = UIButton(configuration: config, primaryAction: UIAction(handler: { [weak self] _ in
+        cell.configure(with: insight) { [weak self] in
             self?.startChallengeTapped()
-        }))
-        button.translatesAutoresizingMaskIntoConstraints = false
-        button.isHidden = !insight.showChallengeButton
-        container.addSubview(button)
-
-        // Wellness-not-medical-advice footer (#10).
-        let disclaimerLabel = UILabel()
-        disclaimerLabel.translatesAutoresizingMaskIntoConstraints = false
-        disclaimerLabel.text = StandardInsightConfig.medicalDisclaimer
-        disclaimerLabel.font = .systemFont(ofSize: 11, weight: .regular)
-        disclaimerLabel.textColor = .tertiaryLabel
-        disclaimerLabel.numberOfLines = 0
-        container.addSubview(disclaimerLabel)
-        
-        NSLayoutConstraint.activate([
-            container.topAnchor.constraint(equalTo: cell.contentView.topAnchor, constant: 0),
-            container.leadingAnchor.constraint(equalTo: cell.contentView.leadingAnchor, constant: 16),
-            container.trailingAnchor.constraint(equalTo: cell.contentView.trailingAnchor, constant: -16),
-            container.bottomAnchor.constraint(equalTo: cell.contentView.bottomAnchor, constant: -10),
-            
-            titleLabel.topAnchor.constraint(equalTo: container.topAnchor, constant: 15),
-            titleLabel.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 15),
-            titleLabel.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -15),
-            
-            messageLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 8),
-            messageLabel.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 15),
-            messageLabel.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -15),
-            
-            suggestionLabel.topAnchor.constraint(equalTo: messageLabel.bottomAnchor, constant: 4),
-            suggestionLabel.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 15),
-            suggestionLabel.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -15),
-        ])
-        
-        if insight.showChallengeButton {
-            NSLayoutConstraint.activate([
-                button.topAnchor.constraint(equalTo: suggestionLabel.bottomAnchor, constant: 12),
-                button.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 15),
-                disclaimerLabel.topAnchor.constraint(equalTo: button.bottomAnchor, constant: 12)
-            ])
-        } else {
-            NSLayoutConstraint.activate([
-                disclaimerLabel.topAnchor.constraint(equalTo: suggestionLabel.bottomAnchor, constant: 12)
-            ])
         }
-        NSLayoutConstraint.activate([
-            disclaimerLabel.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 15),
-            disclaimerLabel.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -15),
-            disclaimerLabel.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -15)
-        ])
     }
 
     @objc private func startChallengeTapped() {
@@ -357,5 +265,131 @@ extension Int {
     var formattedWithSeparator: String {
         let f = NumberFormatter(); f.numberStyle = .decimal
         return f.string(from: NSNumber(value: self)) ?? "\(self)"
+    }
+}
+
+// MARK: - Insight Card Collection View Cell
+final class InsightCardCollectionViewCell: UICollectionViewCell {
+    private let container = UIView()
+    private let titleLabel = UILabel()
+    private let messageLabel = UILabel()
+    private let suggestionLabel = UILabel()
+    private let button = UIButton()
+    private let disclaimerLabel = UILabel()
+    private var buttonWithAction: (() -> Void)?
+    
+    private var buttonTopToSuggestionConstraint: NSLayoutConstraint?
+    private var disclaimerTopToButtonConstraint: NSLayoutConstraint?
+    private var disclaimerTopToSuggestionConstraint: NSLayoutConstraint?
+    
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        setupUI()
+    }
+    
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+        setupUI()
+    }
+    
+    private func setupUI() {
+        backgroundColor = .clear
+        contentView.backgroundColor = .clear
+        
+        container.translatesAutoresizingMaskIntoConstraints = false
+        container.backgroundColor = UIColor.systemBlue.withAlphaComponent(0.05)
+        container.layer.cornerRadius = 20
+        container.layer.borderWidth = 1
+        container.layer.borderColor = UIColor.systemBlue.withAlphaComponent(0.15).cgColor
+        contentView.addSubview(container)
+        
+        titleLabel.translatesAutoresizingMaskIntoConstraints = false
+        titleLabel.font = .systemFont(ofSize: 16, weight: .bold)
+        titleLabel.textColor = .label
+        container.addSubview(titleLabel)
+        
+        messageLabel.translatesAutoresizingMaskIntoConstraints = false
+        messageLabel.font = .systemFont(ofSize: 14, weight: .medium)
+        messageLabel.textColor = .secondaryLabel
+        messageLabel.numberOfLines = 0
+        container.addSubview(messageLabel)
+        
+        suggestionLabel.translatesAutoresizingMaskIntoConstraints = false
+        suggestionLabel.font = .systemFont(ofSize: 13, weight: .regular)
+        suggestionLabel.textColor = .secondaryLabel
+        suggestionLabel.numberOfLines = 0
+        container.addSubview(suggestionLabel)
+        
+        var config = UIButton.Configuration.filled()
+        config.title = "Start Challenge"
+        config.baseBackgroundColor = .systemBlue
+        config.baseForegroundColor = .white
+        config.cornerStyle = .fixed
+        config.background.cornerRadius = 10
+        config.contentInsets = NSDirectionalEdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16)
+        config.attributedTitle = AttributedString("Start Challenge", attributes: AttributeContainer([.font: UIFont.systemFont(ofSize: 14, weight: .bold)]))
+        button.configuration = config
+        button.translatesAutoresizingMaskIntoConstraints = false
+        button.addTarget(self, action: #selector(buttonTapped), for: .touchUpInside)
+        container.addSubview(button)
+        
+        disclaimerLabel.translatesAutoresizingMaskIntoConstraints = false
+        disclaimerLabel.text = StandardInsightConfig.medicalDisclaimer
+        disclaimerLabel.font = .systemFont(ofSize: 11, weight: .regular)
+        disclaimerLabel.textColor = .tertiaryLabel
+        disclaimerLabel.numberOfLines = 0
+        container.addSubview(disclaimerLabel)
+        
+        buttonTopToSuggestionConstraint = button.topAnchor.constraint(equalTo: suggestionLabel.bottomAnchor, constant: 12)
+        disclaimerTopToButtonConstraint = disclaimerLabel.topAnchor.constraint(equalTo: button.bottomAnchor, constant: 12)
+        disclaimerTopToSuggestionConstraint = disclaimerLabel.topAnchor.constraint(equalTo: suggestionLabel.bottomAnchor, constant: 12)
+        
+        NSLayoutConstraint.activate([
+            container.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 0),
+            container.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
+            container.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
+            container.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -10),
+            
+            titleLabel.topAnchor.constraint(equalTo: container.topAnchor, constant: 15),
+            titleLabel.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 15),
+            titleLabel.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -15),
+            
+            messageLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 8),
+            messageLabel.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 15),
+            messageLabel.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -15),
+            
+            suggestionLabel.topAnchor.constraint(equalTo: messageLabel.bottomAnchor, constant: 4),
+            suggestionLabel.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 15),
+            suggestionLabel.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -15),
+            
+            button.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 15),
+            
+            disclaimerLabel.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 15),
+            disclaimerLabel.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -15),
+            disclaimerLabel.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -15)
+        ])
+    }
+    
+    func configure(with insight: AIInsight, onChallenge: @escaping () -> Void) {
+        titleLabel.text = insight.title
+        messageLabel.text = insight.message
+        suggestionLabel.text = insight.suggestion
+        self.buttonWithAction = onChallenge
+        
+        if insight.showChallengeButton {
+            button.isHidden = false
+            disclaimerTopToSuggestionConstraint?.isActive = false
+            buttonTopToSuggestionConstraint?.isActive = true
+            disclaimerTopToButtonConstraint?.isActive = true
+        } else {
+            button.isHidden = true
+            buttonTopToSuggestionConstraint?.isActive = false
+            disclaimerTopToButtonConstraint?.isActive = false
+            disclaimerTopToSuggestionConstraint?.isActive = true
+        }
+    }
+    
+    @objc private func buttonTapped() {
+        buttonWithAction?()
     }
 }

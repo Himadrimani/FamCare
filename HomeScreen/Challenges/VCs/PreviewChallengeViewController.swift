@@ -24,6 +24,7 @@ class PreviewChallengeViewController: UIViewController {
     let scrollView = UIScrollView()
     let contentView = UIStackView()
     
+    let nameLabel = UILabel()
     let nameTextField = UITextField()
     let descriptionTextField = UITextField()
     let subtypeSegment = UISegmentedControl(items: ["Steps", "Calories", "Distance", "Sleep"])
@@ -34,11 +35,16 @@ class PreviewChallengeViewController: UIViewController {
     
     let startDatePicker = UIDatePicker()
     let endDatePicker = UIDatePicker()
+    let activityDateTimePicker = UIDatePicker()
+    
+    private var isRecreationalFlow: Bool {
+        return sourceSelection == "Recreational" || precompiledDetails?.name == "Recreational Activity"
+    }
 
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .systemBackground
-        self.title = "Preview Challenge"
+        updateNameLabel()
         
         // Always ensure a Save button exists in the nav bar
         // (when presented programmatically, the storyboard bar button isn't created)
@@ -99,8 +105,7 @@ class PreviewChallengeViewController: UIViewController {
         ])
         
         // --- Name ---
-        let nameLabel = UILabel()
-        nameLabel.text = "Challenge Name"
+        updateNameLabel()
         nameLabel.font = .systemFont(ofSize: 16, weight: .semibold)
         contentView.addArrangedSubview(nameLabel)
         
@@ -186,31 +191,47 @@ class PreviewChallengeViewController: UIViewController {
         }
         
         // --- Dates ---
-        let startDateLabel = UILabel()
-        startDateLabel.text = "Start Date"
-        startDateLabel.font = .systemFont(ofSize: 16, weight: .semibold)
-        contentView.addArrangedSubview(startDateLabel)
-        
-        startDatePicker.datePickerMode = .date
-        if #available(iOS 14.0, *) {
-            startDatePicker.preferredDatePickerStyle = .compact
+        if isRecreationalFlow {
+            let dateTimeLabel = UILabel()
+            dateTimeLabel.text = "Date & Time"
+            dateTimeLabel.font = .systemFont(ofSize: 16, weight: .semibold)
+            contentView.addArrangedSubview(dateTimeLabel)
+            
+            activityDateTimePicker.datePickerMode = .dateAndTime
+            if #available(iOS 14.0, *) {
+                activityDateTimePicker.preferredDatePickerStyle = .compact
+            }
+            activityDateTimePicker.minimumDate = Date()
+            let defaultDate = Calendar.current.date(byAdding: .hour, value: 2, to: Date()) ?? Date()
+            activityDateTimePicker.date = defaultDate
+            contentView.addArrangedSubview(activityDateTimePicker)
+        } else {
+            let startDateLabel = UILabel()
+            startDateLabel.text = "Start Date"
+            startDateLabel.font = .systemFont(ofSize: 16, weight: .semibold)
+            contentView.addArrangedSubview(startDateLabel)
+            
+            startDatePicker.datePickerMode = .date
+            if #available(iOS 14.0, *) {
+                startDatePicker.preferredDatePickerStyle = .compact
+            }
+            startDatePicker.minimumDate = Date()
+            startDatePicker.addTarget(self, action: #selector(startDateChanged), for: .valueChanged)
+            contentView.addArrangedSubview(startDatePicker)
+            
+            let endDateLabel = UILabel()
+            endDateLabel.text = "End Date"
+            endDateLabel.font = .systemFont(ofSize: 16, weight: .semibold)
+            contentView.addArrangedSubview(endDateLabel)
+            
+            endDatePicker.datePickerMode = .date
+            if #available(iOS 14.0, *) {
+                endDatePicker.preferredDatePickerStyle = .compact
+            }
+            endDatePicker.minimumDate = Calendar.current.date(byAdding: .day, value: 1, to: startDatePicker.date)
+            endDatePicker.date = Calendar.current.date(byAdding: .day, value: 7, to: startDatePicker.date) ?? Date()
+            contentView.addArrangedSubview(endDatePicker)
         }
-        startDatePicker.minimumDate = Date()
-        startDatePicker.addTarget(self, action: #selector(startDateChanged), for: .valueChanged)
-        contentView.addArrangedSubview(startDatePicker)
-        
-        let endDateLabel = UILabel()
-        endDateLabel.text = "End Date"
-        endDateLabel.font = .systemFont(ofSize: 16, weight: .semibold)
-        contentView.addArrangedSubview(endDateLabel)
-        
-        endDatePicker.datePickerMode = .date
-        if #available(iOS 14.0, *) {
-            endDatePicker.preferredDatePickerStyle = .compact
-        }
-        endDatePicker.minimumDate = Calendar.current.date(byAdding: .day, value: 1, to: startDatePicker.date)
-        endDatePicker.date = Calendar.current.date(byAdding: .day, value: 7, to: startDatePicker.date) ?? Date()
-        contentView.addArrangedSubview(endDatePicker)
         
         // --- Spacer ---
         let spacer = UIView()
@@ -223,11 +244,28 @@ class PreviewChallengeViewController: UIViewController {
         view.endEditing(true)
     }
     
+    private func updateNameLabel() {
+        if sourceSelection == "OtherTask" || precompiledDetails?.subType == "social_task" || precompiledDetails?.name == "Other Task" {
+            self.title = "Preview Task"
+            navigationItem.title = "Preview Task"
+            nameLabel.text = "Task Name"
+        } else if sourceSelection == "Recreational" || precompiledDetails?.name == "Recreational Activity" {
+            self.title = "Preview Activity"
+            navigationItem.title = "Preview Activity"
+            nameLabel.text = "Activity Name"
+        } else {
+            self.title = "Preview Challenge"
+            navigationItem.title = "Preview Challenge"
+            nameLabel.text = "Challenge Name"
+        }
+    }
+    
     private func prefillData() {
         if let details = precompiledDetails {
             nameTextField.text = details.name
             descriptionTextField.text = details.description
             challengeType = details.type
+            updateNameLabel()
             
             // Set Subtype
             if challengeType != "social" {
@@ -243,8 +281,14 @@ class PreviewChallengeViewController: UIViewController {
                 }
             }
             
-            startDatePicker.date = details.startDate
-            endDatePicker.date = details.endDate
+            if isRecreationalFlow {
+                if details.endDate > Date() {
+                    activityDateTimePicker.date = details.endDate
+                }
+            } else {
+                startDatePicker.date = details.startDate
+                endDatePicker.date = details.endDate
+            }
             
             // Populate internal arrays / update UI based on precompiledProgress
             if let progressList = precompiledProgress {
@@ -365,20 +409,43 @@ class PreviewChallengeViewController: UIViewController {
         
         
         
+        let targetEndDate: Date
+        let activityStartDate: Date
+        let subTypeToSave: String
+        
+        if isRecreationalFlow {
+            targetEndDate = activityDateTimePicker.date
+            activityStartDate = Date()
+            subTypeToSave = "recreational"
+            bgImageValue = "task_image"
+        } else {
+            targetEndDate = endDatePicker.date
+            activityStartDate = finalStartDate
+            subTypeToSave = subTypeStr
+        }
+        
         let details = ChallengeDetails(
             challengeId: challengeId,
             familyId: familyId,
             name: name,
             description: desc,
             type: challengeType,
-            subType: subTypeStr,
+            subType: subTypeToSave,
             status: "ongoing",
             bgImage: bgImageValue,
-            startDate: finalStartDate,
-            endDate: endDatePicker.date,
+            startDate: activityStartDate,
+            endDate: targetEndDate,
             lastUpdatedAt: Date(),
             isSynced: false
         )
+        
+        if isRecreationalFlow {
+            CalendarSyncManager.shared.syncRecreationalActivityToCalendar(
+                activityName: name,
+                date: targetEndDate,
+                description: desc
+            )
+        }
         
         var progressList: [ChallengeProgress] = []
         for member in familyMembers {
@@ -424,6 +491,11 @@ class PreviewChallengeViewController: UIViewController {
         
         // 3. Post notification for UI updates
         NotificationCenter.default.post(name: NSNotification.Name("ChallengeAddedNotification"), object: nil)
+        NotificationCenter.default.post(
+            name: .ChallengeDataDidUpdate,
+            object: nil,
+            userInfo: [NotificationPayloadKey.challengeId: details.challengeId.uuidString]
+        )
         NotificationCenter.default.post(name: NSNotification.Name("DataManagerDidUpdate"), object: nil)
         
         // 4. Trigger remote sync

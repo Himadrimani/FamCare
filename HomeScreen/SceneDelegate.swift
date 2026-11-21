@@ -194,19 +194,37 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate, UITabBarControllerDeleg
 
     private func openPendingChallengeIfPossible() {
         guard let challengeID = pendingChallengeID,
-              let challenge = DataManager.shared.challenges.first(where: { $0.challengeId == challengeID }),
               let tabBarController = window?.rootViewController as? UITabBarController,
               let challengeNavigationController = tabBarController.viewControllers?[2] as? UINavigationController else {
             return
         }
 
-        let details = UIStoryboard(name: "Challenges", bundle: nil)
-            .instantiateViewController(withIdentifier: "ViewChallengeViewController") as! ViewChallengeViewController
-        details.challenge = challenge
-        details.familyMembers = DataManager.shared.allProfiles
+        guard let challenge = DataManager.shared.challenges.first(where: { $0.challengeId == challengeID }) else {
+            // If data is already populated but challenge cannot be found (e.g. deleted), clean up
+            if !DataManager.shared.challenges.isEmpty {
+                pendingChallengeID = nil
+            }
+            return
+        }
+
+        let storyboard = UIStoryboard(name: "Challenges", bundle: nil)
+        let destinationVC: UIViewController
+        
+        if challenge.type == "social" {
+            let taskVC = storyboard.instantiateViewController(withIdentifier: "TaskDetailViewController") as! TaskDetailViewController
+            taskVC.challenge = challenge
+            taskVC.familyMembers = DataManager.shared.allProfiles
+            destinationVC = taskVC
+        } else {
+            let details = storyboard.instantiateViewController(withIdentifier: "ViewChallengeViewController") as! ViewChallengeViewController
+            details.challenge = challenge
+            details.familyMembers = DataManager.shared.allProfiles
+            destinationVC = details
+        }
+        
         tabBarController.selectedIndex = 2
         challengeNavigationController.popToRootViewController(animated: false)
-        challengeNavigationController.pushViewController(details, animated: true)
+        challengeNavigationController.pushViewController(destinationVC, animated: true)
         pendingChallengeID = nil
     }
 
@@ -279,22 +297,29 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate, UITabBarControllerDeleg
     private func showAuthentication() {
         let authVC = LoginSignupViewController(nibName: "LoginSignupViewController", bundle: nil)
         authVC.onAuthenticationComplete = { [weak self] in
-            if DataManager.shared.isCurrentUserHealthKitLinked() {
-                self?.showMainInterface(animated: true)
-            } else {
-                let hkVC = HealthKitOnboardingViewController()
-                hkVC.onCompletion = {
-                    self?.showMainInterface(animated: true)
-                }
-                let nav = UINavigationController(rootViewController: hkVC)
-                nav.navigationBar.isHidden = true
-                
-                let installRoot = {
-                    self?.window?.rootViewController = nav
-                    self?.window?.makeKeyAndVisible()
-                }
-                if let window = self?.window {
-                    UIView.transition(with: window, duration: 0.25, options: .transitionCrossDissolve, animations: installRoot)
+            HealthKitService.shared.readAccessState { state in
+                DispatchQueue.main.async {
+                    if state == .notRequested {
+                        HealthKitService.shared.authorizeHealthKit { result in
+                            Task { @MainActor in
+                                switch result {
+                                case .success:
+                                    DataManager.shared.setFamilyHealthSharingConsent(true)
+                                    if let user = DataManager.shared.currentUser {
+                                        _ = DataManager.shared.resolveOrCreateHealthKitLink(for: user)
+                                    }
+                                    DataManager.shared.refreshCurrentUserHealthDataFromHealthKit(force: true)
+                                case .failure(let error):
+                                    #if DEBUG
+                                    print("HealthKit authorization result:", error.localizedDescription)
+                                    #endif
+                                }
+                                self?.showMainInterface(animated: true)
+                            }
+                        }
+                    } else {
+                        self?.showMainInterface(animated: true)
+                    }
                 }
             }
         }

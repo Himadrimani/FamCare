@@ -20,6 +20,7 @@ final class HealthKitService {
     // Coalesces overlapping HKObserverQuery callbacks so repeated/duplicate
     // HealthKit notifications don't kick off concurrent fetch+sync passes.
     private var backgroundDeliveryInFlight = false
+    private var backgroundDeliveryPending = false
 
     private init() {}
 
@@ -48,12 +49,11 @@ final class HealthKitService {
     private var readTypes: Set<HKObjectType> {
         [
             HKQuantityType.quantityType(forIdentifier: .stepCount)!,
+            HKQuantityType.quantityType(forIdentifier: .distanceWalkingRunning)!,
+            HKQuantityType.quantityType(forIdentifier: .activeEnergyBurned)!,
             HKCategoryType.categoryType(forIdentifier: .sleepAnalysis)!,
             HKQuantityType.quantityType(forIdentifier: .heartRate)!,
-            HKQuantityType.quantityType(forIdentifier: .restingHeartRate)!,
-            HKQuantityType.quantityType(forIdentifier: .heartRateVariabilitySDNN)!,
-            HKQuantityType.quantityType(forIdentifier: .activeEnergyBurned)!,
-            HKQuantityType.quantityType(forIdentifier: .distanceWalkingRunning)!
+            HKQuantityType.quantityType(forIdentifier: .heartRateVariabilitySDNN)!
         ]
     }
 
@@ -120,10 +120,15 @@ final class HealthKitService {
         for type in readTypes {
             guard let sampleType = type as? HKSampleType else { continue }
             
-            healthStore.enableBackgroundDelivery(for: sampleType, frequency: .hourly) { success, error in
+            // Request immediate updates so HealthKit notifies as soon as data is written.
+            // Fall back to hourly if immediate delivery is not supported for a specific type.
+            healthStore.enableBackgroundDelivery(for: sampleType, frequency: .immediate) { [weak self] success, error in
+                if !success {
+                    self?.healthStore.enableBackgroundDelivery(for: sampleType, frequency: .hourly) { _, _ in }
+                }
                 #if DEBUG
                 if let error = error {
-                    print("Failed to enable background delivery for \(sampleType.identifier): \(error.localizedDescription)")
+                    print("Background delivery status for \(sampleType.identifier): success=\(success), error=\(error.localizedDescription)")
                 }
                 #endif
             }
@@ -134,7 +139,7 @@ final class HealthKitService {
                     completionHandler()
                     return
                 }
-                // Fetch changed data → persist to SQLite → best-effort Supabase push,
+                // Fetch changed data → persist to SQLite → push to Widget → best-effort Supabase push,
                 // then ALWAYS release HealthKit's completion handler.
                 Task { @MainActor in
                     await HealthKitService.shared.handleBackgroundDelivery()
@@ -147,7 +152,7 @@ final class HealthKitService {
 
     /// Background-delivery pipeline invoked from the HKObserverQuery handler:
     /// fetch changed/latest HealthKit data → persist to SQLite (rows stay unsynced)
-    /// → best-effort push to Supabase. Resilient to no network, Supabase being
+    /// → update widget immediately → best-effort push to Supabase. Resilient to no network, Supabase being
     /// unavailable, the background window ending, and repeated/duplicate callbacks.
     /// The caller must invoke the HealthKit completion handler after this returns.
     @MainActor
@@ -155,14 +160,32 @@ final class HealthKitService {
         guard HKHealthStore.isHealthDataAvailable() else { return }
 
         // Coalesce concurrent observer callbacks (one per sample type can fire at once).
-        guard !backgroundDeliveryInFlight else { return }
+        if backgroundDeliveryInFlight {
+            backgroundDeliveryPending = true
+            return
+        }
+
+        // Ensure DataManager has loaded the user from SQLite if not already loaded (e.g. background launch)
+        if DataManager.shared.currentUser == nil {
+            _ = DataManager.shared.loadFromSQLite()
+        }
 
         // Only sync for the profile that owns this device's HealthKit data.
-        guard let profileId = DataManager.shared.currentUser?.profileId,
-              DataManager.shared.isCurrentUserHealthKitLinked() else { return }
+        guard let currentUser = DataManager.shared.currentUser else { return }
+        _ = DataManager.shared.resolveOrCreateHealthKitLink(for: currentUser)
+        guard DataManager.shared.isCurrentUserHealthKitLinked() else { return }
+        let profileId = currentUser.profileId
 
         backgroundDeliveryInFlight = true
-        defer { backgroundDeliveryInFlight = false }
+        defer {
+            backgroundDeliveryInFlight = false
+            if backgroundDeliveryPending {
+                backgroundDeliveryPending = false
+                Task { @MainActor in
+                    await self.handleBackgroundDelivery()
+                }
+            }
+        }
 
         // Request a short, supported background execution window. iOS decides how much
         // time we actually get and may end it early; we always release it below.
@@ -201,7 +224,12 @@ final class HealthKitService {
             vitalsHourly: payload.vitalsHourly,
             sleepDaily: payload.sleepDaily
         )
-        DataManager.shared.reloadHealthDataAsync(for: profileId)
+        
+        // Synchronously update DataManager buffers and notify observers
+        DataManager.shared.reloadHealthData(for: profileId)
+        
+        // Push directly to the shared widget container so the widget updates in the background
+        WidgetDataProvider.shared.pushToWidget()
 
         // 3. Best-effort upload. If the network is down or the window ends, the rows
         //    remain unsynced and the existing SyncManager uploads them on the next
@@ -308,12 +336,6 @@ final class HealthKitService {
             group.leave()
         }
 
-        group.enter()
-        fetchVitalsDaily(type: .restingHeartRate, vitalType: .restingHeartRate, unit: HKUnit(from: "count/min"), profileId: profileId, startDate: startOfRange, endDate: now) { result, error in
-            vitalsDaily.append(contentsOf: result)
-            logError(error)
-            group.leave()
-        }
 
         group.enter()
         fetchVitalsHourly(type: .heartRate, vitalType: .heartRate, unit: HKUnit(from: "count/min"), profileId: profileId, startDate: startOfToday, endDate: now) { result, error in
@@ -571,77 +593,163 @@ final class HealthKitService {
         completion: @escaping ([SleepDaily], Error?) -> Void
     ) {
         let sleepType = HKCategoryType.categoryType(forIdentifier: .sleepAnalysis)!
-        let predicate = HKQuery.predicateForSamples(withStart: startDate, end: endDate, options: .strictStartDate)
-        let sort = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: true)
 
-        let query = HKSampleQuery(sampleType: sleepType, predicate: predicate, limit: HKObjectQueryNoLimit, sortDescriptors: [sort]) { [weak self] _, samples, error in
+        // Divide the query into bounded calendar windows (7 days each) so we do not
+        // load an unbounded array of 30 days of raw category samples simultaneously.
+        var windowRanges: [(start: Date, end: Date)] = []
+        var currentWindowStart = startDate
+        let windowDays = 7
+
+        while currentWindowStart < endDate {
+            let nextStart = calendar.date(byAdding: .day, value: windowDays, to: currentWindowStart) ?? endDate
+            let windowEnd = min(nextStart, endDate)
+            windowRanges.append((start: currentWindowStart, end: windowEnd))
+            currentWindowStart = windowEnd
+        }
+
+        guard !windowRanges.isEmpty else {
+            completion([], nil)
+            return
+        }
+
+        struct StageIntervals {
+            var deep: [(start: Date, end: Date)] = []
+            var rem: [(start: Date, end: Date)] = []
+            var light: [(start: Date, end: Date)] = []
+            var all: [(start: Date, end: Date)] = []
+        }
+
+        var groupedIntervals: [Date: StageIntervals] = [:]
+        let lock = NSLock()
+        let group = DispatchGroup()
+        var fetchError: Error?
+
+        for window in windowRanges {
+            group.enter()
+
+            // Sleep sessions often cross midnight into window.start.
+            // Querying starting from the previous day's evening ensures no valid session is omitted.
+            let queryStart = calendar.date(byAdding: .day, value: -1, to: window.start) ?? window.start
+            let predicate = HKQuery.predicateForSamples(withStart: queryStart, end: window.end, options: [])
+            let sort = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: true)
+
+            let query = HKSampleQuery(sampleType: sleepType, predicate: predicate, limit: HKObjectQueryNoLimit, sortDescriptors: [sort]) { [weak self] _, samples, error in
+                defer { group.leave() }
+                guard let self else { return }
+                if let error {
+                    lock.lock()
+                    fetchError = error
+                    lock.unlock()
+                    return
+                }
+                guard let categorySamples = samples as? [HKCategorySample] else { return }
+
+                var localGrouped: [Date: StageIntervals] = [:]
+
+                for sample in categorySamples {
+                    guard let stage = self.sleepStage(for: sample.value) else { continue }
+                    guard sample.endDate > sample.startDate else { continue }
+
+                    // Sleep session belongs to the day it ends on (standard sleep tracking convention)
+                    let sleepDate = self.calendar.startOfDay(for: sample.endDate)
+
+                    // Attribute sample to this window only if its sleepDate falls within this window's bounds.
+                    // This strictly prevents duplicate accumulation across adjacent chunk queries.
+                    let inBounds: Bool
+                    if window.end == endDate {
+                        inBounds = sleepDate >= window.start && sleepDate <= self.calendar.startOfDay(for: endDate)
+                    } else {
+                        inBounds = sleepDate >= window.start && sleepDate < window.end
+                    }
+                    guard inBounds else { continue }
+
+                    let interval = (start: sample.startDate, end: sample.endDate)
+                    var current = localGrouped[sleepDate] ?? StageIntervals()
+                    switch stage {
+                    case .deep:
+                        current.deep.append(interval)
+                    case .rem:
+                        current.rem.append(interval)
+                    case .light:
+                        current.light.append(interval)
+                    }
+                    current.all.append(interval)
+                    localGrouped[sleepDate] = current
+                }
+
+                lock.lock()
+                for (date, intervals) in localGrouped {
+                    var existing = groupedIntervals[date] ?? StageIntervals()
+                    existing.deep.append(contentsOf: intervals.deep)
+                    existing.rem.append(contentsOf: intervals.rem)
+                    existing.light.append(contentsOf: intervals.light)
+                    existing.all.append(contentsOf: intervals.all)
+                    groupedIntervals[date] = existing
+                }
+                lock.unlock()
+            }
+            healthStore.execute(query)
+        }
+
+        group.notify(queue: .global(qos: .userInitiated)) { [weak self] in
             guard let self else { return }
-            guard let categorySamples = samples as? [HKCategorySample] else {
-                completion([], error)
-                return
-            }
 
-            struct SleepAccumulator {
-                var totalHours: Double = 0
-                var deepHours: Double = 0
-                var remHours: Double = 0
-                var lightHours: Double = 0
-                var earliestStart: Date?
-                var latestEnd: Date?
-            }
+            var rows: [SleepDaily] = []
+            for (date, intervals) in groupedIntervals {
+                let mergedDeep = self.mergeOverlappingIntervals(intervals.deep)
+                let mergedRem = self.mergeOverlappingIntervals(intervals.rem)
+                let mergedLight = self.mergeOverlappingIntervals(intervals.light)
+                let mergedAll = self.mergeOverlappingIntervals(intervals.all)
 
-            var grouped: [Date: SleepAccumulator] = [:]
+                let totalHours = mergedAll.reduce(0.0) { $0 + $1.end.timeIntervalSince($1.start) } / 3600.0
+                let deepHours = min(totalHours, mergedDeep.reduce(0.0) { $0 + $1.end.timeIntervalSince($1.start) } / 3600.0)
+                let remHours = min(totalHours - deepHours, mergedRem.reduce(0.0) { $0 + $1.end.timeIntervalSince($1.start) } / 3600.0)
+                // To prevent broad unstaged sleep samples (e.g. from an iPhone) from inflating individual stage
+                // durations when more specific Apple Watch stages (Deep/REM) overlap, light sleep is computed
+                // as the non-deep, non-rem remainder of the unified sleep duration.
+                let lightHours = max(0.0, totalHours - deepHours - remHours)
 
-            for sample in categorySamples {
-                guard let stage = self.sleepStage(for: sample.value) else { continue }
+                let earliestStart = mergedAll.first?.start ?? date
+                let latestEnd = mergedAll.last?.end ?? date
 
-                let sleepDate = self.calendar.startOfDay(for: sample.endDate)
-                let durationHours = max(0, sample.endDate.timeIntervalSince(sample.startDate) / 3600.0)
-
-                var current = grouped[sleepDate] ?? SleepAccumulator()
-                current.totalHours += durationHours
-
-                switch stage {
-                case .deep:
-                    current.deepHours += durationHours
-                case .rem:
-                    current.remHours += durationHours
-                case .light:
-                    current.lightHours += durationHours
-                }
-
-                if current.earliestStart == nil || sample.startDate < current.earliestStart! {
-                    current.earliestStart = sample.startDate
-                }
-                if current.latestEnd == nil || sample.endDate > current.latestEnd! {
-                    current.latestEnd = sample.endDate
-                }
-
-                grouped[sleepDate] = current
-            }
-
-            let rows = grouped.map { date, accumulator in
                 let stableId = self.generateStableId(profileId: profileId, type: "sleep", date: date)
-                return SleepDaily(
+                rows.append(SleepDaily(
                     id: stableId,
                     profileId: profileId,
                     date: date,
-                    totalSleep: accumulator.totalHours,
-                    deepSleep: accumulator.deepHours,
-                    remSleep: accumulator.remHours,
-                    lightSleep: accumulator.lightHours,
-                    sleepStart: accumulator.earliestStart ?? date,
-                    sleepEnd: accumulator.latestEnd ?? date,
+                    totalSleep: totalHours,
+                    deepSleep: deepHours,
+                    remSleep: remHours,
+                    lightSleep: lightHours,
+                    sleepStart: earliestStart,
+                    sleepEnd: latestEnd,
                     createdAt: date,
                     lastUpdatedAt: endDate,
                     isSynced: false
-                )
+                ))
             }
 
-            completion(rows, error)
+            completion(rows, fetchError)
         }
+    }
 
-        healthStore.execute(query)
+    /// Merges overlapping and contiguous time intervals to prevent double counting
+    /// when multiple devices (e.g. iPhone + Apple Watch) or overlapping samples record the same time period.
+    private func mergeOverlappingIntervals(_ intervals: [(start: Date, end: Date)]) -> [(start: Date, end: Date)] {
+        guard intervals.count > 1 else { return intervals }
+        let sorted = intervals.sorted { $0.start < $1.start }
+        var merged: [(start: Date, end: Date)] = [sorted[0]]
+
+        for current in sorted.dropFirst() {
+            var last = merged[merged.count - 1]
+            if current.start <= last.end {
+                last.end = max(last.end, current.end)
+                merged[merged.count - 1] = last
+            } else {
+                merged.append(current)
+            }
+        }
+        return merged
     }
 
     private enum SleepStage {

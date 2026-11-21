@@ -6,11 +6,89 @@ class SQLiteHelper {
     static let shared = SQLiteHelper()
     private var db: OpaquePointer?
     private let queue = DispatchQueue(label: "com.project.sqlite.queue")
+    private let queueKey = DispatchSpecificKey<Void>()
 
     private init() {
+        queue.setSpecific(key: queueKey, value: ())
         db = openDatabase()
         createTables()
         migrateIfNeeded()
+    }
+
+    /// Executes `block` on `queue`. If caller is already executing on `queue`, runs inline to avoid deadlock.
+    func sync<T>(_ block: () throws -> T) rethrows -> T {
+        if DispatchQueue.getSpecific(key: queueKey) != nil {
+            return try block()
+        } else {
+            return try queue.sync(execute: block)
+        }
+    }
+
+    /// Wraps operations in a database transaction with automatic commit / rollback and savepoint nesting.
+    @discardableResult
+    func withTransaction<T>(_ block: () throws -> T) rethrows -> T {
+        return try sync {
+            let isNested = (sqlite3_get_autocommit(db) == 0)
+            let savepointName: String
+            if isNested {
+                savepointName = "sp_\(abs(UUID().hashValue))"
+                sqlite3_exec(db, "SAVEPOINT \(savepointName);", nil, nil, nil)
+            } else {
+                savepointName = ""
+                sqlite3_exec(db, "BEGIN IMMEDIATE TRANSACTION;", nil, nil, nil)
+            }
+            
+            do {
+                let result = try block()
+                if isNested {
+                    sqlite3_exec(db, "RELEASE SAVEPOINT \(savepointName);", nil, nil, nil)
+                } else {
+                    sqlite3_exec(db, "COMMIT;", nil, nil, nil)
+                }
+                return result
+            } catch {
+                if isNested {
+                    sqlite3_exec(db, "ROLLBACK TO SAVEPOINT \(savepointName);", nil, nil, nil)
+                    sqlite3_exec(db, "RELEASE SAVEPOINT \(savepointName);", nil, nil, nil)
+                } else {
+                    sqlite3_exec(db, "ROLLBACK;", nil, nil, nil)
+                }
+                throw error
+            }
+        }
+    }
+
+    /// Non-throwing transaction runner. Rolls back if the block returns false.
+    @discardableResult
+    func performTransaction(_ block: () -> Bool) -> Bool {
+        return sync {
+            let isNested = (sqlite3_get_autocommit(db) == 0)
+            let savepointName: String
+            if isNested {
+                savepointName = "sp_\(abs(UUID().hashValue))"
+                sqlite3_exec(db, "SAVEPOINT \(savepointName);", nil, nil, nil)
+            } else {
+                savepointName = ""
+                sqlite3_exec(db, "BEGIN IMMEDIATE TRANSACTION;", nil, nil, nil)
+            }
+            
+            let success = block()
+            if success {
+                if isNested {
+                    sqlite3_exec(db, "RELEASE SAVEPOINT \(savepointName);", nil, nil, nil)
+                } else {
+                    sqlite3_exec(db, "COMMIT;", nil, nil, nil)
+                }
+            } else {
+                if isNested {
+                    sqlite3_exec(db, "ROLLBACK TO SAVEPOINT \(savepointName);", nil, nil, nil)
+                    sqlite3_exec(db, "RELEASE SAVEPOINT \(savepointName);", nil, nil, nil)
+                } else {
+                    sqlite3_exec(db, "ROLLBACK;", nil, nil, nil)
+                }
+            }
+            return success
+        }
     }
 
     deinit {
@@ -103,6 +181,23 @@ class SQLiteHelper {
             PRIMARY KEY (challengeId, memberId),
             FOREIGN KEY (challengeId) REFERENCES ChallengeDetails (challengeId) ON DELETE CASCADE,
             FOREIGN KEY (memberId) REFERENCES Profiles (profileId) ON DELETE CASCADE
+        );
+        """
+
+        let createEarnedRewardsTable = """
+        CREATE TABLE IF NOT EXISTS EarnedRewards (
+            id TEXT PRIMARY KEY,
+            profileId TEXT,
+            type TEXT,
+            challengeId TEXT,
+            challengeTitle TEXT,
+            challengeType TEXT,
+            participantsCount INTEGER,
+            dateEarned TEXT,
+            hasBeenPresented INTEGER DEFAULT 1,
+            isSynced INTEGER DEFAULT 0,
+            lastUpdatedAt TEXT,
+            FOREIGN KEY (profileId) REFERENCES Profiles (profileId) ON DELETE CASCADE
         );
         """
 
@@ -258,17 +353,20 @@ class SQLiteHelper {
         let createHealthActivityDailyIdx = "CREATE INDEX IF NOT EXISTS idx_activity_daily_profile_date ON Health_ActivityDaily (profileId, date);"
         let createHealthVitalsDailyIdx = "CREATE INDEX IF NOT EXISTS idx_vitals_daily_profile_date ON Health_VitalsDaily (profileId, date);"
         let createHealthSleepDailyIdx = "CREATE INDEX IF NOT EXISTS idx_sleep_daily_profile_date ON Health_SleepDaily (profileId, date);"
+        let createEarnedRewardsIdx = "CREATE INDEX IF NOT EXISTS idx_rewards_profile ON EarnedRewards (profileId);"
+        let createEarnedRewardsIdentityIdx = "CREATE UNIQUE INDEX IF NOT EXISTS idx_rewards_identity ON EarnedRewards (profileId, type, challengeId);"
 
         let tables = [
             createProfilesTable, createFamiliesTable, createChallengeDetailsTable,
-            createChallengeProgressTable, createMessagesTable, createVitalsHourlyTable,
+            createChallengeProgressTable, createEarnedRewardsTable, createMessagesTable, createVitalsHourlyTable,
             createVitalsDailyTable, createActivityHourlyTable,
             createActivityDailyTable, createSleepDailyTable,
             createTopicsTable, createTopicMembersTable, createTopicMessagesTable,
             createUserRelationshipsTable,
             createMessagesUserIdxA, createMessagesUserIdxB,
             createTopicMembersUserIdx, createTopicMessagesTopicIdx,
-            createHealthActivityDailyIdx, createHealthVitalsDailyIdx, createHealthSleepDailyIdx
+            createHealthActivityDailyIdx, createHealthVitalsDailyIdx, createHealthSleepDailyIdx,
+            createEarnedRewardsIdx, createEarnedRewardsIdentityIdx
         ]
 
         // Ensure sleepGoal exists in existing DBs
@@ -389,12 +487,14 @@ class SQLiteHelper {
             }
         }
         
-        // Save the valid, merged records. INSERT OR REPLACE upserts them by id.
-        for row in mergedActivityDaily { saveActivityDaily(row) }
-        for row in mergedActivityHourly { saveActivityHourly(row) }
-        for row in mergedVitalsDaily { saveVitalsDaily(row) }
-        for row in mergedVitalsHourly { saveVitalsHourly(row) }
-        for row in mergedSleepDaily { saveSleepDaily(row) }
+        // Save the valid, merged records atomically inside a single transaction using batch helpers.
+        withTransaction {
+            saveActivityDailyBatch(mergedActivityDaily)
+            saveActivityHourlyBatch(mergedActivityHourly)
+            saveVitalsDailyBatch(mergedVitalsDaily)
+            saveVitalsHourlyBatch(mergedVitalsHourly)
+            saveSleepDailyBatch(mergedSleepDaily)
+        }
 
         // Deletion-aware reconciliation.
         //
@@ -461,7 +561,7 @@ class SQLiteHelper {
             "DELETE FROM Health_SleepDaily WHERE profileId = '\(profileKey)';"
         ]
 
-        queue.sync {
+        sync {
             for sql in deletions {
                 var statement: OpaquePointer?
                 if sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK {
@@ -469,6 +569,56 @@ class SQLiteHelper {
                 }
                 sqlite3_finalize(statement)
             }
+        }
+    }
+
+    /// Privacy Architecture (Option D): Remove any legacy or cached hourly vitals of other family members
+    func purgeOtherFamilyHourlyData(except currentProfileId: UUID) {
+        let profileKey = currentProfileId.uuidString
+        let deletions = [
+            "DELETE FROM Health_ActivityHourly WHERE profileId != '\(profileKey)';",
+            "DELETE FROM Health_VitalsHourly WHERE profileId != '\(profileKey)';"
+        ]
+
+        sync {
+            for sql in deletions {
+                var statement: OpaquePointer?
+                if sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK {
+                    sqlite3_step(statement)
+                }
+                sqlite3_finalize(statement)
+            }
+        }
+    }
+
+    /// Privacy Architecture (Option D): Purges specific metric data when permission is revoked
+    func purgeRevokedHealthData(for profileId: UUID, metric: HealthMetricType) {
+        let pid = profileId.uuidString
+        let sql: String?
+        switch metric {
+        case .steps:
+            sql = "DELETE FROM Health_ActivityDaily WHERE profileId = '\(pid)' AND type = 'steps';"
+        case .calories:
+            sql = "DELETE FROM Health_ActivityDaily WHERE profileId = '\(pid)' AND type = 'calories';"
+        case .distance:
+            sql = "DELETE FROM Health_ActivityDaily WHERE profileId = '\(pid)' AND type = 'distance';"
+        case .heartRate:
+            sql = "DELETE FROM Health_VitalsDaily WHERE profileId = '\(pid)' AND type IN ('heartRate', 'restingHeartRate');"
+        case .hrv:
+            sql = "DELETE FROM Health_VitalsDaily WHERE profileId = '\(pid)' AND type = 'hrv';"
+        case .sleep:
+            sql = "DELETE FROM Health_SleepDaily WHERE profileId = '\(pid)';"
+        case .summary:
+            sql = nil
+        }
+
+        guard let query = sql else { return }
+        sync {
+            var statement: OpaquePointer?
+            if sqlite3_prepare_v2(db, query, -1, &statement, nil) == SQLITE_OK {
+                sqlite3_step(statement)
+            }
+            sqlite3_finalize(statement)
         }
     }
     
@@ -492,12 +642,33 @@ class SQLiteHelper {
         execute(sql: "DROP INDEX IF EXISTS idx_challenge_identity;")
         execute(sql: "CREATE UNIQUE INDEX IF NOT EXISTS idx_challenge_identity ON ChallengeCompleted (familyId, challengeId, startDate);")
 
+        // Ensure EarnedRewards table exists in existing databases
+        let createEarnedRewardsTable = """
+        CREATE TABLE IF NOT EXISTS EarnedRewards (
+            id TEXT PRIMARY KEY,
+            profileId TEXT,
+            type TEXT,
+            challengeId TEXT,
+            challengeTitle TEXT,
+            challengeType TEXT,
+            participantsCount INTEGER,
+            dateEarned TEXT,
+            hasBeenPresented INTEGER DEFAULT 1,
+            isSynced INTEGER DEFAULT 0,
+            lastUpdatedAt TEXT,
+            FOREIGN KEY (profileId) REFERENCES Profiles (profileId) ON DELETE CASCADE
+        );
+        """
+        execute(sql: createEarnedRewardsTable)
+        execute(sql: "CREATE INDEX IF NOT EXISTS idx_rewards_profile ON EarnedRewards (profileId);")
+        execute(sql: "CREATE UNIQUE INDEX IF NOT EXISTS idx_rewards_identity ON EarnedRewards (profileId, type, challengeId);")
+
         // Cleanup redundant table
         execute(sql: "DROP TABLE IF EXISTS Health_ActivityCurrent;")
     }
 
     private func execute(sql: String) {
-        queue.sync {
+        sync {
             if sqlite3_exec(db, sql, nil, nil, nil) != SQLITE_OK {
                 let errmsg = String(cString: sqlite3_errmsg(db)!)
                 print("SQLiteHelper error executing SQL: \(errmsg)")
@@ -510,7 +681,7 @@ class SQLiteHelper {
     /// dependency: Profiles.familyId → Families AND Families.createdBy → Profiles.
     /// Both FKs are re-enabled immediately after the two INSERTs complete.
     func bootstrapSaveIdentity(family: Family, profile: Profile) {
-        queue.sync {
+        sync {
             // Turn off FK enforcement for this connection temporarily
             sqlite3_exec(db, "PRAGMA foreign_keys = OFF;", nil, nil, nil)
             defer { sqlite3_exec(db, "PRAGMA foreign_keys = ON;", nil, nil, nil) }
@@ -596,7 +767,7 @@ class SQLiteHelper {
     
     private func columnExists(_ column: String, in table: String) -> Bool {
         var exists = false
-        queue.sync {
+        sync {
             let sql = "PRAGMA table_info(\(table));"
             var statement: OpaquePointer?
             if sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK {
@@ -623,7 +794,7 @@ class SQLiteHelper {
         }
         
         var latestDate: Date? = nil
-        queue.sync {
+        sync {
             var statement: OpaquePointer?
             if sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK {
                 if sqlite3_step(statement) == SQLITE_ROW {
@@ -670,7 +841,7 @@ class SQLiteHelper {
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
         """
         
-        queue.sync {
+        sync {
             let nicknameToPersist = nonEmptyNickname(profile.nickName)
                 ?? existingNicknameForProfileLocked(profile.profileId)
             var statement: OpaquePointer?
@@ -721,7 +892,7 @@ class SQLiteHelper {
         let sql = "SELECT profileId, familyId, firstName, lastName, nickName, email, gender, dob, profilePic, heightCm, weightKg, timeZone, stepGoal, caloriesGoal, distanceGoal, sleepGoal, createdAt, lastUpdatedAt, visibleMetricIds, isSynced FROM Profiles;"
         var profiles: [Profile] = []
         
-        queue.sync {
+        sync {
             var statement: OpaquePointer?
             if sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK {
                 while sqlite3_step(statement) == SQLITE_ROW {
@@ -783,7 +954,7 @@ class SQLiteHelper {
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?);
         """
         
-        queue.sync {
+        sync {
             var statement: OpaquePointer?
             if sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK {
                 sqlite3_bind_text(statement, 1, (activity.id.uuidString as NSString).utf8String, -1, nil)
@@ -803,6 +974,41 @@ class SQLiteHelper {
         }
     }
 
+    func saveActivityDailyBatch(_ rows: [ActivityDaily]) {
+        guard !rows.isEmpty else { return }
+        let sql = """
+        INSERT OR REPLACE INTO Health_ActivityDaily (
+            id, profileId, type, value, date, createdAt, lastUpdatedAt, isSynced
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+        """
+        sync {
+            var statement: OpaquePointer?
+            guard sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK else {
+                print("Error preparing saveActivityDailyBatch: \(String(cString: sqlite3_errmsg(db)!))")
+                return
+            }
+            defer { sqlite3_finalize(statement) }
+
+            for activity in rows {
+                sqlite3_reset(statement)
+                sqlite3_clear_bindings(statement)
+
+                sqlite3_bind_text(statement, 1, (activity.id.uuidString as NSString).utf8String, -1, nil)
+                sqlite3_bind_text(statement, 2, (activity.profileId.uuidString as NSString).utf8String, -1, nil)
+                sqlite3_bind_text(statement, 3, (activity.type.rawValue as NSString).utf8String, -1, nil)
+                sqlite3_bind_double(statement, 4, activity.value)
+                sqlite3_bind_text(statement, 5, (formatDate(activity.date) as NSString).utf8String, -1, nil)
+                sqlite3_bind_text(statement, 6, (formatDate(activity.createdAt) as NSString).utf8String, -1, nil)
+                sqlite3_bind_text(statement, 7, (formatDate(activity.lastUpdatedAt) as NSString).utf8String, -1, nil)
+                sqlite3_bind_int(statement, 8, (activity.isSynced ?? false) ? 1 : 0)
+
+                if sqlite3_step(statement) != SQLITE_DONE {
+                    print("Error in saveActivityDailyBatch step: \(String(cString: sqlite3_errmsg(db)!))")
+                }
+            }
+        }
+    }
+
     // MARK: - CRUD for Family
 
     func saveFamily(_ family: Family) {
@@ -812,7 +1018,7 @@ class SQLiteHelper {
         ) VALUES (?, ?, ?, ?, ?, ?, ?);
         """
         
-        queue.sync {
+        sync {
             var statement: OpaquePointer?
             if sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK {
                 sqlite3_bind_text(statement, 1, (family.familyId.uuidString as NSString).utf8String, -1, nil)
@@ -840,7 +1046,7 @@ class SQLiteHelper {
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
         """
         
-        queue.sync {
+        sync {
             var statement: OpaquePointer?
             if sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK {
                 sqlite3_bind_text(statement, 1, (vital.id.uuidString as NSString).utf8String, -1, nil)
@@ -862,6 +1068,43 @@ class SQLiteHelper {
         }
     }
 
+    func saveVitalsDailyBatch(_ rows: [VitalsDaily]) {
+        guard !rows.isEmpty else { return }
+        let sql = """
+        INSERT OR REPLACE INTO Health_VitalsDaily (
+            id, profileId, type, date, minValue, avgValue, maxValue, createdAt, lastUpdatedAt, isSynced
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+        """
+        sync {
+            var statement: OpaquePointer?
+            guard sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK else {
+                print("Error preparing saveVitalsDailyBatch: \(String(cString: sqlite3_errmsg(db)!))")
+                return
+            }
+            defer { sqlite3_finalize(statement) }
+
+            for vital in rows {
+                sqlite3_reset(statement)
+                sqlite3_clear_bindings(statement)
+
+                sqlite3_bind_text(statement, 1, (vital.id.uuidString as NSString).utf8String, -1, nil)
+                sqlite3_bind_text(statement, 2, (vital.profileId.uuidString as NSString).utf8String, -1, nil)
+                sqlite3_bind_text(statement, 3, (vital.type.rawValue as NSString).utf8String, -1, nil)
+                sqlite3_bind_text(statement, 4, (formatDate(vital.date) as NSString).utf8String, -1, nil)
+                sqlite3_bind_double(statement, 5, vital.minValue ?? 0.0)
+                sqlite3_bind_double(statement, 6, vital.avgValue ?? 0.0)
+                sqlite3_bind_double(statement, 7, vital.maxValue ?? 0.0)
+                sqlite3_bind_text(statement, 8, (formatDate(vital.createdAt) as NSString).utf8String, -1, nil)
+                sqlite3_bind_text(statement, 9, (formatDate(vital.lastUpdatedAt) as NSString).utf8String, -1, nil)
+                sqlite3_bind_int(statement, 10, (vital.isSynced ?? false) ? 1 : 0)
+
+                if sqlite3_step(statement) != SQLITE_DONE {
+                    print("Error in saveVitalsDailyBatch step: \(String(cString: sqlite3_errmsg(db)!))")
+                }
+            }
+        }
+    }
+
     // MARK: - CRUD for Sleep Data
 
     func saveSleepDaily(_ sleep: SleepDaily) {
@@ -871,7 +1114,7 @@ class SQLiteHelper {
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
         """
         
-        queue.sync {
+        sync {
             var statement: OpaquePointer?
             if sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK {
                 sqlite3_bind_text(statement, 1, (sleep.id.uuidString as NSString).utf8String, -1, nil)
@@ -895,6 +1138,45 @@ class SQLiteHelper {
         }
     }
 
+    func saveSleepDailyBatch(_ rows: [SleepDaily]) {
+        guard !rows.isEmpty else { return }
+        let sql = """
+        INSERT OR REPLACE INTO Health_SleepDaily (
+            id, profileId, date, totalSleep, deepSleep, remSleep, lightSleep, sleepStart, sleepEnd, createdAt, lastUpdatedAt, isSynced
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+        """
+        sync {
+            var statement: OpaquePointer?
+            guard sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK else {
+                print("Error preparing saveSleepDailyBatch: \(String(cString: sqlite3_errmsg(db)!))")
+                return
+            }
+            defer { sqlite3_finalize(statement) }
+
+            for sleep in rows {
+                sqlite3_reset(statement)
+                sqlite3_clear_bindings(statement)
+
+                sqlite3_bind_text(statement, 1, (sleep.id.uuidString as NSString).utf8String, -1, nil)
+                sqlite3_bind_text(statement, 2, (sleep.profileId.uuidString as NSString).utf8String, -1, nil)
+                sqlite3_bind_text(statement, 3, (formatDate(sleep.date) as NSString).utf8String, -1, nil)
+                sqlite3_bind_double(statement, 4, sleep.totalSleep)
+                sqlite3_bind_double(statement, 5, sleep.deepSleep)
+                sqlite3_bind_double(statement, 6, sleep.remSleep)
+                sqlite3_bind_double(statement, 7, sleep.lightSleep)
+                sqlite3_bind_text(statement, 8, (formatDate(sleep.sleepStart) as NSString).utf8String, -1, nil)
+                sqlite3_bind_text(statement, 9, (formatDate(sleep.sleepEnd) as NSString).utf8String, -1, nil)
+                sqlite3_bind_text(statement, 10, (formatDate(sleep.createdAt) as NSString).utf8String, -1, nil)
+                sqlite3_bind_text(statement, 11, (formatDate(sleep.lastUpdatedAt) as NSString).utf8String, -1, nil)
+                sqlite3_bind_int(statement, 12, (sleep.isSynced ?? false) ? 1 : 0)
+
+                if sqlite3_step(statement) != SQLITE_DONE {
+                    print("Error in saveSleepDailyBatch step: \(String(cString: sqlite3_errmsg(db)!))")
+                }
+            }
+        }
+    }
+
     // MARK: - CRUD for Messages
 
     func saveMessage(_ message: Message) {
@@ -904,7 +1186,7 @@ class SQLiteHelper {
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
         """
         
-        queue.sync {
+        sync {
             var statement: OpaquePointer?
             if sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK {
                 sqlite3_bind_text(statement, 1, (message.messageId.uuidString as NSString).utf8String, -1, nil)
@@ -934,7 +1216,7 @@ class SQLiteHelper {
             status, bgImage, startDate, endDate, lastUpdatedAt, isSynced
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
         """
-        queue.sync {
+        sync {
             var statement: OpaquePointer?
             if sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK {
                 sqlite3_bind_text(statement, 1, (details.challengeId.uuidString as NSString).utf8String, -1, nil)
@@ -961,7 +1243,7 @@ class SQLiteHelper {
             challengeId, memberId, goalValue, currentValue, lastUpdatedAt, isSynced
         ) VALUES (?, ?, ?, ?, ?, ?);
         """
-        queue.sync {
+        sync {
             var statement: OpaquePointer?
             if sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK {
                 sqlite3_bind_text(statement, 1, (progress.challengeId.uuidString as NSString).utf8String, -1, nil)
@@ -982,7 +1264,7 @@ class SQLiteHelper {
         SET currentValue = ?, isSynced = 0, lastUpdatedAt = CURRENT_TIMESTAMP 
         WHERE challengeId = ? AND memberId = ?;
         """
-        queue.sync {
+        sync {
             var statement: OpaquePointer?
             if sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK {
                 sqlite3_bind_double(statement, 1, currentValue)
@@ -994,7 +1276,190 @@ class SQLiteHelper {
         }
     }
 
-    // MARK: - CRUD for Vitals Hourly
+    // MARK: - CRUD for Earned Rewards
+
+    func saveEarnedReward(_ reward: EarnedReward) {
+        let sql = """
+        INSERT OR REPLACE INTO EarnedRewards (
+            id, profileId, type, challengeId, challengeTitle, challengeType, participantsCount, dateEarned, hasBeenPresented, isSynced, lastUpdatedAt
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+        """
+        sync {
+            var statement: OpaquePointer?
+            if sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK {
+                sqlite3_bind_text(statement, 1, (reward.id as NSString).utf8String, -1, nil)
+                sqlite3_bind_text(statement, 2, (reward.profileId as NSString).utf8String, -1, nil)
+                sqlite3_bind_text(statement, 3, (reward.type.rawValue as NSString).utf8String, -1, nil)
+                if let cId = reward.challengeId {
+                    sqlite3_bind_text(statement, 4, (cId as NSString).utf8String, -1, nil)
+                } else {
+                    sqlite3_bind_null(statement, 4)
+                }
+                if let title = reward.challengeTitle {
+                    sqlite3_bind_text(statement, 5, (title as NSString).utf8String, -1, nil)
+                } else {
+                    sqlite3_bind_null(statement, 5)
+                }
+                if let cType = reward.challengeType {
+                    sqlite3_bind_text(statement, 6, (cType as NSString).utf8String, -1, nil)
+                } else {
+                    sqlite3_bind_null(statement, 6)
+                }
+                if let count = reward.participantsCount {
+                    sqlite3_bind_int(statement, 7, Int32(count))
+                } else {
+                    sqlite3_bind_null(statement, 7)
+                }
+                sqlite3_bind_text(statement, 8, (formatDate(reward.dateEarned) as NSString).utf8String, -1, nil)
+                sqlite3_bind_int(statement, 9, reward.hasBeenPresented ? 1 : 0)
+                sqlite3_bind_int(statement, 10, (reward.isSynced ?? false) ? 1 : 0)
+                sqlite3_bind_text(statement, 11, (formatDate(reward.lastUpdatedAt ?? Date()) as NSString).utf8String, -1, nil)
+                sqlite3_step(statement)
+            }
+            sqlite3_finalize(statement)
+        }
+    }
+
+    func fetchEarnedRewards(profileId: String? = nil) -> [EarnedReward] {
+        var rewards: [EarnedReward] = []
+        var sql = "SELECT id, profileId, type, challengeId, challengeTitle, challengeType, participantsCount, dateEarned, hasBeenPresented, isSynced, lastUpdatedAt FROM EarnedRewards"
+        if let pId = profileId {
+            sql += " WHERE profileId = '\(pId)'"
+        }
+        sql += " ORDER BY dateEarned DESC;"
+        
+        sync {
+            var statement: OpaquePointer?
+            if sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK {
+                while sqlite3_step(statement) == SQLITE_ROW {
+                    let id = String(cString: sqlite3_column_text(statement, 0))
+                    let profId = String(cString: sqlite3_column_text(statement, 1))
+                    let typeStr = String(cString: sqlite3_column_text(statement, 2))
+                    let type = AchievementType(rawValue: typeStr) ?? .family
+                    
+                    var challengeId: String? = nil
+                    if let cIdText = sqlite3_column_text(statement, 3) {
+                        challengeId = String(cString: cIdText)
+                    }
+                    var challengeTitle: String? = nil
+                    if let tText = sqlite3_column_text(statement, 4) {
+                        challengeTitle = String(cString: tText)
+                    }
+                    var challengeType: String? = nil
+                    if let ctText = sqlite3_column_text(statement, 5) {
+                        challengeType = String(cString: ctText)
+                    }
+                    var participantsCount: Int? = nil
+                    if sqlite3_column_type(statement, 6) != SQLITE_NULL {
+                        participantsCount = Int(sqlite3_column_int(statement, 6))
+                    }
+                    let dateEarnedStr = String(cString: sqlite3_column_text(statement, 7))
+                    let dateEarned = parseDate(dateEarnedStr) ?? Date()
+                    let hasBeenPresented = sqlite3_column_int(statement, 8) != 0
+                    let isSynced = sqlite3_column_int(statement, 9) != 0
+                    var lastUpdatedAt: Date? = nil
+                    if let luText = sqlite3_column_text(statement, 10) {
+                        lastUpdatedAt = parseDate(String(cString: luText))
+                    }
+                    
+                    rewards.append(EarnedReward(
+                        id: id,
+                        profileId: profId,
+                        type: type,
+                        challengeId: challengeId,
+                        challengeTitle: challengeTitle,
+                        challengeType: challengeType,
+                        participantsCount: participantsCount,
+                        dateEarned: dateEarned,
+                        hasBeenPresented: hasBeenPresented,
+                        isSynced: isSynced,
+                        lastUpdatedAt: lastUpdatedAt
+                    ))
+                }
+            }
+            sqlite3_finalize(statement)
+        }
+        return rewards
+    }
+
+    func fetchEarnedReward(id: String) -> EarnedReward? {
+        let sql = "SELECT id, profileId, type, challengeId, challengeTitle, challengeType, participantsCount, dateEarned, hasBeenPresented, isSynced, lastUpdatedAt FROM EarnedRewards WHERE id = ? LIMIT 1;"
+        var reward: EarnedReward? = nil
+        sync {
+            var statement: OpaquePointer?
+            if sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK {
+                sqlite3_bind_text(statement, 1, (id as NSString).utf8String, -1, nil)
+                if sqlite3_step(statement) == SQLITE_ROW {
+                    let rId = String(cString: sqlite3_column_text(statement, 0))
+                    let profId = String(cString: sqlite3_column_text(statement, 1))
+                    let typeStr = String(cString: sqlite3_column_text(statement, 2))
+                    let type = AchievementType(rawValue: typeStr) ?? .family
+                    
+                    var challengeId: String? = nil
+                    if let cIdText = sqlite3_column_text(statement, 3) {
+                        challengeId = String(cString: cIdText)
+                    }
+                    var challengeTitle: String? = nil
+                    if let tText = sqlite3_column_text(statement, 4) {
+                        challengeTitle = String(cString: tText)
+                    }
+                    var challengeType: String? = nil
+                    if let ctText = sqlite3_column_text(statement, 5) {
+                        challengeType = String(cString: ctText)
+                    }
+                    var participantsCount: Int? = nil
+                    if sqlite3_column_type(statement, 6) != SQLITE_NULL {
+                        participantsCount = Int(sqlite3_column_int(statement, 6))
+                    }
+                    let dateEarnedStr = String(cString: sqlite3_column_text(statement, 7))
+                    let dateEarned = parseDate(dateEarnedStr) ?? Date()
+                    let hasBeenPresented = sqlite3_column_int(statement, 8) != 0
+                    let isSynced = sqlite3_column_int(statement, 9) != 0
+                    var lastUpdatedAt: Date? = nil
+                    if let luText = sqlite3_column_text(statement, 10) {
+                        lastUpdatedAt = parseDate(String(cString: luText))
+                    }
+                    
+                    reward = EarnedReward(
+                        id: rId,
+                        profileId: profId,
+                        type: type,
+                        challengeId: challengeId,
+                        challengeTitle: challengeTitle,
+                        challengeType: challengeType,
+                        participantsCount: participantsCount,
+                        dateEarned: dateEarned,
+                        hasBeenPresented: hasBeenPresented,
+                        isSynced: isSynced,
+                        lastUpdatedAt: lastUpdatedAt
+                    )
+                }
+            }
+            sqlite3_finalize(statement)
+        }
+        return reward
+    }
+
+    func markEarnedRewardPresented(id: String) {
+        let sql = "UPDATE EarnedRewards SET hasBeenPresented = 1 WHERE id = ?;"
+        sync {
+            var statement: OpaquePointer?
+            if sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK {
+                sqlite3_bind_text(statement, 1, (id as NSString).utf8String, -1, nil)
+                sqlite3_step(statement)
+            }
+            sqlite3_finalize(statement)
+        }
+    }
+
+    func deleteEarnedRewards(profileId: String? = nil) {
+        var sql = "DELETE FROM EarnedRewards"
+        if let pId = profileId {
+            sql += " WHERE profileId = '\(pId)'"
+        }
+        sql += ";"
+        execute(sql: sql)
+    }
 
     func saveVitalsHourly(_ vital: VitalsHourly) {
         let sql = """
@@ -1003,7 +1468,7 @@ class SQLiteHelper {
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
         """
         
-        queue.sync {
+        sync {
             var statement: OpaquePointer?
             if sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK {
                 sqlite3_bind_text(statement, 1, (vital.id.uuidString as NSString).utf8String, -1, nil)
@@ -1024,6 +1489,44 @@ class SQLiteHelper {
         }
     }
 
+    func saveVitalsHourlyBatch(_ rows: [VitalsHourly]) {
+        guard !rows.isEmpty else { return }
+        let sql = """
+        INSERT OR REPLACE INTO Health_VitalsHourly (
+            id, profileId, type, hourStart, minValue, avgValue, maxValue, sampleCount, createdAt, lastUpdatedAt, isSynced
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+        """
+        sync {
+            var statement: OpaquePointer?
+            guard sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK else {
+                print("Error preparing saveVitalsHourlyBatch: \(String(cString: sqlite3_errmsg(db)!))")
+                return
+            }
+            defer { sqlite3_finalize(statement) }
+
+            for vital in rows {
+                sqlite3_reset(statement)
+                sqlite3_clear_bindings(statement)
+
+                sqlite3_bind_text(statement, 1, (vital.id.uuidString as NSString).utf8String, -1, nil)
+                sqlite3_bind_text(statement, 2, (vital.profileId.uuidString as NSString).utf8String, -1, nil)
+                sqlite3_bind_text(statement, 3, (vital.type.rawValue as NSString).utf8String, -1, nil)
+                sqlite3_bind_text(statement, 4, (formatDate(vital.hourStart) as NSString).utf8String, -1, nil)
+                sqlite3_bind_double(statement, 5, vital.minValue ?? 0.0)
+                sqlite3_bind_double(statement, 6, vital.avgValue ?? 0.0)
+                sqlite3_bind_double(statement, 7, vital.maxValue ?? 0.0)
+                sqlite3_bind_int(statement, 8, Int32(vital.sampleCount))
+                sqlite3_bind_text(statement, 9, (formatDate(vital.createdAt) as NSString).utf8String, -1, nil)
+                sqlite3_bind_text(statement, 10, (formatDate(vital.lastUpdatedAt) as NSString).utf8String, -1, nil)
+                sqlite3_bind_int(statement, 11, (vital.isSynced ?? false) ? 1 : 0)
+
+                if sqlite3_step(statement) != SQLITE_DONE {
+                    print("Error in saveVitalsHourlyBatch step: \(String(cString: sqlite3_errmsg(db)!))")
+                }
+            }
+        }
+    }
+
     // MARK: - CRUD for Activity Current & Hourly
 
 
@@ -1034,7 +1537,7 @@ class SQLiteHelper {
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
         """
         
-        queue.sync {
+        sync {
             var statement: OpaquePointer?
             if sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK {
                 sqlite3_bind_text(statement, 1, (activity.id.uuidString as NSString).utf8String, -1, nil)
@@ -1053,11 +1556,47 @@ class SQLiteHelper {
         }
     }
 
+    func saveActivityHourlyBatch(_ rows: [ActivityHourly]) {
+        guard !rows.isEmpty else { return }
+        let sql = """
+        INSERT OR REPLACE INTO Health_ActivityHourly (
+            id, profileId, type, value, hourStart, sampleCount, createdAt, lastUpdatedAt, isSynced
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
+        """
+        sync {
+            var statement: OpaquePointer?
+            guard sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK else {
+                print("Error preparing saveActivityHourlyBatch: \(String(cString: sqlite3_errmsg(db)!))")
+                return
+            }
+            defer { sqlite3_finalize(statement) }
+
+            for activity in rows {
+                sqlite3_reset(statement)
+                sqlite3_clear_bindings(statement)
+
+                sqlite3_bind_text(statement, 1, (activity.id.uuidString as NSString).utf8String, -1, nil)
+                sqlite3_bind_text(statement, 2, (activity.profileId.uuidString as NSString).utf8String, -1, nil)
+                sqlite3_bind_text(statement, 3, (activity.type.rawValue as NSString).utf8String, -1, nil)
+                sqlite3_bind_double(statement, 4, activity.value)
+                sqlite3_bind_text(statement, 5, (formatDate(activity.hourStart) as NSString).utf8String, -1, nil)
+                sqlite3_bind_int(statement, 6, Int32(activity.sampleCount))
+                sqlite3_bind_text(statement, 7, (formatDate(activity.createdAt) as NSString).utf8String, -1, nil)
+                sqlite3_bind_text(statement, 8, (formatDate(activity.lastUpdatedAt) as NSString).utf8String, -1, nil)
+                sqlite3_bind_int(statement, 9, (activity.isSynced ?? false) ? 1 : 0)
+
+                if sqlite3_step(statement) != SQLITE_DONE {
+                    print("Error in saveActivityHourlyBatch step: \(String(cString: sqlite3_errmsg(db)!))")
+                }
+            }
+        }
+    }
+
     func fetchFamilies() -> [Family] {
         let sql = "SELECT familyId, familyName, sharableCode, createdBy, createdAt, lastUpdatedAt, isSynced FROM Families;"
         var families: [Family] = []
         
-        queue.sync {
+        sync {
             var statement: OpaquePointer?
             if sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK {
                 while sqlite3_step(statement) == SQLITE_ROW {
@@ -1098,7 +1637,7 @@ class SQLiteHelper {
         let sql = "SELECT * FROM Health_ActivityDaily WHERE profileId = ? ORDER BY date DESC;"
         var activities: [ActivityDaily] = []
         
-        queue.sync {
+        sync {
             var statement: OpaquePointer?
             if sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK {
                 sqlite3_bind_text(statement, 1, (profileId.uuidString as NSString).utf8String, -1, nil)
@@ -1132,7 +1671,7 @@ class SQLiteHelper {
         """
         var activities: [ActivityDaily] = []
 
-        queue.sync {
+        sync {
             var statement: OpaquePointer?
             if sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK {
                 sqlite3_bind_text(statement, 1, (profileId.uuidString as NSString).utf8String, -1, nil)
@@ -1167,6 +1706,56 @@ class SQLiteHelper {
         return activities
     }
 
+    func fetchActivityDaily(for profileId: UUID, from startDate: Date, to endDate: Date) -> [ActivityDaily] {
+        return fetchActivityDaily(for: [profileId], from: startDate, to: endDate)
+    }
+
+    func fetchActivityDaily(for profileIds: [UUID], from startDate: Date, to endDate: Date) -> [ActivityDaily] {
+        guard !profileIds.isEmpty else { return [] }
+        let placeholders = profileIds.map { _ in "?" }.joined(separator: ",")
+        let sql = """
+        SELECT id, profileId, type, value, date, createdAt, lastUpdatedAt, isSynced
+        FROM Health_ActivityDaily
+        WHERE profileId IN (\(placeholders)) AND date >= ? AND date < ?
+        ORDER BY date DESC;
+        """
+        var activities: [ActivityDaily] = []
+        let startStr = formatDate(startDate)
+        let endStr = formatDate(endDate)
+
+        sync {
+            var statement: OpaquePointer?
+            if sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK {
+                for (index, pid) in profileIds.enumerated() {
+                    sqlite3_bind_text(statement, Int32(index + 1), (pid.uuidString as NSString).utf8String, -1, nil)
+                }
+                let nextParam = Int32(profileIds.count + 1)
+                sqlite3_bind_text(statement, nextParam, (startStr as NSString).utf8String, -1, nil)
+                sqlite3_bind_text(statement, nextParam + 1, (endStr as NSString).utf8String, -1, nil)
+
+                while sqlite3_step(statement) == SQLITE_ROW {
+                    let id = UUID(uuidString: String(cString: sqlite3_column_text(statement, 0)))!
+                    let pid = UUID(uuidString: String(cString: sqlite3_column_text(statement, 1)))!
+                    let type = ActivityType(rawValue: String(cString: sqlite3_column_text(statement, 2))) ?? .steps
+                    let value = sqlite3_column_double(statement, 3)
+                    let rowDate = parseDate(String(cString: sqlite3_column_text(statement, 4))) ?? Date()
+                    let createdAt = parseDate(String(cString: sqlite3_column_text(statement, 5))) ?? Date()
+                    let lastUpdatedAt = parseDate(String(cString: sqlite3_column_text(statement, 6))) ?? Date()
+                    let isSynced = sqlite3_column_int(statement, 7) == 1
+
+                    activities.append(
+                        ActivityDaily(
+                            id: id, profileId: pid, type: type, value: value,
+                            date: rowDate, createdAt: createdAt, lastUpdatedAt: lastUpdatedAt, isSynced: isSynced
+                        )
+                    )
+                }
+            }
+            sqlite3_finalize(statement)
+        }
+        return activities
+    }
+
     func fetchLatestActivityDaily(for profileId: UUID, type: ActivityType) -> ActivityDaily? {
         let sql = """
         SELECT * FROM Health_ActivityDaily
@@ -1176,7 +1765,7 @@ class SQLiteHelper {
         """
         var activity: ActivityDaily?
 
-        queue.sync {
+        sync {
             var statement: OpaquePointer?
             if sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK {
                 sqlite3_bind_text(statement, 1, (profileId.uuidString as NSString).utf8String, -1, nil)
@@ -1211,7 +1800,7 @@ class SQLiteHelper {
         let sql = "SELECT * FROM Health_VitalsDaily WHERE profileId = ? ORDER BY date DESC;"
         var vitals: [VitalsDaily] = []
         
-        queue.sync {
+        sync {
             var statement: OpaquePointer?
             if sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK {
                 sqlite3_bind_text(statement, 1, (profileId.uuidString as NSString).utf8String, -1, nil)
@@ -1248,7 +1837,7 @@ class SQLiteHelper {
         """
         var vitals: [VitalsDaily] = []
 
-        queue.sync {
+        sync {
             var statement: OpaquePointer?
             if sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK {
                 sqlite3_bind_text(statement, 1, (profileId.uuidString as NSString).utf8String, -1, nil)
@@ -1287,6 +1876,59 @@ class SQLiteHelper {
         return vitals
     }
 
+    func fetchVitalsDaily(for profileId: UUID, from startDate: Date, to endDate: Date) -> [VitalsDaily] {
+        return fetchVitalsDaily(for: [profileId], from: startDate, to: endDate)
+    }
+
+    func fetchVitalsDaily(for profileIds: [UUID], from startDate: Date, to endDate: Date) -> [VitalsDaily] {
+        guard !profileIds.isEmpty else { return [] }
+        let placeholders = profileIds.map { _ in "?" }.joined(separator: ",")
+        let sql = """
+        SELECT id, profileId, type, date, minValue, avgValue, maxValue, createdAt, lastUpdatedAt, isSynced
+        FROM Health_VitalsDaily
+        WHERE profileId IN (\(placeholders)) AND date >= ? AND date < ?
+        ORDER BY date DESC;
+        """
+        var vitals: [VitalsDaily] = []
+        let startStr = formatDate(startDate)
+        let endStr = formatDate(endDate)
+
+        sync {
+            var statement: OpaquePointer?
+            if sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK {
+                for (index, pid) in profileIds.enumerated() {
+                    sqlite3_bind_text(statement, Int32(index + 1), (pid.uuidString as NSString).utf8String, -1, nil)
+                }
+                let nextParam = Int32(profileIds.count + 1)
+                sqlite3_bind_text(statement, nextParam, (startStr as NSString).utf8String, -1, nil)
+                sqlite3_bind_text(statement, nextParam + 1, (endStr as NSString).utf8String, -1, nil)
+
+                while sqlite3_step(statement) == SQLITE_ROW {
+                    let id = UUID(uuidString: String(cString: sqlite3_column_text(statement, 0)))!
+                    let pid = UUID(uuidString: String(cString: sqlite3_column_text(statement, 1)))!
+                    let type = VitalType(rawValue: String(cString: sqlite3_column_text(statement, 2))) ?? .heartRate
+                    let rowDate = parseDate(String(cString: sqlite3_column_text(statement, 3))) ?? Date()
+                    let minValue = sqlite3_column_double(statement, 4)
+                    let avgValue = sqlite3_column_double(statement, 5)
+                    let maxValue = sqlite3_column_double(statement, 6)
+                    let createdAt = parseDate(String(cString: sqlite3_column_text(statement, 7))) ?? Date()
+                    let lastUpdatedAt = parseDate(String(cString: sqlite3_column_text(statement, 8))) ?? Date()
+                    let isSynced = sqlite3_column_int(statement, 9) == 1
+
+                    vitals.append(
+                        VitalsDaily(
+                            id: id, profileId: pid, type: type, date: rowDate,
+                            minValue: minValue, avgValue: avgValue, maxValue: maxValue,
+                            createdAt: createdAt, lastUpdatedAt: lastUpdatedAt, isSynced: isSynced
+                        )
+                    )
+                }
+            }
+            sqlite3_finalize(statement)
+        }
+        return vitals
+    }
+
     func fetchLatestVitalsDaily(for profileId: UUID, type: VitalType) -> VitalsDaily? {
         let sql = """
         SELECT * FROM Health_VitalsDaily
@@ -1296,7 +1938,7 @@ class SQLiteHelper {
         """
         var vital: VitalsDaily?
 
-        queue.sync {
+        sync {
             var statement: OpaquePointer?
             if sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK {
                 sqlite3_bind_text(statement, 1, (profileId.uuidString as NSString).utf8String, -1, nil)
@@ -1335,7 +1977,7 @@ class SQLiteHelper {
         let sql = "SELECT * FROM Health_SleepDaily WHERE profileId = ? ORDER BY date DESC;"
         var sleepEntries: [SleepDaily] = []
         
-        queue.sync {
+        sync {
             var statement: OpaquePointer?
             if sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK {
                 sqlite3_bind_text(statement, 1, (profileId.uuidString as NSString).utf8String, -1, nil)
@@ -1376,7 +2018,7 @@ class SQLiteHelper {
         """
         var sleepEntry: SleepDaily?
 
-        queue.sync {
+        sync {
             var statement: OpaquePointer?
             if sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK {
                 sqlite3_bind_text(statement, 1, (profileId.uuidString as NSString).utf8String, -1, nil)
@@ -1417,6 +2059,62 @@ class SQLiteHelper {
         return sleepEntry
     }
 
+    func fetchSleepDaily(for profileId: UUID, from startDate: Date, to endDate: Date) -> [SleepDaily] {
+        return fetchSleepDaily(for: [profileId], from: startDate, to: endDate)
+    }
+
+    func fetchSleepDaily(for profileIds: [UUID], from startDate: Date, to endDate: Date) -> [SleepDaily] {
+        guard !profileIds.isEmpty else { return [] }
+        let placeholders = profileIds.map { _ in "?" }.joined(separator: ",")
+        let sql = """
+        SELECT id, profileId, date, totalSleep, deepSleep, remSleep, lightSleep, sleepStart, sleepEnd, createdAt, lastUpdatedAt, isSynced
+        FROM Health_SleepDaily
+        WHERE profileId IN (\(placeholders)) AND date >= ? AND date < ?
+        ORDER BY date DESC;
+        """
+        var sleepEntries: [SleepDaily] = []
+        let startStr = formatDate(startDate)
+        let endStr = formatDate(endDate)
+
+        sync {
+            var statement: OpaquePointer?
+            if sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK {
+                for (index, pid) in profileIds.enumerated() {
+                    sqlite3_bind_text(statement, Int32(index + 1), (pid.uuidString as NSString).utf8String, -1, nil)
+                }
+                let nextParam = Int32(profileIds.count + 1)
+                sqlite3_bind_text(statement, nextParam, (startStr as NSString).utf8String, -1, nil)
+                sqlite3_bind_text(statement, nextParam + 1, (endStr as NSString).utf8String, -1, nil)
+
+                while sqlite3_step(statement) == SQLITE_ROW {
+                    let id = UUID(uuidString: String(cString: sqlite3_column_text(statement, 0)))!
+                    let pid = UUID(uuidString: String(cString: sqlite3_column_text(statement, 1)))!
+                    let date = parseDate(String(cString: sqlite3_column_text(statement, 2))) ?? Date()
+                    let totalSleep = sqlite3_column_double(statement, 3)
+                    let deepSleep = sqlite3_column_double(statement, 4)
+                    let remSleep = sqlite3_column_double(statement, 5)
+                    let lightSleep = sqlite3_column_double(statement, 6)
+                    let sleepStart = parseDate(String(cString: sqlite3_column_text(statement, 7))) ?? Date()
+                    let sleepEnd = parseDate(String(cString: sqlite3_column_text(statement, 8))) ?? Date()
+                    let createdAt = parseDate(String(cString: sqlite3_column_text(statement, 9))) ?? Date()
+                    let lastUpdatedAt = parseDate(String(cString: sqlite3_column_text(statement, 10))) ?? Date()
+                    let isSynced = sqlite3_column_int(statement, 11) == 1
+
+                    sleepEntries.append(
+                        SleepDaily(
+                            id: id, profileId: pid, date: date, totalSleep: totalSleep,
+                            deepSleep: deepSleep, remSleep: remSleep, lightSleep: lightSleep,
+                            sleepStart: sleepStart, sleepEnd: sleepEnd,
+                            createdAt: createdAt, lastUpdatedAt: lastUpdatedAt, isSynced: isSynced
+                        )
+                    )
+                }
+            }
+            sqlite3_finalize(statement)
+        }
+        return sleepEntries
+    }
+
     func fetchLatestSleepDaily(for profileId: UUID) -> SleepDaily? {
         let sql = """
         SELECT * FROM Health_SleepDaily
@@ -1426,7 +2124,7 @@ class SQLiteHelper {
         """
         var sleepEntry: SleepDaily?
 
-        queue.sync {
+        sync {
             var statement: OpaquePointer?
             if sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK {
                 sqlite3_bind_text(statement, 1, (profileId.uuidString as NSString).utf8String, -1, nil)
@@ -1468,7 +2166,7 @@ class SQLiteHelper {
     func fetchVitalsHourly(for profileId: UUID) -> [VitalsHourly] {
         let sql = "SELECT * FROM Health_VitalsHourly WHERE profileId = ? ORDER BY hourStart DESC;"
         var vitals: [VitalsHourly] = []
-        queue.sync {
+        sync {
             var statement: OpaquePointer?
             if sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK {
                 sqlite3_bind_text(statement, 1, (profileId.uuidString as NSString).utf8String, -1, nil)
@@ -1500,7 +2198,7 @@ class SQLiteHelper {
     func fetchActivityHourly(for profileId: UUID) -> [ActivityHourly] {
         let sql = "SELECT * FROM Health_ActivityHourly WHERE profileId = ? ORDER BY hourStart DESC;"
         var activities: [ActivityHourly] = []
-        queue.sync {
+        sync {
             var statement: OpaquePointer?
             if sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK {
                 sqlite3_bind_text(statement, 1, (profileId.uuidString as NSString).utf8String, -1, nil)
@@ -1535,7 +2233,7 @@ class SQLiteHelper {
         """
         var activities: [ActivityHourly] = []
 
-        queue.sync {
+        sync {
             var statement: OpaquePointer?
             if sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK {
                 sqlite3_bind_text(statement, 1, (profileId.uuidString as NSString).utf8String, -1, nil)
@@ -1579,7 +2277,7 @@ class SQLiteHelper {
         let sql = "SELECT messageId, senderId, receiverId, timestampUTC, message, deliveredAt, readAt, lastUpdatedAt, isSynced FROM Messages ORDER BY timestampUTC ASC;"
         var messages: [Message] = []
         
-        queue.sync {
+        sync {
             var statement: OpaquePointer?
             if sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK {
                 while sqlite3_step(statement) == SQLITE_ROW {
@@ -1617,7 +2315,7 @@ class SQLiteHelper {
         let sql = "SELECT messageId, senderId, receiverId, timestampUTC, message, deliveredAt, readAt, lastUpdatedAt, isSynced FROM Messages WHERE (senderId = ? AND receiverId = ?) OR (senderId = ? AND receiverId = ?) ORDER BY timestampUTC ASC;"
         var messages: [Message] = []
         
-        queue.sync {
+        sync {
             var statement: OpaquePointer?
             if sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK {
                 sqlite3_bind_text(statement, 1, (senderId.uuidString as NSString).utf8String, -1, nil)
@@ -1665,7 +2363,7 @@ class SQLiteHelper {
         """
         var messages: [Message] = []
 
-        queue.sync {
+        sync {
             var statement: OpaquePointer?
             if sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK {
                 sqlite3_bind_text(statement, 1, (userId.uuidString as NSString).utf8String, -1, nil)
@@ -1714,7 +2412,7 @@ class SQLiteHelper {
 
     func saveTopic(_ topic: Topic) {
         let sql = "INSERT OR REPLACE INTO Topics (id, title, createdBy, createdAt, isSynced) VALUES (?, ?, ?, ?, ?);"
-        queue.sync {
+        sync {
             var statement: OpaquePointer?
             if sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK {
                 sqlite3_bind_text(statement, 1, (topic.id.uuidString as NSString).utf8String, -1, nil)
@@ -1739,7 +2437,7 @@ class SQLiteHelper {
     func fetchTopics() -> [Topic] {
         let sql = "SELECT id, title, createdBy, createdAt, isSynced FROM Topics ORDER BY createdAt DESC;"
         var topics: [Topic] = []
-        queue.sync {
+        sync {
             var statement: OpaquePointer?
             if sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK {
                 while sqlite3_step(statement) == SQLITE_ROW {
@@ -1760,7 +2458,7 @@ class SQLiteHelper {
 
     func saveTopicMember(_ member: TopicMember) {
         let sql = "INSERT OR REPLACE INTO TopicMembers (id, topicId, userId, isSynced) VALUES (?, ?, ?, ?);"
-        queue.sync {
+        sync {
             var statement: OpaquePointer?
             if sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK {
                 sqlite3_bind_text(statement, 1, (member.id.uuidString as NSString).utf8String, -1, nil)
@@ -1776,7 +2474,7 @@ class SQLiteHelper {
     func fetchTopicMembers(for topicId: UUID) -> [TopicMember] {
         let sql = "SELECT id, topicId, userId, isSynced FROM TopicMembers WHERE topicId = ?;"
         var members: [TopicMember] = []
-        queue.sync {
+        sync {
             var statement: OpaquePointer?
             if sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK {
                 sqlite3_bind_text(statement, 1, (topicId.uuidString as NSString).utf8String, -1, nil)
@@ -1798,7 +2496,7 @@ class SQLiteHelper {
 
     func saveTopicMessage(_ msg: TopicMessage) {
         let sql = "INSERT OR REPLACE INTO TopicMessages (id, topicId, senderId, content, createdAt, isSynced) VALUES (?, ?, ?, ?, ?, ?);"
-        queue.sync {
+        sync {
             var statement: OpaquePointer?
             if sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK {
                 sqlite3_bind_text(statement, 1, (msg.id.uuidString as NSString).utf8String, -1, nil)
@@ -1820,7 +2518,7 @@ class SQLiteHelper {
     func fetchTopicMessages(for topicId: UUID) -> [TopicMessage] {
         let sql = "SELECT id, topicId, senderId, content, createdAt, isSynced FROM TopicMessages WHERE topicId = ? ORDER BY createdAt ASC;"
         var msgs: [TopicMessage] = []
-        queue.sync {
+        sync {
             var statement: OpaquePointer?
             if sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK {
                 sqlite3_bind_text(statement, 1, (topicId.uuidString as NSString).utf8String, -1, nil)
@@ -1838,10 +2536,31 @@ class SQLiteHelper {
         return msgs
     }
 
+    func fetchTopicMessage(id: UUID) -> TopicMessage? {
+        let sql = "SELECT id, topicId, senderId, content, createdAt, isSynced FROM TopicMessages WHERE id = ? LIMIT 1;"
+        var msg: TopicMessage?
+        sync {
+            var statement: OpaquePointer?
+            if sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK {
+                sqlite3_bind_text(statement, 1, (id.uuidString as NSString).utf8String, -1, nil)
+                if sqlite3_step(statement) == SQLITE_ROW {
+                    let topicId = UUID(uuidString: String(cString: sqlite3_column_text(statement, 1)))!
+                    let senderId = UUID(uuidString: String(cString: sqlite3_column_text(statement, 2)))!
+                    let content = String(cString: sqlite3_column_text(statement, 3))
+                    let createdAt = sqlite3_column_text(statement, 4).map { parseDate(String(cString: $0)) } ?? nil
+                    let isSynced = sqlite3_column_int(statement, 5) == 1
+                    msg = TopicMessage(id: id, topicId: topicId, senderId: senderId, content: content, createdAt: createdAt, isSynced: isSynced)
+                }
+            }
+            sqlite3_finalize(statement)
+        }
+        return msg
+    }
+
     func fetchChallengeDetails() -> [ChallengeDetails] {
         let sql = "SELECT * FROM ChallengeDetails;"
         var detailsList: [ChallengeDetails] = []
-        queue.sync {
+        sync {
             var statement: OpaquePointer?
             if sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK {
                 while sqlite3_step(statement) == SQLITE_ROW {
@@ -1877,7 +2596,7 @@ class SQLiteHelper {
     func fetchChallengeProgress() -> [ChallengeProgress] {
         let sql = "SELECT * FROM ChallengeProgress;"
         var progressList: [ChallengeProgress] = []
-        queue.sync {
+        sync {
             var statement: OpaquePointer?
             if sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK {
                 while sqlite3_step(statement) == SQLITE_ROW {
@@ -1918,7 +2637,7 @@ class SQLiteHelper {
         let sql = "SELECT \(idColumn) FROM \(tableName) WHERE isSynced = 0;"
         var ids: [UUID] = []
         
-        queue.sync {
+        sync {
             var statement: OpaquePointer?
             if sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK {
                 while sqlite3_step(statement) == SQLITE_ROW {
@@ -1945,7 +2664,7 @@ class SQLiteHelper {
         }
         
         let sql = "UPDATE \(tableName) SET isSynced = 1 WHERE \(idColumn) = ?;"
-        queue.sync {
+        sync {
             var statement: OpaquePointer?
             if sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK {
                 sqlite3_bind_text(statement, 1, (id.uuidString as NSString).utf8String, -1, nil)
@@ -1963,7 +2682,7 @@ class SQLiteHelper {
     }
 
     func markChallengeProgressAsSynced(challengeId: UUID, memberId: UUID) {
-        queue.sync {
+        sync {
             let sql = """
             UPDATE ChallengeProgress
             SET isSynced = 1
@@ -1984,7 +2703,7 @@ class SQLiteHelper {
         let sql = "SELECT 1 FROM \(table) WHERE isSynced = 0 LIMIT 1;"
         var exists = false
 
-        queue.sync {
+        sync {
             var statement: OpaquePointer?
             if sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK {
                 exists = sqlite3_step(statement) == SQLITE_ROW
@@ -2020,7 +2739,7 @@ class SQLiteHelper {
     
     func saveRelationshipNickname(viewerId: UUID, targetId: UUID, nickname: String) {
         let sql = "INSERT OR REPLACE INTO UserRelationships (viewerId, targetId, nickname, isSynced) VALUES (?, ?, ?, ?);"
-        queue.sync {
+        sync {
             var statement: OpaquePointer?
             if sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK {
                 sqlite3_bind_text(statement, 1, (viewerId.uuidString as NSString).utf8String, -1, nil)
@@ -2043,7 +2762,7 @@ class SQLiteHelper {
     func fetchRelationshipNicknames(for viewerId: UUID) -> [UUID: String] {
         let sql = "SELECT targetId, nickname FROM UserRelationships WHERE viewerId = ?;"
         var nicknames: [UUID: String] = [:]
-        queue.sync {
+        sync {
             var statement: OpaquePointer?
             if sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK {
                 sqlite3_bind_text(statement, 1, (viewerId.uuidString as NSString).utf8String, -1, nil)
@@ -2065,7 +2784,7 @@ class SQLiteHelper {
         let sql = "SELECT viewerId, targetId, nickname FROM UserRelationships WHERE isSynced = 0;"
         var rows: [UserRelationshipNickname] = []
 
-        queue.sync {
+        sync {
             var statement: OpaquePointer?
             if sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK {
                 while sqlite3_step(statement) == SQLITE_ROW {
@@ -2089,7 +2808,7 @@ class SQLiteHelper {
     func markRelationshipNicknamesAsSynced(rows: [UserRelationshipNickname]) {
         guard !rows.isEmpty else { return }
 
-        queue.sync {
+        sync {
             let sql = """
             UPDATE UserRelationships
             SET isSynced = 1
@@ -2111,7 +2830,7 @@ class SQLiteHelper {
     }
 
     func replaceRelationshipNicknames(for viewerId: UUID, rows: [UserRelationshipNickname]) {
-        queue.sync {
+        sync {
             // Use INSERT OR REPLACE so Supabase data is always reflected locally.
             // The push path now always runs first in syncAll, so Supabase is the source of truth.
             let insertSQL = "INSERT OR REPLACE INTO UserRelationships (viewerId, targetId, nickname, isSynced) VALUES (?, ?, ?, 1);"
@@ -2134,7 +2853,7 @@ class SQLiteHelper {
 
     func deleteMessage(id: UUID) {
         let sql = "DELETE FROM Messages WHERE messageId = ?;"
-        queue.sync {
+        sync {
             var statement: OpaquePointer?
             if sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK {
                 sqlite3_bind_text(statement, 1, (id.uuidString as NSString).utf8String, -1, nil)
@@ -2146,7 +2865,7 @@ class SQLiteHelper {
 
     func deleteTopicMessage(id: UUID) {
         let sql = "DELETE FROM TopicMessages WHERE id = ?;"
-        queue.sync {
+        sync {
             var statement: OpaquePointer?
             if sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK {
                 sqlite3_bind_text(statement, 1, (id.uuidString as NSString).utf8String, -1, nil)
@@ -2158,7 +2877,7 @@ class SQLiteHelper {
 
     func deleteTopic(id: UUID) {
         let sql = "DELETE FROM Topics WHERE id = ?;"
-        queue.sync {
+        sync {
             var statement: OpaquePointer?
             if sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK {
                 sqlite3_bind_text(statement, 1, (id.uuidString as NSString).utf8String, -1, nil)
@@ -2170,7 +2889,7 @@ class SQLiteHelper {
 
     func deleteTopicMember(id: UUID) {
         let sql = "DELETE FROM TopicMembers WHERE id = ?;"
-        queue.sync {
+        sync {
             var statement: OpaquePointer?
             if sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK {
                 sqlite3_bind_text(statement, 1, (id.uuidString as NSString).utf8String, -1, nil)
@@ -2182,7 +2901,7 @@ class SQLiteHelper {
 
     func deleteProfile(id: UUID) {
         let sql = "DELETE FROM Profiles WHERE profileId = ?;"
-        queue.sync {
+        sync {
             var statement: OpaquePointer?
             if sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK {
                 sqlite3_bind_text(statement, 1, (id.uuidString as NSString).utf8String, -1, nil)
@@ -2194,7 +2913,7 @@ class SQLiteHelper {
 
     func deleteChallengeDetails(challengeId: UUID) {
         let sql = "DELETE FROM ChallengeDetails WHERE challengeId = ?;"
-        queue.sync {
+        sync {
             var statement: OpaquePointer?
             if sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK {
                 sqlite3_bind_text(statement, 1, (challengeId.uuidString as NSString).utf8String, -1, nil)
@@ -2206,7 +2925,7 @@ class SQLiteHelper {
 
     func deleteChallengeProgress(challengeId: UUID, memberId: UUID) {
         let sql = "DELETE FROM ChallengeProgress WHERE challengeId = ? AND memberId = ?;"
-        queue.sync {
+        sync {
             var statement: OpaquePointer?
             if sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK {
                 sqlite3_bind_text(statement, 1, (challengeId.uuidString as NSString).utf8String, -1, nil)
@@ -2236,7 +2955,7 @@ class SQLiteHelper {
             "UserRelationships"
         ]
 
-        queue.sync {
+        sync {
             // Turn off FK enforcement temporarily to allow deleting everything without cascading issues
             sqlite3_exec(db, "PRAGMA foreign_keys = OFF;", nil, nil, nil)
             defer { sqlite3_exec(db, "PRAGMA foreign_keys = ON;", nil, nil, nil) }
@@ -2262,7 +2981,7 @@ class SQLiteHelper {
             "Health_SleepDaily"
         ]
 
-        queue.sync {
+        sync {
             sqlite3_exec(db, "PRAGMA foreign_keys = OFF;", nil, nil, nil)
             defer { sqlite3_exec(db, "PRAGMA foreign_keys = ON;", nil, nil, nil) }
 

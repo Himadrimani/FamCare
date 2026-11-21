@@ -57,17 +57,21 @@ class NewChallengeCollectionViewCell: UICollectionViewCell {
         if progress >= 100.0 {
             timeText = "Completed"
         } else if timeInterval > 0 {
-            let days = Int(timeInterval / (3600 * 24))
-            if days > 1 {
-                timeText = "\(days) Days Left"
-            } else if days == 1 {
-                timeText = "1 Day Left"
+            if challenge.isRecreational {
+                timeText = challenge.countdownText
             } else {
-                let hours = Int(timeInterval / 3600)
-                if hours > 0 {
-                    timeText = "\(hours)hrs Left"
+                let days = Int(timeInterval / (3600 * 24))
+                if days > 1 {
+                    timeText = "\(days) Days Left"
+                } else if days == 1 {
+                    timeText = "1 Day Left"
                 } else {
-                    timeText = "Time Over"
+                    let hours = Int(timeInterval / 3600)
+                    if hours > 0 {
+                        timeText = "\(hours)hrs Left"
+                    } else {
+                        timeText = "Time Over"
+                    }
                 }
             }
         } else {

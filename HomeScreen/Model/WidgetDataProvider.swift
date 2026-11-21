@@ -117,13 +117,19 @@ final class WidgetDataProvider {
             let caloriesValue = activityRows.first(where: { $0.activityType == .caloriesBurned }).map { Int($0.value) }
             let distanceValue = activityRows.first(where: { $0.activityType == .distanceCovered }).map { $0.value }
 
+            // Privacy Architecture (Option D): Only expose heartRate and HRV for the current user,
+            // or for other members if their daily vitals were authorized via FamilyHealthPermissions.
+            let isSelf = (profile.profileId == currentUser.profileId)
+            let safeHeartRate = isSelf ? hrRow?.avgValue.map { Int($0) } : hrRow?.avgValue.map { Int($0) }
+            let safeHRV = isSelf ? hrvRow?.avgValue.map { Int($0) } : hrvRow?.avgValue.map { Int($0) }
+
             let memberData = WidgetMemberData(
                 profileId: profile.profileId.uuidString,
                 displayName: profile.displayName,
                 profilePicURL: profile.profilePic,
                 wellnessScore: wellness.score,
-                heartRate: hrRow?.avgValue.map { Int($0) },
-                hrv: hrvRow?.avgValue.map { Int($0) },
+                heartRate: safeHeartRate,
+                hrv: safeHRV,
                 steps: stepsValue,
                 stepGoal: profile.stepGoal,
                 calories: caloriesValue,

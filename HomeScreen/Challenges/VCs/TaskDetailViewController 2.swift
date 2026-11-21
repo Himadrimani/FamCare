@@ -154,6 +154,16 @@ class TaskDetailViewController: UIViewController {
             endsLabel.translatesAutoresizingMaskIntoConstraints = false
             self.endsInLabel = endsLabel
             
+            var timerSubviews: [UIView] = []
+            if challenge.isRecreational {
+                let dateBadge = UILabel()
+                dateBadge.font = UIFont.systemFont(ofSize: 13, weight: .semibold)
+                dateBadge.textColor = .systemBlue
+                dateBadge.text = "📅 \(challenge.formattedDateTime)"
+                dateBadge.translatesAutoresizingMaskIntoConstraints = false
+                timerSubviews.append(dateBadge)
+            }
+            
             let daysPill = createTimePill()
             self.daysPillView = daysPill.container
             self.daysValueLabel = daysPill.valueLabel
@@ -170,7 +180,10 @@ class TaskDetailViewController: UIViewController {
             pillsStack.distribution = .fillEqually
             pillsStack.translatesAutoresizingMaskIntoConstraints = false
             
-            let timerStack = UIStackView(arrangedSubviews: [endsLabel, pillsStack])
+            timerSubviews.append(endsLabel)
+            timerSubviews.append(pillsStack)
+            
+            let timerStack = UIStackView(arrangedSubviews: timerSubviews)
             timerStack.axis = .vertical
             timerStack.spacing = 8
             timerStack.alignment = .leading
@@ -296,6 +309,50 @@ class TaskDetailViewController: UIViewController {
             daysValueLabel?.textColor = .systemRed
             hoursValueLabel?.textColor = .systemRed
             timer?.invalidate()
+        } else if challenge.isRecreational {
+            let days = Int(timeInterval) / (3600 * 24)
+            let hours = (Int(timeInterval) % (3600 * 24)) / 3600
+            let minutes = (Int(timeInterval) % 3600) / 60
+            let seconds = Int(timeInterval) % 60
+            
+            if days > 0 {
+                daysValueLabel?.text = "\(days)"
+                daysSuffixLabel?.text = "d"
+                hoursValueLabel?.text = "\(hours)"
+                hoursSuffixLabel?.text = "h"
+                endsInLabel?.text = hours > 0 ? "\(days)d \(hours)h left" : "\(days)d left"
+            } else if hours > 0 {
+                daysValueLabel?.text = "\(hours)"
+                daysSuffixLabel?.text = "h"
+                hoursValueLabel?.text = "\(minutes)"
+                hoursSuffixLabel?.text = "m"
+                endsInLabel?.text = "\(hours) hr \(minutes) min left"
+            } else if minutes > 0 {
+                daysValueLabel?.text = "\(minutes)"
+                daysSuffixLabel?.text = "m"
+                hoursValueLabel?.text = "\(seconds)"
+                hoursSuffixLabel?.text = "s"
+                endsInLabel?.text = "\(minutes) min left"
+            } else {
+                daysValueLabel?.text = "0"
+                daysSuffixLabel?.text = "m"
+                hoursValueLabel?.text = "\(seconds)"
+                hoursSuffixLabel?.text = "s"
+                endsInLabel?.text = "\(seconds) sec left"
+            }
+            endsInLabel?.textColor = .secondaryLabel
+            
+            if days <= 1 {
+                daysPillView?.backgroundColor = UIColor.systemOrange.withAlphaComponent(0.12)
+                hoursPillView?.backgroundColor = UIColor.systemOrange.withAlphaComponent(0.12)
+                daysValueLabel?.textColor = .systemOrange
+                hoursValueLabel?.textColor = .systemOrange
+            } else {
+                daysPillView?.backgroundColor = UIColor.systemGray6
+                hoursPillView?.backgroundColor = UIColor.systemGray6
+                daysValueLabel?.textColor = .label
+                hoursValueLabel?.textColor = .label
+            }
         } else {
             let days = Int(timeInterval) / (3600 * 24)
             let hours = (Int(timeInterval) % (3600 * 24)) / 3600
@@ -339,11 +396,25 @@ class TaskDetailViewController: UIViewController {
         
         if let idx = DataManager.shared.challengeProgress.firstIndex(where: { $0.challengeId == challengeDetails.challengeId && $0.memberId == currentUser.profileId }) {
             var progress = DataManager.shared.challengeProgress[idx]
+            let wasMemberAlreadyComplete = progress.goalValue > 0 && progress.currentValue >= progress.goalValue
             progress.currentValue = progress.goalValue // Mark as done
             progress.isSynced = false
             DataManager.shared.challengeProgress[idx] = progress
             
             SQLiteHelper.shared.saveChallengeProgress(progress)
+            
+            // Check if this action caused a genuine family-wide completion transition
+            let allProgressForChallenge = DataManager.shared.challengeProgress.filter { $0.challengeId == challengeDetails.challengeId }
+            let isFamilyChallenge = allProgressForChallenge.count > 1
+            let isFamilyNowComplete = isFamilyChallenge && allProgressForChallenge.allSatisfy { $0.goalValue > 0 && $0.currentValue >= $0.goalValue }
+            
+            if !wasMemberAlreadyComplete && isFamilyNowComplete {
+                // Actual new family-wide completion transition!
+                RewardsManager.shared.awardFamilyShield(challenge: challengeDetails, participantsCount: allProgressForChallenge.count)
+            }
+            
+            // Award individual trophy for completing personal goal
+            RewardsManager.shared.awardIndividualTrophy(challenge: challengeDetails, participantsCount: allProgressForChallenge.count)
             
             // Always show the individual trophy for completing your own goal
             let overlay = RewardsViewController(
@@ -351,7 +422,7 @@ class TaskDetailViewController: UIViewController {
                 challengeId: challengeDetails.challengeId.uuidString, 
                 challengeTitle: challengeDetails.name,
                 challengeType: challengeDetails.type,
-                participantsCount: DataManager.shared.challengeProgress.filter({ $0.challengeId == challengeDetails.challengeId }).count
+                participantsCount: allProgressForChallenge.count
             )
             self.present(overlay, animated: true)
             

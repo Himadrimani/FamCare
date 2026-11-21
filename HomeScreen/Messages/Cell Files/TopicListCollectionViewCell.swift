@@ -33,7 +33,19 @@ class TopicListCollectionViewCell: UICollectionViewCell {
         }
 
         if let msg = latestMessage {
-            lastMessageLabel.text = msg.content
+            if let poll = PollData.parse(from: msg.content) {
+                lastMessageLabel.text = "📊 Poll: \(poll.question)"
+            } else if msg.content.hasPrefix("[SHARE_CARD:") {
+                if msg.content.hasPrefix("[SHARE_CARD:INSIGHT") {
+                    lastMessageLabel.text = "📈 Shared Insight"
+                } else if msg.content.hasPrefix("[SHARE_CARD:CHALLENGE") {
+                    lastMessageLabel.text = "🏆 Shared Challenge"
+                } else {
+                    lastMessageLabel.text = msg.content
+                }
+            } else {
+                lastMessageLabel.text = msg.content
+            }
             timeLabel.text = formattedTime(from: msg.createdAt ?? Date())
             lastMessageLabel.font = hasUnread ? .systemFont(ofSize: 15, weight: .semibold) : .systemFont(ofSize: 15)
             lastMessageLabel.textColor = hasUnread ? .label : .secondaryLabel
